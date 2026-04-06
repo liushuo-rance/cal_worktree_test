@@ -46,6 +46,13 @@ class TestTimeConversion:
             assert back_hours == hours
             assert back_minutes == minutes
 
+    def test_total_minutes_negative_rejected(self):
+        """负总分钟数应该被拒绝"""
+        from src.utils.time_utils import total_minutes_to_hours_minutes
+
+        with pytest.raises(ValueError, match="total_minutes cannot be negative"):
+            total_minutes_to_hours_minutes(-1)
+
 
 class TestWorkHoursCheck:
     """工作时间判断测试"""
@@ -114,6 +121,12 @@ class TestWorkHoursCheck:
         # 工作时间
         assert get_time_period(time(10, 0)) == TimePeriod.WORK_TIME
         assert get_time_period(time(15, 0)) == TimePeriod.WORK_TIME
+
+        # 边界时间测试
+        assert get_time_period(time(8, 30)) == TimePeriod.WORK_TIME  # 工作开始
+        assert get_time_period(time(12, 0)) == TimePeriod.LUNCH  # 上午结束(边界算午休)
+        assert get_time_period(time(13, 0)) == TimePeriod.LUNCH  # 下午开始(边界算午休)
+        assert get_time_period(time(17, 30)) == TimePeriod.WORK_TIME  # 工作结束
 
 
 class TestOvertimeCalculation:
