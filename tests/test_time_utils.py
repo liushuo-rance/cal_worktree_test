@@ -52,7 +52,7 @@ class TestWorkHoursCheck:
 
     def test_morning_work_time(self):
         """上午工作时间: 08:30-12:00"""
-        from src.utils.time_utils import is_work_time, get_time_period
+        from src.utils.time_utils import is_work_time, get_time_period, TimePeriod
 
         # 工作时间内的时刻
         assert is_work_time(time(8, 30)) is True
@@ -63,12 +63,12 @@ class TestWorkHoursCheck:
         assert is_work_time(time(8, 0)) is False
         assert is_work_time(time(8, 29)) is False
 
-        # 时段判断
-        assert get_time_period(time(10, 0)) == "morning"
+        # 时段判断 - 上午工作时间返回 WORK_TIME
+        assert get_time_period(time(10, 0)) == TimePeriod.WORK_TIME
 
     def test_afternoon_work_time(self):
         """下午工作时间: 13:00-17:30"""
-        from src.utils.time_utils import is_work_time, get_time_period
+        from src.utils.time_utils import is_work_time, get_time_period, TimePeriod
 
         # 工作时间内的时刻
         assert is_work_time(time(13, 0)) is True
@@ -79,18 +79,22 @@ class TestWorkHoursCheck:
         assert is_work_time(time(12, 30)) is False
         assert is_work_time(time(18, 0)) is False
 
-        # 时段判断
-        assert get_time_period(time(15, 0)) == "afternoon"
+        # 时段判断 - 下午工作时间返回 WORK_TIME
+        assert get_time_period(time(15, 0)) == TimePeriod.WORK_TIME
 
     def test_lunch_break_not_work_time(self):
         """午休时间: 12:00-13:00 不算工作时间"""
-        from src.utils.time_utils import is_work_time, get_time_period
+        from src.utils.time_utils import is_work_time, get_time_period, TimePeriod
 
-        assert is_work_time(time(12, 0)) is False  # 午休开始
+        # 12:00 是上午工作结束时间，属于工作时间
+        assert is_work_time(time(12, 0)) is True
+        # 午休期间不算工作时间
         assert is_work_time(time(12, 30)) is False
-        assert is_work_time(time(13, 0)) is False  # 午休结束（边界）
+        # 13:00 是下午工作开始时间，属于工作时间
+        assert is_work_time(time(13, 0)) is True
 
-        assert get_time_period(time(12, 30)) == "lunch"
+        # 午休时段返回 LUNCH
+        assert get_time_period(time(12, 30)) == TimePeriod.LUNCH
 
     def test_overtime_periods(self):
         """加班时段判断"""
@@ -100,8 +104,8 @@ class TestWorkHoursCheck:
         assert get_time_period(time(7, 0)) == TimePeriod.WEEKDAY_MORNING
         assert get_time_period(time(8, 0)) == TimePeriod.WEEKDAY_MORNING
 
-        # 午休加班: 12:00-13:00
-        assert get_time_period(time(12, 30)) == TimePeriod.WEEKDAY_LUNCH
+        # 午休时间: 12:00-13:00 返回 LUNCH
+        assert get_time_period(time(12, 30)) == TimePeriod.LUNCH
 
         # 晚间加班: 17:30之后
         assert get_time_period(time(18, 0)) == TimePeriod.WEEKDAY_EVENING
@@ -127,8 +131,8 @@ class TestOvertimeCalculation:
         result = calculate_overtime_hours(time(17, 30), time(20, 0))
         assert result == (2, 30, 150)
 
-        # 午休加班: 12:30-13:00 = 0.5h
-        result = calculate_overtime_hours(time(12, 30), time(13, 0))
+        # 午休加班: 12:30-13:00 = 0.5h（需要明确指定include_lunch=True）
+        result = calculate_overtime_hours(time(12, 30), time(13, 0), include_lunch=True)
         assert result == (0, 30, 30)
 
     def test_cross_work_hours_calculation(self):
