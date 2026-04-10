@@ -129,6 +129,73 @@
         </div>
     </section>
 
+    <!-- Overtime Ranking -->
+    <section class="content-card mb-12">
+        <div class="content-card-header">
+            <div class="flex items-center justify-between">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">emoji_events</span>
+                    年度加班排名
+                </h5>
+                <a href="{{ url_for('reports.overtime_ranking') }}" class="text-sm text-primary hover:underline">查看更多 &rarr;</a>
+            </div>
+        </div>
+        <div class="content-card-body p-0">
+            {% if ranking_report and ranking_report.ranking %}
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">排名</th>
+                            <th>员工</th>
+                            <th>部门</th>
+                            <th class="text-right">总时长</th>
+                            <th class="text-right">工作日延时</th>
+                            <th class="text-right">周末</th>
+                            <th class="text-right">法定节假日</th>
+                            <th class="text-right">记录数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in ranking_report.ranking %}
+                        <tr>
+                            <td>
+                                {% if r.rank == 1 %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-white font-bold">1</span>
+                                {% elif r.rank == 2 %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-400 text-white font-bold">2</span>
+                                {% elif r.rank == 3 %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-600 text-white font-bold">3</span>
+                                {% else %}
+                                <span class="text-on-surface-variant font-medium">{{ r.rank }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}" class="font-medium hover:text-primary hover:underline">
+                                    {{ r.employee_name }}
+                                </a>
+                            </td>
+                            <td class="text-on-surface-variant">{{ r.department }}</td>
+                            <td class="text-right font-mono font-bold">{{ "%.1f"|format(r.total_hours) }}h</td>
+                            <td class="text-right font-mono text-on-surface-variant">{{ "%.1f"|format(r.weekday_hours) }}h</td>
+                            <td class="text-right font-mono text-on-surface-variant">{{ "%.1f"|format(r.weekend_hours) }}h</td>
+                            <td class="text-right font-mono text-on-surface-variant">{{ "%.1f"|format(r.holiday_hours) }}h</td>
+                            <td class="text-right">{{ r.record_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-12">
+                <span class="material-symbols-outlined empty-state-icon">emoji_events</span>
+                <h3 class="empty-state-title">暂无排名数据</h3>
+                <p class="empty-state-description">本年还没有加班记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
     <!-- Bento Grid Layout -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
         <!-- Compliance Health Card (spans 2 columns) -->
@@ -213,73 +280,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <!-- Overtime Ranking -->
-    <section class="content-card">
-        <div class="content-card-header">
-            <div class="flex items-center justify-between">
-                <h5 class="content-card-title">
-                    <span class="material-symbols-outlined inline-icon">emoji_events</span>
-                    年度加班排名
-                </h5>
-                <a href="{{ url_for('reports.overtime_ranking') }}" class="text-sm text-primary hover:underline">查看更多 &rarr;</a>
-            </div>
-        </div>
-        <div class="content-card-body p-0">
-            {% if ranking_report and ranking_report.ranking %}
-            <div class="data-table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px;">排名</th>
-                            <th>员工</th>
-                            <th>部门</th>
-                            <th class="text-right">总时长</th>
-                            <th class="text-right">工作日延时</th>
-                            <th class="text-right">周末</th>
-                            <th class="text-right">法定节假日</th>
-                            <th class="text-right">记录数</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for r in ranking_report.ranking %}
-                        <tr>
-                            <td>
-                                {% if r.rank == 1 %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-white font-bold">1</span>
-                                {% elif r.rank == 2 %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-400 text-white font-bold">2</span>
-                                {% elif r.rank == 3 %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-600 text-white font-bold">3</span>
-                                {% else %}
-                                <span class="text-on-surface-variant font-medium">{{ r.rank }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}" class="font-medium hover:text-primary hover:underline">
-                                    {{ r.employee_name }}
-                                </a>
-                            </td>
-                            <td class="text-on-surface-variant">{{ r.department }}</td>
-                            <td class="text-right font-mono font-bold">{{ "%.1f"|format(r.total_hours) }}h</td>
-                            <td class="text-right font-mono text-on-surface-variant">{{ "%.1f"|format(r.weekday_hours) }}h</td>
-                            <td class="text-right font-mono text-on-surface-variant">{{ "%.1f"|format(r.weekend_hours) }}h</td>
-                            <td class="text-right font-mono text-on-surface-variant">{{ "%.1f"|format(r.holiday_hours) }}h</td>
-                            <td class="text-right">{{ r.record_count }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state py-12">
-                <span class="material-symbols-outlined empty-state-icon">emoji_events</span>
-                <h3 class="empty-state-title">暂无排名数据</h3>
-                <p class="empty-state-description">本年还没有加班记录</p>
-            </div>
-            {% endif %}
         </div>
     </section>
 </div>
