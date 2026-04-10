@@ -21,6 +21,7 @@ from parsers.type_parser import classify_record_type
 from services.parse_result_processor import process_parse_results
 from services.ai_parser_service import parse_with_ai
 from services.storage_service import store_batch_records_with_session, StorageError
+from services.holiday_service import get_date_type
 
 bp = Blueprint('records', __name__, url_prefix='/records')
 
@@ -247,6 +248,35 @@ def parse_file_content(content: str, session_key: str = None) -> Dict[str, Any]:
             batch_line_num = record.get('line_num', 0)
             if 1 <= batch_line_num <= len(line_numbers):
                 record['line_num'] = line_numbers[batch_line_num - 1]
+
+        # 根据节假日配置修正 overtime_type / leave_type
+        conn = get_db()
+        try:
+            for record in records:
+                parsed_date_str = record.get('parsed_date')
+                if not parsed_date_str:
+                    continue
+                try:
+                    d = date.fromisoformat(parsed_date_str)
+                except ValueError:
+                    continue
+
+                if record.get('type') == 'overtime':
+                    date_type = get_date_type(conn, d)
+                    if date_type in ('weekend', 'adjusted_holiday'):
+                        record['overtime_type'] = 'weekend'
+                    elif date_type == 'statutory_holiday':
+                        record['overtime_type'] = 'holiday'
+                    elif date_type in ('workday', 'adjusted_workday'):
+                        # 保留AI识别的工作日子类型，未识别则默认晚上
+                        ai_subtype = record.get('overtime_type')
+                        if ai_subtype not in ('weekday_morning', 'weekday_lunch', 'weekday_evening', 'weekday_mixed'):
+                            record['overtime_type'] = 'weekday_evening'
+                elif record.get('type') == 'leave':
+                    if not record.get('leave_type'):
+                        record['leave_type'] = 'personal'
+        finally:
+            conn.close()
 
         # 添加置信度分级和异常检测
         if session_key:
