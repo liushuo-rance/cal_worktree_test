@@ -46,6 +46,15 @@
                 <span>检测到有异常记录，请仔细检查标记为"警告"的行，点击"编辑"进行修改</span>
             </div>
             {% endif %}
+            {% if preview.duplicate_count %}
+            <div class="alert alert-error mt-6" style="background: #fff7ed; border-color: #f97316; color: #c2410c;">
+                <span class="material-symbols-outlined" style="color: #f97316;">error</span>
+                <div>
+                    <strong>检测到 {{ preview.duplicate_count }} 条重复记录</strong>
+                    <p class="mt-1 text-sm" style="color: #9a3412;">系统发现这些记录已存在于数据库中。为避免数据覆盖，默认已选择"跳过"。如需覆盖旧数据，请在对应行手动切换为"覆盖"。</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -143,7 +152,7 @@
                         </thead>
                         <tbody>
                             {% for record in preview.records %}
-                            <tr class="record-row {% if record.confidence_level == 'LOW' %}bg-error-container/20{% elif record.has_anomaly %}bg-warning/10{% endif %}"
+                            <tr class="record-row {% if record.confidence_level == 'LOW' %}bg-error-container/20{% elif record.has_anomaly %}bg-warning/10{% elif record.is_duplicate %}bg-orange-50{% endif %}"
                                 data-index="{{ loop.index0 }}">
                                 <td>
                                     <input type="checkbox" name="selected_records" value="{{ loop.index0 }}"
@@ -221,7 +230,7 @@
                                     </div>
                                 </td>
                                 <td class="display-mode">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         {% if record.confidence_level == 'HIGH' %}
                                         <span class="badge badge-secondary">高</span>
                                         {% elif record.confidence_level == 'MEDIUM' %}
@@ -234,6 +243,10 @@
                                         <span class="badge badge-outline text-primary" title="由Claude AI大模型解析">🤖 AI</span>
                                         {% endif %}
 
+                                        {% if record.is_duplicate %}
+                                        <span class="badge" style="background: #ffedd5; color: #9a3412; border: 1px solid #fdba74;">重复</span>
+                                        {% endif %}
+
                                         {% if record.validation_errors %}
                                         <span class="material-symbols-outlined text-error" title="{{ record.validation_errors|join(', ') }}">error</span>
                                         {% endif %}
@@ -241,6 +254,12 @@
                                         <span class="material-symbols-outlined text-warning" title="{{ record.anomalies|join(', ') }}">warning</span>
                                         {% endif %}
                                     </div>
+                                    {% if record.is_duplicate and record.duplicate_existing %}
+                                    <div class="mt-1 text-body-xs" style="color: #9a3412;">
+                                        已存在: {{ record.duplicate_existing.duration_hours }}h{% if record.duplicate_existing.duration_minutes %}{{ record.duplicate_existing.duration_minutes }}m{% endif %}
+                                        {% if record.duplicate_existing.description %}- {{ record.duplicate_existing.description }}{% endif %}
+                                    </div>
+                                    {% endif %}
                                 </td>
                                 <td class="display-mode">
                                     <div class="flex items-center gap-1">
@@ -251,6 +270,18 @@
                                             <span class="material-symbols-outlined">delete</span>
                                         </button>
                                     </div>
+                                    {% if record.is_duplicate %}
+                                    <div class="mt-2 flex items-center gap-2 text-body-xs">
+                                        <label class="flex items-center gap-1 cursor-pointer" title="保留旧数据，不导入本条">
+                                            <input type="radio" name="records[{{ loop.index0 }}][duplicate_action]" value="skip" checked class="form-radio">
+                                            <span style="color: #9a3412;">跳过</span>
+                                        </label>
+                                        <label class="flex items-center gap-1 cursor-pointer" title="用新数据覆盖旧记录">
+                                            <input type="radio" name="records[{{ loop.index0 }}][duplicate_action]" value="overwrite" class="form-radio">
+                                            <span style="color: #1d4ed8;">覆盖</span>
+                                        </label>
+                                    </div>
+                                    {% endif %}
                                 </td>
 
                                 <!-- Edit Mode (Hidden by default) -->

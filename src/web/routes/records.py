@@ -435,6 +435,45 @@ def import_records():
                 }
                 session.modified = True
 
+            # 检测数据库重复记录
+            conn = get_db()
+            cursor = conn.cursor()
+            duplicate_count = 0
+            for record in all_records:
+                parsed_date = record.get('parsed_date')
+                rtype = record.get('type')
+                if not parsed_date or rtype == 'unknown':
+                    record['is_duplicate'] = False
+                    continue
+                existing = None
+                if rtype == 'overtime':
+                    subtype = record.get('overtime_type', 'weekday_evening')
+                    cursor.execute(
+                        "SELECT duration_hours, duration_minutes, total_minutes, description FROM overtime_records WHERE employee_id = ? AND work_date = ? AND overtime_type = ?",
+                        (employee_id, parsed_date, subtype)
+                    )
+                    existing = cursor.fetchone()
+                elif rtype == 'leave':
+                    subtype = record.get('leave_type', 'personal')
+                    cursor.execute(
+                        "SELECT duration_hours, duration_minutes, total_minutes, description FROM leave_records WHERE employee_id = ? AND leave_date = ? AND leave_type = ?",
+                        (employee_id, parsed_date, subtype)
+                    )
+                    existing = cursor.fetchone()
+                elif rtype == 'comp_off':
+                    cursor.execute(
+                        "SELECT duration_hours, duration_minutes, total_minutes, description FROM comp_off_usage_records WHERE employee_id = ? AND usage_date = ?",
+                        (employee_id, parsed_date)
+                    )
+                    existing = cursor.fetchone()
+                if existing:
+                    record['is_duplicate'] = True
+                    record['duplicate_existing'] = dict(existing)
+                    duplicate_count += 1
+                else:
+                    record['is_duplicate'] = False
+            conn.close()
+
             # 存储到 session，供确认页面使用
             session['import_preview'] = {
                 'employee_id': employee_id,
@@ -446,6 +485,7 @@ def import_records():
                 'medium_confidence': len([r for r in all_records if r.get('confidence_level') == 'MEDIUM']),
                 'low_confidence': len([r for r in all_records if r.get('confidence_level') == 'LOW']),
                 'has_anomalies': any(r.get('has_anomaly') for r in all_records),
+                'duplicate_count': duplicate_count,
             }
 
             # 跳转到预览页面
@@ -525,6 +565,7 @@ def import_confirm():
     records_to_store = []
     errors = []
 
+    skipped_duplicates = 0
     for idx in sorted(record_indices):
         try:
             prefix = f'records[{idx}]'
@@ -533,6 +574,7 @@ def import_confirm():
             record_subtype = request.form.get(f'{prefix}[subtype]', '').strip()
             record_hours = request.form.get(f'{prefix}[hours]', '0').strip()
             record_content = request.form.get(f'{prefix}[content]', '').strip()
+            duplicate_action = request.form.get(f'{prefix}[duplicate_action]', 'skip').strip()
 
             if not record_date_str:
                 errors.append(f"记录#{idx + 1}: 缺少日期")
@@ -555,6 +597,7 @@ def import_confirm():
                 'date': record_date,
                 'hours': hours,
                 'description': record_content,
+                'duplicate_action': duplicate_action,
             }
 
             if record_type == 'overtime':
@@ -565,6 +608,15 @@ def import_confirm():
                 pass  # comp_off 只需要基础字段
             else:
                 errors.append(f"记录#{idx + 1}: 未知的记录类型 '{record_type}'")
+                continue
+
+            # 检查是否为重复且用户选择跳过
+            preview_records = preview_data.get('records', [])
+            is_dup = False
+            if 0 <= idx < len(preview_records):
+                is_dup = preview_records[idx].get('is_duplicate', False)
+            if is_dup and duplicate_action == 'skip':
+                skipped_duplicates += 1
                 continue
 
             records_to_store.append(store_record)
@@ -708,7 +760,8 @@ def import_confirm():
         session.pop('import_preview', None)
         session.pop('ai_parse_details', None)
 
-        flash(f'导入完成: 成功 {success_count} 条 (新增 {insert_count} 条, 更新 {update_count} 条), 失败 {error_count} 条', 'success')
+        skip_msg = f"，跳过重复 {skipped_duplicates} 条" if skipped_duplicates else ""
+        flash(f'导入完成: 成功 {success_count} 条 (新增 {insert_count} 条, 更新 {update_count} 条){skip_msg}，失败 {error_count} 条', 'success')
         if errors:
             for error in errors[:5]:
                 flash(error, 'warning')
