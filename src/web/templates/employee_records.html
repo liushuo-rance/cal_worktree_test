@@ -34,6 +34,70 @@
         </div>
     </div>
 
+    {% if duplicate_groups %}
+    <!-- Duplicate Alert -->
+    <div class="mb-6 content-card border-l-4" style="border-left-color: #f97316;">
+        <div class="content-card-header" style="background: #fff7ed;">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined" style="color: #f97316;">warning</span>
+                <h5 class="content-card-title" style="color: #9a3412;">
+                    检测到 {{ duplicate_groups|length }} 组重复记录
+                </h5>
+            </div>
+        </div>
+        <div class="content-card-body" style="background: #fff7ed;">
+            <p class="text-sm mb-4" style="color: #9a3412;">
+                以下记录为同一天、同类型、同时长的重复数据。请选择"合并为一条"（合并描述）或"保留一条"（仅保留最早记录）进行处理。
+            </p>
+            <div class="space-y-4">
+                {% for group in duplicate_groups %}
+                <div class="bg-white rounded-md p-4 border border-orange-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="font-medium text-sm" style="color: #9a3412;">
+                            {% if active_tab == 'overtime' %}
+                                {{ group[0].work_date }} - {{ group[0].overtime_type }} - {{ group[0].duration_hours }}h {{ group[0].duration_minutes }}m
+                            {% elif active_tab == 'leave' %}
+                                {{ group[0].leave_date }} - {{ group[0].leave_type }} - {{ group[0].duration_hours }}h {{ group[0].duration_minutes }}m
+                            {% else %}
+                                {{ group[0].usage_date }} - {{ group[0].duration_hours }}h {{ group[0].duration_minutes }}m
+                            {% endif %}
+                            <span class="ml-2 text-xs">(共 {{ group|length }} 条)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <form method="POST" action="{{ url_for('employees.merge_duplicates', employee_id=employee.employee_id, record_type=active_tab) }}" class="inline">
+                                {% for rec in group %}
+                                <input type="hidden" name="record_ids" value="{{ rec.id }}">
+                                {% endfor %}
+                                <button type="submit" class="btn btn-sm" style="background: #fed7aa; color: #9a3412; border: 1px solid #fdba74;">
+                                    <span class="material-symbols-outlined icon-sm">merge_type</span>
+                                    合并为一条
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('employees.deduplicate_records', employee_id=employee.employee_id, record_type=active_tab) }}" class="inline">
+                                {% for rec in group %}
+                                <input type="hidden" name="record_ids" value="{{ rec.id }}">
+                                {% endfor %}
+                                <button type="submit" class="btn btn-sm" style="background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd;">
+                                    <span class="material-symbols-outlined icon-sm">content_cut</span>
+                                    保留一条
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <ul class="text-xs space-y-1 text-on-surface-variant pl-4 list-disc">
+                        {% for rec in group %}
+                        <li>
+                            #{{ rec.id }} - {{ rec.description or '无描述' }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Action Bar -->
     <div class="flex justify-end mb-6">
         <a href="{{ url_for('employees.create_record', employee_id=employee.employee_id, type=active_tab) }}" class="btn btn-primary">

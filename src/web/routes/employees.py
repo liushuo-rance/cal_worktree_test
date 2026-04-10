@@ -187,13 +187,35 @@ def employee_records(employee_id):
     finally:
         conn.close()
 
+    # 检测当前 active_tab 内的重复记录（同一天 + 同类型 + 同时长）
+    duplicate_groups = []
+    if active_tab == 'overtime':
+        groups = {}
+        for r in overtime_records:
+            key = (r.get('work_date'), r.get('overtime_type'), r.get('total_minutes'))
+            groups.setdefault(key, []).append(r)
+        duplicate_groups = [g for g in groups.values() if len(g) >= 2]
+    elif active_tab == 'leave':
+        groups = {}
+        for r in leave_records:
+            key = (r.get('leave_date'), r.get('leave_type'), r.get('total_minutes'))
+            groups.setdefault(key, []).append(r)
+        duplicate_groups = [g for g in groups.values() if len(g) >= 2]
+    elif active_tab == 'comp_off':
+        groups = {}
+        for r in comp_off_records:
+            key = (r.get('usage_date'), r.get('total_minutes'))
+            groups.setdefault(key, []).append(r)
+        duplicate_groups = [g for g in groups.values() if len(g) >= 2]
+
     return render_template(
         'employee_records.html',
         employee=employee,
         overtime_records=overtime_records,
         leave_records=leave_records,
         comp_off_records=comp_off_records,
-        active_tab=active_tab
+        active_tab=active_tab,
+        duplicate_groups=duplicate_groups
     )
 
 
@@ -391,6 +413,94 @@ def delete_record(employee_id, record_type, record_id):
         conn.rollback()
         logger.error(f"删除记录失败: {e}")
         flash(f'删除失败: {e}', 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+
+@bp.route('/<employee_id>/records/merge-duplicates/<record_type>/', methods=['POST'])
+def merge_duplicates(employee_id, record_type):
+    """合并重复记录：保留第一条并合并描述，删除其余"""
+    if record_type not in ('overtime', 'leave', 'comp_off'):
+        abort(404)
+
+    record_ids = request.form.getlist('record_ids')
+    if not record_ids:
+        flash('未选择要合并的记录', 'warning')
+        return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+
+    record_ids = [int(rid) for rid in record_ids]
+    keep_id = min(record_ids)
+    delete_ids = [rid for rid in record_ids if rid != keep_id]
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        if record_type == 'overtime':
+            table = 'overtime_records'
+            date_col = 'work_date'
+        elif record_type == 'leave':
+            table = 'leave_records'
+            date_col = 'leave_date'
+        else:
+            table = 'comp_off_usage_records'
+            date_col = 'usage_date'
+
+        placeholders = ','.join(['?' for _ in record_ids])
+        cursor.execute(f"SELECT description FROM {table} WHERE id IN ({placeholders}) ORDER BY id", tuple(record_ids))
+        descriptions = [row['description'] or '' for row in cursor.fetchall() if (row['description'] or '').strip()]
+        merged_description = ' | '.join(dict.fromkeys(descriptions)) if descriptions else ''
+
+        cursor.execute(f"UPDATE {table} SET description = ? WHERE id = ?", (merged_description, keep_id))
+        if delete_ids:
+            del_placeholders = ','.join(['?' for _ in delete_ids])
+            cursor.execute(f"DELETE FROM {table} WHERE id IN ({del_placeholders})", tuple(delete_ids))
+        conn.commit()
+        flash(f'已合并 {len(record_ids)} 条重复记录为 1 条', 'success')
+    except sqlite3.Error as e:
+        conn.rollback()
+        logger.error(f"合并重复记录失败: {e}")
+        flash('合并失败', 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+
+
+@bp.route('/<employee_id>/records/deduplicate/<record_type>/', methods=['POST'])
+def deduplicate_records(employee_id, record_type):
+    """去重：只保留第一条，删除其余重复记录"""
+    if record_type not in ('overtime', 'leave', 'comp_off'):
+        abort(404)
+
+    record_ids = request.form.getlist('record_ids')
+    if not record_ids:
+        flash('未选择要去重的记录', 'warning')
+        return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+
+    record_ids = [int(rid) for rid in record_ids]
+    keep_id = min(record_ids)
+    delete_ids = [rid for rid in record_ids if rid != keep_id]
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        if record_type == 'overtime':
+            table = 'overtime_records'
+        elif record_type == 'leave':
+            table = 'leave_records'
+        else:
+            table = 'comp_off_usage_records'
+
+        if delete_ids:
+            del_placeholders = ','.join(['?' for _ in delete_ids])
+            cursor.execute(f"DELETE FROM {table} WHERE id IN ({del_placeholders})", tuple(delete_ids))
+        conn.commit()
+        flash(f'已保留 1 条记录，删除 {len(delete_ids)} 条重复记录', 'success')
+    except sqlite3.Error as e:
+        conn.rollback()
+        logger.error(f"去重失败: {e}")
+        flash('去重失败', 'error')
     finally:
         conn.close()
 
