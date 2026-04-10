@@ -137,7 +137,7 @@
                     <span class="material-symbols-outlined inline-icon">emoji_events</span>
                     年度加班排名
                 </h5>
-                <a href="{{ url_for('reports.overtime_ranking') }}" class="text-sm text-primary hover:underline">查看更多 &rarr;</a>
+                <a href="{{ url_for('reports.overtime_ranking') }}?next={{ url_for('dashboard.index') | urlencode }}" class="text-sm text-primary hover:underline">查看更多 &rarr;</a>
             </div>
         </div>
         <div class="content-card-body p-0">

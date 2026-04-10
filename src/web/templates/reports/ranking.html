@@ -29,7 +29,8 @@
                         <span class="material-symbols-outlined">refresh</span>
                         刷新排名
                     </button>
-                    <a href="{{ url_for('reports.reports_index') }}" class="btn btn-secondary">
+                    {% set back_url = request.args.get('next') or url_for('reports.reports_index') %}
+                    <a href="{{ back_url }}" class="btn btn-secondary">
                         <span class="material-symbols-outlined">arrow_back</span>
                         返回
                     </a>

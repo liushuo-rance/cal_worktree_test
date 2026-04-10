@@ -340,12 +340,13 @@ def generate_overtime_ranking(
     """, params)
 
     ranking = []
-    for idx, row in enumerate(cursor.fetchall(), 1):
+    rank_idx = 1
+    for row in cursor.fetchall():
         total_minutes = row['total_minutes'] or 0
-        if total_minutes == 0 and not (year or month):
-            continue  # 全部时间视图下跳过无记录员工
+        if total_minutes == 0:
+            continue  # 跳过无记录员工
         ranking.append({
-            'rank': idx,
+            'rank': rank_idx,
             'employee_id': row['employee_id'],
             'employee_name': row['employee_name'],
             'department': row['department'] or '-',
@@ -355,6 +356,7 @@ def generate_overtime_ranking(
             'holiday_hours': _minutes_to_hours(row['holiday_minutes'] or 0),
             'record_count': row['record_count'] or 0
         })
+        rank_idx += 1
 
     return {
         'period_label': period_label,

@@ -23,7 +23,7 @@
             </div>
             <div class="content-card-body">
                 <p class="text-on-surface-variant text-body-sm mb-6">查看员工月度/年度加班时长排名</p>
-                <a href="{{ url_for('reports.overtime_ranking') }}" class="btn btn-primary w-full">
+                <a href="{{ url_for('reports.overtime_ranking') }}?next={{ url_for('reports.reports_index') | urlencode }}" class="btn btn-primary w-full">
                     <span class="material-symbols-outlined">visibility</span>
                     查看排名
                 </a>
