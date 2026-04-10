@@ -5,7 +5,6 @@
 
 import sqlite3
 from datetime import date
-from typing import Optional
 
 
 def get_date_type(conn: sqlite3.Connection, check_date: date) -> str:
