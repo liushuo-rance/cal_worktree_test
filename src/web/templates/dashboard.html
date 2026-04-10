@@ -134,21 +134,41 @@
         <!-- Compliance Health Card (spans 2 columns) -->
         <div class="lg:col-span-2 bg-surface-container-low rounded-md p-8 relative overflow-hidden">
             <div class="relative z-10">
-                <h3 class="text-label-md font-headline font-bold text-primary mb-6 uppercase tracking-widest">合规健康度</h3>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-label-md font-headline font-bold text-primary uppercase tracking-widest">合规健康度</h3>
+                    {% if pending_anomalies > 0 %}
+                    <a href="{{ url_for('review.review_queue') }}" class="btn btn-sm btn-secondary">
+                        <span class="material-symbols-outlined icon-sm">arrow_forward</span>
+                        去处理
+                    </a>
+                    {% endif %}
+                </div>
                 <div class="flex items-center gap-12 mb-8">
                     <div>
-                        <p class="text-display-sm font-headline font-bold text-on-surface leading-tight">94.8%</p>
+                        <p class="text-display-sm font-headline font-bold text-on-surface leading-tight">{{ "%.1f"|format(compliance_rate) }}%</p>
                         <p class="text-label-md text-on-surface-variant">整体合规率</p>
                     </div>
                     <div class="h-16 w-px bg-outline-variant/30"></div>
                     <div>
-                        <p class="text-display-sm font-headline font-bold text-on-surface leading-tight">02</p>
+                        <p class="text-display-sm font-headline font-bold text-on-surface leading-tight">{{ "%02d"|format(pending_anomalies) }}</p>
                         <p class="text-label-md text-on-surface-variant">待处理异常</p>
                     </div>
                 </div>
                 <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
-                    <div class="bg-primary h-full" style="width: 94.8%"></div>
+                    <div class="bg-primary h-full" style="width: {{ compliance_rate }}%"></div>
                 </div>
+                {% if pending_anomalies > 0 %}
+                <div class="mt-4 text-body-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm align-middle text-warning">warning</span>
+                    未处理的导入审批和调休申请会降低合规率，请及时
+                    <a href="{{ url_for('review.review_queue') }}" class="text-primary hover:underline">审批</a>。
+                </div>
+                {% else %}
+                <div class="mt-4 text-body-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm align-middle text-secondary">check_circle</span>
+                    当前无异常，系统合规状态良好。
+                </div>
+                {% endif %}
             </div>
             <!-- Decorative background icon -->
             <div class="absolute -bottom-10 -right-10 opacity-5">
