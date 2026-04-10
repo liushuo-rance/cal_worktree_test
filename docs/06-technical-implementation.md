@@ -186,7 +186,7 @@ class Employee(Base):
 
 class OTRecord(Base):
     """加班记录模型"""
-    __tablename__ = "ot_records"
+    __tablename__ = "overtime_records"
 
     # 时间存储（正数，支持小时和分钟）
     duration_hours: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -215,7 +215,7 @@ class LeaveRecord(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
     file_import_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("file_imports.id"), nullable=True
+        ForeignKey("import_sessions.id"), nullable=True
     )
     date_start: Mapped[date] = mapped_column(Date, nullable=False)
     date_end: Mapped[date] = mapped_column(Date, nullable=False)
@@ -243,7 +243,7 @@ class LeaveRecord(Base):
 
 class FileImport(Base):
     """文件导入记录模型"""
-    __tablename__ = "file_imports"
+    __tablename__ = "import_sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -256,7 +256,7 @@ class FileImport(Base):
 
     # 关系
     records: Mapped[list["OTRecord"]] = relationship(back_populates="file_import")
-    parse_logs: Mapped[list["ParseLog"]] = relationship(back_populates="file_import")
+    import_records: Mapped[list["ParseLog"]] = relationship(back_populates="file_import")
 
     def __repr__(self) -> str:
         return f"<FileImport({self.filename}, {self.status})>"
@@ -264,11 +264,11 @@ class FileImport(Base):
 
 class ParseLog(Base):
     """解析日志模型"""
-    __tablename__ = "parse_logs"
+    __tablename__ = "import_records"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     file_import_id: Mapped[int] = mapped_column(
-        ForeignKey("file_imports.id"), nullable=False
+        ForeignKey("import_sessions.id"), nullable=False
     )
     line_number: Mapped[int] = mapped_column(Integer, nullable=False)
     raw_text: Mapped[Optional[str]] = mapped_column(Text)
@@ -277,7 +277,7 @@ class ParseLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # 关系
-    file_import: Mapped["FileImport"] = relationship(back_populates="parse_logs")
+    file_import: Mapped["FileImport"] = relationship(back_populates="import_records")
 
     def __repr__(self) -> str:
         return f"<ParseLog(line {self.line_number}: {self.parse_status})>"
@@ -421,6 +421,79 @@ class ParserPipeline:
         """获取错误列表"""
         return self._errors.copy()
 ```
+
+---
+
+### 4.3.1 AI大模型解析服务（实际实现）
+
+> **重要说明**：上述4.2和4.3节描述的本地规则解析器（DateParser/TypeParser/HoursParser）为原始设计。
+> **实际系统已改为使用AI大模型解析**，完全依赖火山方舟API进行智能文本解析，不再使用本地关键词/正则规则。
+
+```python
+# src/services/ai_parser_service.py
+
+import os
+import json
+import re
+from datetime import date
+from typing import List, Dict, Any, Optional
+
+try:
+    from openai import OpenAI
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
+    import requests
+
+
+class AIParserService:
+    """AI大模型解析服务 - 使用火山方舟API"""
+
+    def __init__(self):
+        # 硬编码火山方舟API配置
+        self.api_key = "39fb2f6b-3062-41f7-8abb-3e879f03270b"
+        self.base_url = "https://ark.cn-beijing.volces.com/api/v3"
+        self.model = "ep-20260331092634-wfnm8"
+
+        if HAS_OPENAI:
+            self.client = OpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key,
+            )
+        else:
+            self.client = None
+
+    def parse_lines(self, text_lines: List[str]) -> Dict[str, Any]:
+        """
+        使用AI解析文本行，分批处理避免超时
+        Returns: {'records': [...], 'prompt': '', 'response': '', 'error': None}
+        """
+        BATCH_SIZE = 1      # 每批1行
+        MAX_LINES = 5       # 最多处理前5行
+        text_lines = text_lines[:MAX_LINES]
+        # ... 实现细节参见代码
+
+    def _build_prompt(self, text_lines: List[str]) -> str:
+        """构建解析Prompt，包含解析规则说明"""
+        # ... 实现细节
+
+    def _parse_batch(self, text_lines: List[str], line_offset: int = 0) -> Dict[str, Any]:
+        """调用火山方舟API解析"""
+        # 支持OpenAI SDK和requests两种方式
+        # temperature=0.1, max_tokens=4000, timeout=300
+```
+
+**AI解析服务关键配置：**
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| API提供商 | 火山引擎（Volces） | 字节跳动旗下云服务 |
+| BASE_URL | https://ark.cn-beijing.volces.com/api/v3 | 火山方舟API端点 |
+| MODEL | ep-20260331092634-wfnm8 | 模型端点ID |
+| BATCH_SIZE | 1 | 每批处理行数 |
+| MAX_LINES | 5 | 最大处理行数 |
+| TIMEOUT | 300秒 | API调用超时 |
+
+---
 
 ### 4.4 服务层类
 
@@ -1581,7 +1654,7 @@ db-backup:
 │              │                      │
 │  ┌─────────────────────────────┐   │
 │  │    Markdown Files           │   │
-│  │    (/data/ot_records/)      │   │
+│  │    (/data/overtime_records/)      │   │
 │  └─────────────────────────────┘   │
 └─────────────────────────────────────┘
 ```

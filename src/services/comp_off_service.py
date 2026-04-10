@@ -144,15 +144,6 @@ def deduct_comp_off(
             WHERE id = ?
         """, (new_used_hours, new_used_minutes, balance['id']))
 
-        # 记录使用
-        deduct_hours, deduct_minutes = _minutes_to_hours_minutes(deduct)
-        cursor.execute("""
-            INSERT INTO comp_off_usage_records
-            (employee_id, usage_date, leave_record_id, duration_hours, duration_minutes, total_minutes)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (employee_id, deduction_date.isoformat(), leave_record_id,
-              deduct_hours, deduct_minutes, deduct))
-
         deductions.append({
             'balance_id': balance['id'],
             'acquired_date': balance['acquired_date'],
@@ -169,6 +160,101 @@ def deduct_comp_off(
         'deducted_minutes': minutes_needed,
         'deductions': deductions
     }
+
+
+def create_pending_comp_off_request(
+    conn: sqlite3.Connection,
+    employee_id: str,
+    usage_date: date,
+    minutes_needed: int,
+    description: str = '',
+    leave_record_id: Optional[int] = None
+) -> int:
+    """
+    创建待审批的调休申请
+    不扣除 comp_off_balances，只写入 comp_off_usage_records 并标记为 pending
+    """
+    hours, minutes = _minutes_to_hours_minutes(minutes_needed)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO comp_off_usage_records
+        (employee_id, usage_date, leave_record_id, duration_hours, duration_minutes,
+         total_minutes, description, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+    """, (
+        employee_id, usage_date.isoformat(), leave_record_id,
+        hours, minutes, minutes_needed, description
+    ))
+    conn.commit()
+    return cursor.lastrowid
+
+
+def approve_comp_off_request(
+    conn: sqlite3.Connection,
+    request_id: int
+) -> Dict[str, Any]:
+    """
+    批准调休申请：执行余额扣除，并将状态更新为 approved
+    """
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT employee_id, usage_date, total_minutes, leave_record_id, status
+        FROM comp_off_usage_records
+        WHERE id = ?
+    """, (request_id,))
+    row = cursor.fetchone()
+    if not row:
+        raise CompOffError(f"调休申请不存在: {request_id}")
+
+    if row['status'] != 'pending':
+        raise CompOffError(f"只能批准待审批的申请，当前状态: {row['status']}")
+
+    employee_id = row['employee_id']
+    usage_date = date.fromisoformat(row['usage_date'])
+    minutes_needed = row['total_minutes']
+    leave_record_id = row['leave_record_id']
+
+    # 执行余额扣除
+    deduction_result = deduct_comp_off(
+        conn, employee_id, usage_date, minutes_needed, leave_record_id
+    )
+
+    # 更新状态
+    cursor.execute("""
+        UPDATE comp_off_usage_records
+        SET status = 'approved'
+        WHERE id = ?
+    """, (request_id,))
+    conn.commit()
+
+    deduction_result['request_id'] = request_id
+    return deduction_result
+
+
+def reject_comp_off_request(
+    conn: sqlite3.Connection,
+    request_id: int
+) -> None:
+    """
+    拒绝调休申请：仅将状态更新为 rejected，不扣除余额
+    """
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT status FROM comp_off_usage_records WHERE id = ?
+    """, (request_id,))
+    row = cursor.fetchone()
+    if not row:
+        raise CompOffError(f"调休申请不存在: {request_id}")
+
+    if row['status'] != 'pending':
+        raise CompOffError(f"只能拒绝待审批的申请，当前状态: {row['status']}")
+
+    cursor.execute("""
+        UPDATE comp_off_usage_records
+        SET status = 'rejected'
+        WHERE id = ?
+    """, (request_id,))
+    conn.commit()
 
 
 def get_expiring_balances(
@@ -281,6 +367,7 @@ def apply_comp_off_to_leave(
 ) -> Dict[str, Any]:
     """
     将调休应用到请假
+    创建 pending 状态的调休申请, 不立即扣除余额
     """
     remaining_balance = get_remaining_balance(conn, employee_id)
 
@@ -296,11 +383,11 @@ def apply_comp_off_to_leave(
     }
 
     if available > 0:
-        # 执行抵扣
-        deduction_result = deduct_comp_off(
-            conn, employee_id, leave_date, available, leave_record_id
+        # 创建待审批的调休申请, 不立即扣减余额
+        request_id = create_pending_comp_off_request(
+            conn, employee_id, leave_date, available, '', leave_record_id
         )
-        result['covered_minutes'] = deduction_result['deducted_minutes']
-        result['deductions'] = deduction_result['deductions']
+        result['covered_minutes'] = available
+        result['pending_request_id'] = request_id
 
     return result

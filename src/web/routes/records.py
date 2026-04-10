@@ -322,15 +322,11 @@ def parse_file_content(content: str, session_key: str = None) -> Dict[str, Any]:
 def import_records():
     """导入记录页面 - 第一步：上传和预览"""
     if request.method == 'POST':
-        # 处理文件上传
-        if 'file' not in request.files:
-            flash('没有选择文件', 'error')
-            return redirect(request.url)
-
-        file = request.files['file']
+        # 处理文件上传（支持多文件）
+        files = request.files.getlist('file')
         employee_id = request.form.get('employee_id')
 
-        if file.filename == '':
+        if not files or all(f.filename == '' for f in files):
             flash('没有选择文件', 'error')
             return redirect(request.url)
 
@@ -338,84 +334,118 @@ def import_records():
             flash('请选择员工', 'error')
             return redirect(request.url)
 
+        # 过滤掉空文件项
+        files = [f for f in files if f.filename != '']
+        if not files:
+            flash('没有选择文件', 'error')
+            return redirect(request.url)
+
+        # 获取员工信息
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM employees WHERE employee_id = ?", (employee_id,))
+        row = cursor.fetchone()
+        conn.close()
+        employee_name = row['name'] if row else 'Unknown'
+
         # 生成唯一会话key用于进度跟踪
         import uuid
         session_key = str(uuid.uuid4())[:8]
         session['current_parse_key'] = session_key
         session[f'parse_progress_{session_key}'] = []
 
+        all_records = []
+        combined_filename_parts = []
+        combined_prompt = []
+        combined_response = []
+        first_error = None
+        error_filename = None
+        error_content = None
+
         try:
-            # 读取文件内容
-            content = file.read().decode('utf-8')
+            for idx, file in enumerate(files):
+                # 读取文件内容
+                content = file.read().decode('utf-8')
+                combined_filename_parts.append(file.filename)
 
-            # 解析记录（仅AI解析）
-            parse_result = parse_file_content(content, session_key=session_key)
+                # 解析记录（仅AI解析）
+                file_session_key = f"{session_key}_{idx}"
+                parse_result = parse_file_content(content, session_key=file_session_key)
 
-            # 检查是否有错误
-            if parse_result.get('error'):
-                error_msg = parse_result['error']
-                # 获取员工信息
-                conn = get_db()
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM employees WHERE employee_id = ?", (employee_id,))
-                row = cursor.fetchone()
-                conn.close()
-                employee_name = row['name'] if row else 'Unknown'
+                # 收集 prompt / response
+                if parse_result.get('prompt'):
+                    combined_prompt.append(f"=== {file.filename} ===\n{parse_result['prompt']}")
+                if parse_result.get('response'):
+                    combined_response.append(f"=== {file.filename} ===\n{parse_result['response']}")
 
-                # 渲染错误页面，不跳转
+                # 检查是否有错误
+                if parse_result.get('error'):
+                    first_error = parse_result['error']
+                    error_filename = file.filename
+                    error_content = content[:2000]
+                    break
+
+                records = parse_result.get('records', [])
+                if not records:
+                    first_error = 'AI未返回任何解析结果'
+                    error_filename = file.filename
+                    error_content = content[:2000]
+                    break
+
+                all_records.extend(records)
+
+            # 如果任一文件解析失败，渲染错误页面
+            if first_error:
                 return render_template('import_error.html',
-                    error=error_msg,
-                    prompt=parse_result.get('prompt', ''),
-                    response=parse_result.get('response', ''),
-                    filename=file.filename,
+                    error=first_error,
+                    prompt='\n\n'.join(combined_prompt),
+                    response='\n\n'.join(combined_response),
+                    filename=error_filename,
                     employee_id=employee_id,
                     employee_name=employee_name,
-                    file_content=content[:2000]  # 显示部分内容
+                    file_content=error_content or ''
                 )
 
-            records = parse_result.get('records', [])
-
-            if not records:
+            if not all_records:
                 error_msg = 'AI未返回任何解析结果'
-                # 获取员工信息
-                conn = get_db()
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM employees WHERE employee_id = ?", (employee_id,))
-                row = cursor.fetchone()
-                conn.close()
-                employee_name = row['name'] if row else 'Unknown'
-
-                # 渲染错误页面，不跳转
                 return render_template('import_error.html',
                     error=error_msg,
-                    prompt=parse_result.get('prompt', ''),
-                    response=parse_result.get('response', ''),
-                    filename=file.filename,
+                    prompt='\n\n'.join(combined_prompt),
+                    response='\n\n'.join(combined_response),
+                    filename=combined_filename_parts[0] if combined_filename_parts else 'unknown',
                     employee_id=employee_id,
                     employee_name=employee_name,
-                    file_content=content[:2000]
+                    file_content=''
                 )
 
-            # 获取员工信息
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM employees WHERE employee_id = ?", (employee_id,))
-            row = cursor.fetchone()
-            conn.close()
+            # 生成组合文件名描述
+            if len(combined_filename_parts) == 1:
+                combined_filename = combined_filename_parts[0]
+            elif len(combined_filename_parts) <= 3:
+                combined_filename = ', '.join(combined_filename_parts) + f" ({len(combined_filename_parts)} 个文件)"
+            else:
+                combined_filename = ', '.join(combined_filename_parts[:3]) + f"... ({len(combined_filename_parts)} 个文件)"
 
-            employee_name = row['name'] if row else 'Unknown'
+            # 保存AI解析详情到session
+            if combined_prompt or combined_response:
+                session['ai_parse_details'] = {
+                    'prompt': '\n\n'.join(combined_prompt),
+                    'response': '\n\n'.join(combined_response),
+                    'error': ''
+                }
+                session.modified = True
 
             # 存储到 session，供确认页面使用
             session['import_preview'] = {
                 'employee_id': employee_id,
                 'employee_name': employee_name,
-                'filename': file.filename,
-                'records': records,
-                'total_count': len(records),
-                'high_confidence': len([r for r in records if r.get('confidence_level') == 'HIGH']),
-                'medium_confidence': len([r for r in records if r.get('confidence_level') == 'MEDIUM']),
-                'low_confidence': len([r for r in records if r.get('confidence_level') == 'LOW']),
-                'has_anomalies': any(r.get('has_anomaly') for r in records),
+                'filename': combined_filename,
+                'records': all_records,
+                'total_count': len(all_records),
+                'high_confidence': len([r for r in all_records if r.get('confidence_level') == 'HIGH']),
+                'medium_confidence': len([r for r in all_records if r.get('confidence_level') == 'MEDIUM']),
+                'low_confidence': len([r for r in all_records if r.get('confidence_level') == 'LOW']),
+                'has_anomalies': any(r.get('has_anomaly') for r in all_records),
             }
 
             # 跳转到预览页面
@@ -553,6 +583,8 @@ def import_confirm():
     cursor = conn.cursor()
     success_count = 0
     error_count = 0
+    insert_count = 0
+    update_count = 0
 
     try:
         # 创建导入会话
@@ -572,39 +604,89 @@ def import_confirm():
                 description = record.get('description', '')
 
                 if record_type == 'overtime':
-                    cursor.execute("""
-                        INSERT INTO overtime_records
-                        (employee_id, work_date, duration_hours, duration_minutes,
-                         total_minutes, overtime_type, description, source_import_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        employee_id, record_date, hours, minutes,
-                        total_minutes, record.get('overtime_type', 'weekday_evening'),
-                        description, session_id
-                    ))
+                    overtime_type = record.get('overtime_type', 'weekday_evening')
+                    cursor.execute(
+                        "SELECT id FROM overtime_records WHERE employee_id = ? AND work_date = ? AND overtime_type = ?",
+                        (employee_id, record_date, overtime_type)
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute("""
+                            UPDATE overtime_records
+                            SET duration_hours = ?, duration_minutes = ?,
+                                total_minutes = ?, description = ?, source_import_id = ?,
+                                created_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        """, (hours, minutes, total_minutes, description, session_id, existing['id']))
+                        update_count += 1
+                    else:
+                        cursor.execute("""
+                            INSERT INTO overtime_records
+                            (employee_id, work_date, duration_hours, duration_minutes,
+                             total_minutes, overtime_type, description, source_import_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            employee_id, record_date, hours, minutes,
+                            total_minutes, overtime_type,
+                            description, session_id
+                        ))
+                        insert_count += 1
                     success_count += 1
                 elif record_type == 'leave':
-                    cursor.execute("""
-                        INSERT INTO leave_records
-                        (employee_id, leave_date, duration_hours, duration_minutes,
-                         total_minutes, leave_type, description, source_import_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        employee_id, record_date, hours, minutes,
-                        total_minutes, record.get('leave_type', 'personal'),
-                        description, session_id
-                    ))
+                    leave_type = record.get('leave_type', 'personal')
+                    cursor.execute(
+                        "SELECT id FROM leave_records WHERE employee_id = ? AND leave_date = ? AND leave_type = ?",
+                        (employee_id, record_date, leave_type)
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute("""
+                            UPDATE leave_records
+                            SET duration_hours = ?, duration_minutes = ?,
+                                total_minutes = ?, description = ?, source_import_id = ?,
+                                created_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        """, (hours, minutes, total_minutes, description, session_id, existing['id']))
+                        update_count += 1
+                    else:
+                        cursor.execute("""
+                            INSERT INTO leave_records
+                            (employee_id, leave_date, duration_hours, duration_minutes,
+                             total_minutes, leave_type, description, source_import_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            employee_id, record_date, hours, minutes,
+                            total_minutes, leave_type,
+                            description, session_id
+                        ))
+                        insert_count += 1
                     success_count += 1
                 elif record_type == 'comp_off':
-                    cursor.execute("""
-                        INSERT INTO comp_off_usage_records
-                        (employee_id, usage_date, duration_hours, duration_minutes,
-                         total_minutes, description)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        employee_id, record_date, hours, minutes,
-                        total_minutes, description
-                    ))
+                    cursor.execute(
+                        "SELECT id FROM comp_off_usage_records WHERE employee_id = ? AND usage_date = ?",
+                        (employee_id, record_date)
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute("""
+                            UPDATE comp_off_usage_records
+                            SET duration_hours = ?, duration_minutes = ?,
+                                total_minutes = ?, description = ?,
+                                created_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        """, (hours, minutes, total_minutes, description, existing['id']))
+                        update_count += 1
+                    else:
+                        cursor.execute("""
+                            INSERT INTO comp_off_usage_records
+                            (employee_id, usage_date, duration_hours, duration_minutes,
+                             total_minutes, description)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (
+                            employee_id, record_date, hours, minutes,
+                            total_minutes, description
+                        ))
+                        insert_count += 1
                     success_count += 1
                 else:
                     error_count += 1
@@ -626,7 +708,7 @@ def import_confirm():
         session.pop('import_preview', None)
         session.pop('ai_parse_details', None)
 
-        flash(f'导入完成: 成功 {success_count} 条, 失败 {error_count} 条', 'success')
+        flash(f'导入完成: 成功 {success_count} 条 (新增 {insert_count} 条, 更新 {update_count} 条), 失败 {error_count} 条', 'success')
         if errors:
             for error in errors[:5]:
                 flash(error, 'warning')
@@ -634,6 +716,9 @@ def import_confirm():
     except Exception as e:
         conn.rollback()
         flash(f'导入失败: {str(e)}', 'error')
+        flash('您可以返回预览页面检查数据后重试，或取消导入', 'info')
+        # 保留 session 中的预览数据，让用户可以重试
+        return redirect(url_for('records.import_preview'))
     finally:
         conn.close()
 
@@ -666,35 +751,64 @@ def import_for_employee(employee_id: str):
     employee = dict(row)
 
     if request.method == 'POST':
-        # 处理文件上传（与主导入逻辑相同）
-        if 'file' not in request.files:
+        # 处理文件上传（支持多文件，与主导入逻辑保持一致）
+        files = request.files.getlist('file')
+
+        if not files or all(f.filename == '' for f in files):
             flash('没有选择文件', 'error')
             return redirect(request.url)
 
-        file = request.files['file']
-
-        if file.filename == '':
+        files = [f for f in files if f.filename != '']
+        if not files:
             flash('没有选择文件', 'error')
             return redirect(request.url)
+
+        all_records = []
+        combined_filename_parts = []
+        first_error = None
 
         try:
-            content = file.read().decode('utf-8')
-            records = parse_file_content(content)
+            for file in files:
+                content = file.read().decode('utf-8')
+                combined_filename_parts.append(file.filename)
+                parse_result = parse_file_content(content)
 
-            if not records:
+                if parse_result.get('error'):
+                    first_error = f"{file.filename}: {parse_result['error']}"
+                    break
+
+                records = parse_result.get('records', [])
+                if not records:
+                    first_error = f"{file.filename}: AI未返回任何解析结果"
+                    break
+
+                all_records.extend(records)
+
+            if first_error:
+                flash(first_error, 'error')
+                return redirect(request.url)
+
+            if not all_records:
                 flash('未从文件中解析出任何记录', 'warning')
                 return redirect(request.url)
+
+            if len(combined_filename_parts) == 1:
+                combined_filename = combined_filename_parts[0]
+            elif len(combined_filename_parts) <= 3:
+                combined_filename = ', '.join(combined_filename_parts) + f" ({len(combined_filename_parts)} 个文件)"
+            else:
+                combined_filename = ', '.join(combined_filename_parts[:3]) + f"... ({len(combined_filename_parts)} 个文件)"
 
             session['import_preview'] = {
                 'employee_id': employee_id,
                 'employee_name': employee['name'],
-                'filename': file.filename,
-                'records': records,
-                'total_count': len(records),
-                'high_confidence': len([r for r in records if r.get('confidence_level') == 'HIGH']),
-                'medium_confidence': len([r for r in records if r.get('confidence_level') == 'MEDIUM']),
-                'low_confidence': len([r for r in records if r.get('confidence_level') == 'LOW']),
-                'has_anomalies': any(r.get('has_anomaly') for r in records),
+                'filename': combined_filename,
+                'records': all_records,
+                'total_count': len(all_records),
+                'high_confidence': len([r for r in all_records if r.get('confidence_level') == 'HIGH']),
+                'medium_confidence': len([r for r in all_records if r.get('confidence_level') == 'MEDIUM']),
+                'low_confidence': len([r for r in all_records if r.get('confidence_level') == 'LOW']),
+                'has_anomalies': any(r.get('has_anomaly') for r in all_records),
             }
 
             return redirect(url_for('records.import_preview'))
@@ -721,3 +835,118 @@ def import_progress():
         'latest': latest,
         'total_steps': len(progress_data)
     })
+
+
+@bp.route('/search/')
+def search_records():
+    """全局记录查询页面 - 按日期范围和类型搜索跨员工记录"""
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    record_type = request.args.get('record_type', 'all').strip()
+    employee_id = request.args.get('employee_id', '').strip()
+
+    results = []
+    employees = []
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
+        employees = [dict(row) for row in cursor.fetchall()]
+
+        has_filter = start_date and end_date
+
+        if has_filter:
+            types_to_query = []
+            if record_type == 'all':
+                types_to_query = ['overtime', 'leave', 'comp_off']
+            elif record_type in ('overtime', 'leave', 'comp_off'):
+                types_to_query = [record_type]
+
+            for rt in types_to_query:
+                if rt == 'overtime':
+                    sql = """
+                        SELECT
+                            o.id,
+                            o.employee_id,
+                            e.name as employee_name,
+                            o.work_date as record_date,
+                            'overtime' as record_type,
+                            o.overtime_type as subtype,
+                            o.duration_hours,
+                            o.duration_minutes,
+                            o.description
+                        FROM overtime_records o
+                        JOIN employees e ON o.employee_id = e.employee_id
+                        WHERE o.work_date BETWEEN ? AND ?
+                    """
+                    params = [start_date, end_date]
+                    if employee_id:
+                        sql += " AND o.employee_id = ?"
+                        params.append(employee_id)
+                    sql += " ORDER BY o.work_date DESC"
+                    cursor.execute(sql, params)
+
+                elif rt == 'leave':
+                    sql = """
+                        SELECT
+                            l.id,
+                            l.employee_id,
+                            e.name as employee_name,
+                            l.leave_date as record_date,
+                            'leave' as record_type,
+                            l.leave_type as subtype,
+                            l.duration_hours,
+                            l.duration_minutes,
+                            l.description
+                        FROM leave_records l
+                        JOIN employees e ON l.employee_id = e.employee_id
+                        WHERE l.leave_date BETWEEN ? AND ?
+                    """
+                    params = [start_date, end_date]
+                    if employee_id:
+                        sql += " AND l.employee_id = ?"
+                        params.append(employee_id)
+                    sql += " ORDER BY l.leave_date DESC"
+                    cursor.execute(sql, params)
+
+                elif rt == 'comp_off':
+                    sql = """
+                        SELECT
+                            c.id,
+                            c.employee_id,
+                            e.name as employee_name,
+                            c.usage_date as record_date,
+                            'comp_off' as record_type,
+                            '' as subtype,
+                            c.duration_hours,
+                            c.duration_minutes,
+                            c.description
+                        FROM comp_off_usage_records c
+                        JOIN employees e ON c.employee_id = e.employee_id
+                        WHERE c.usage_date BETWEEN ? AND ?
+                    """
+                    params = [start_date, end_date]
+                    if employee_id:
+                        sql += " AND c.employee_id = ?"
+                        params.append(employee_id)
+                    sql += " ORDER BY c.usage_date DESC"
+                    cursor.execute(sql, params)
+
+                rows = [dict(row) for row in cursor.fetchall()]
+                results.extend(rows)
+    except sqlite3.Error as e:
+        flash(f'查询失败: {e}', 'error')
+    finally:
+        conn.close()
+
+    return render_template(
+        'record_search.html',
+        results=results,
+        employees=employees,
+        start_date=start_date,
+        end_date=end_date,
+        record_type=record_type,
+        employee_id=employee_id
+    )

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}记录查询 - 加班记录管理系统{% endblock %}
+{% block page_title %}记录查询{% endblock %}
+
+{% from "components/forms.html" import form_select, form_actions with context %}
+
+{% block content %}
+<div class="page-container">
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">按日期范围和类型搜索跨员工的记录</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Search Form -->
+        <div class="lg:col-span-1">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">search</span>
+                        查询条件
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <form method="GET" action="{{ url_for('records.search_records') }}">
+                        <div class="form-group">
+                            <label class="form-label">开始日期</label>
+                            <input type="date" name="start_date" class="form-input" value="{{ start_date }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">结束日期</label>
+                            <input type="date" name="end_date" class="form-input" value="{{ end_date }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">记录类型</label>
+                            <select name="record_type" class="form-select">
+                                <option value="all" {% if record_type == 'all' %}selected{% endif %}>全部</option>
+                                <option value="overtime" {% if record_type == 'overtime' %}selected{% endif %}>加班</option>
+                                <option value="leave" {% if record_type == 'leave' %}selected{% endif %}>请假</option>
+                                <option value="comp_off" {% if record_type == 'comp_off' %}selected{% endif %}>调休</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">员工</label>
+                            <select name="employee_id" class="form-select">
+                                <option value="">全部员工</option>
+                                {% for emp in employees %}
+                                <option value="{{ emp.employee_id }}" {% if employee_id == emp.employee_id %}selected{% endif %}>{{ emp.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <span class="material-symbols-outlined">search</span>
+                                查询
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="lg:col-span-2">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">list</span>
+                        查询结果
+                    </h5>
+                    {% if results %}
+                    <span class="badge badge-primary">{{ results|length }} 条</span>
+                    {% endif %}
+                </div>
+                <div class="content-card-body p-0">
+                    {% if results %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>员工名</th>
+                                    <th>日期</th>
+                                    <th>类型</th>
+                                    <th>子类型</th>
+                                    <th>时长</th>
+                                    <th>描述</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in results %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}" class="font-medium text-primary hover:underline">
+                                            {{ r.employee_name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ r.record_date }}</td>
+                                    <td>
+                                        {% if r.record_type == 'overtime' %}
+                                            <span class="badge badge-primary">加班</span>
+                                        {% elif r.record_type == 'leave' %}
+                                            <span class="badge badge-secondary">请假</span>
+                                        {% elif r.record_type == 'comp_off' %}
+                                            <span class="badge badge-tertiary">调休</span>
+                                        {% else %}
+                                            <span class="badge badge-outline">{{ r.record_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if r.subtype %}
+                                            <span class="text-on-surface-variant">{{ r.subtype }}</span>
+                                        {% else %}
+                                            <span class="text-on-surface-variant">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if r.duration_hours or r.duration_minutes %}
+                                            {{ r.duration_hours }}h {% if r.duration_minutes %}{{ r.duration_minutes }}m{% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-on-surface-variant max-w-xs truncate" title="{{ r.description or '' }}">
+                                        {{ r.description or '-' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined empty-state-icon">search_off</span>
+                        <h3 class="empty-state-title">暂无结果</h3>
+                        <p class="empty-state-description">请选择查询条件后点击查询按钮</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

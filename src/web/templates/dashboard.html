@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - 加班记录管理系统{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">系统概览与统计</p>
+    </div>
+
+    <!-- Summary Metrics (Tonal Layering) -->
+    <section class="mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Total Employees -->
+            <div class="stat-card primary">
+                <div class="stat-card-header">
+                    <span class="stat-card-label" style="color: var(--color-primary-container);">员工总数</span>
+                    <span class="material-symbols-outlined stat-card-icon" style="color: var(--color-primary-container);">groups</span>
+                </div>
+                <div class="stat-card-value">{{ stats.total_employees or 0 }}</div>
+                <div class="stat-card-footer">
+                    <span class="chip chip-success">
+                        <span class="material-symbols-outlined text-sm">trending_up</span>
+                        <span>活跃</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- OT Records -->
+            <div class="stat-card secondary">
+                <div class="stat-card-header">
+                    <span class="stat-card-label" style="color: var(--color-secondary);">加班记录</span>
+                    <span class="material-symbols-outlined stat-card-icon" style="color: var(--color-secondary);">history_edu</span>
+                </div>
+                <div class="stat-card-value">{{ stats.total_overtime_records or 0 }}</div>
+                <div class="stat-card-footer text-on-surface-variant">
+                    本月累计工时
+                </div>
+            </div>
+
+            <!-- Leave Records -->
+            <div class="stat-card tertiary" style="border-bottom-color: #fbc02d;">
+                <div class="stat-card-header">
+                    <span class="stat-card-label" style="color: #b4891b;">请假记录</span>
+                    <span class="material-symbols-outlined stat-card-icon" style="color: #fbc02d;">event_busy</span>
+                </div>
+                <div class="stat-card-value">{{ stats.total_leave_records or 0 }}</div>
+                <div class="stat-card-footer text-on-surface-variant">
+                    调休与请假
+                </div>
+            </div>
+
+            <!-- Pending Approvals -->
+            <div class="stat-card error">
+                <div class="stat-card-header">
+                    <span class="stat-card-label" style="color: var(--color-error);">待审批</span>
+                    <span class="material-symbols-outlined stat-card-icon" style="color: var(--color-error);">gavel</span>
+                </div>
+                <div class="stat-card-value error">{{ stats.pending_reviews or 0 }}</div>
+                <div class="stat-card-footer">
+                    {% if stats.pending_reviews and stats.pending_reviews > 0 %}
+                        <span class="chip chip-error">
+                            <span class="material-symbols-outlined text-sm">priority_high</span>
+                            <span>需处理</span>
+                        </span>
+                    {% else %}
+                        <span class="text-on-surface-variant">无待审批</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Actions (Minimalist Authorities) -->
+    <section class="mb-12">
+        <div class="flex items-end justify-between mb-6">
+            <h2 class="text-headline-sm font-headline font-bold text-on-surface">快捷操作</h2>
+            <p class="text-label-md text-on-surface-variant">上次同步: {{ now().strftime('%H:%M') if now else '刚刚' }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <!-- Import Markdown -->
+            <a href="{{ url_for('records.import_records') }}" class="group bg-surface-container p-8 rounded-md text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline/10 hover:shadow-md">
+                <div class="w-14 h-14 rounded-md bg-primary/5 group-hover:bg-white/10 flex items-center justify-center mb-6 transition-colors">
+                    <span class="material-symbols-outlined text-primary group-hover:text-white text-3xl">upload_file</span>
+                </div>
+                <h3 class="text-title-md font-headline font-bold text-on-surface group-hover:text-white mb-2">导入记录</h3>
+                <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">批量导入加班、请假、调休记录</p>
+                <span class="material-symbols-outlined absolute top-4 right-4 text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span>
+            </a>
+
+            <!-- Review Queue -->
+            <a href="{{ url_for('review.review_queue') }}" class="group bg-surface-container p-8 rounded-md text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline/10 hover:shadow-md relative">
+                <div class="w-14 h-14 rounded-md bg-primary/5 group-hover:bg-white/10 flex items-center justify-center mb-6 transition-colors">
+                    <span class="material-symbols-outlined text-primary group-hover:text-white text-3xl">fact_check</span>
+                </div>
+                <h3 class="text-title-md font-headline font-bold text-on-surface group-hover:text-white mb-2">审批队列</h3>
+                <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">审核待确认的加班和调休申请</p>
+            </a>
+
+            <!-- Employee Directory -->
+            <a href="{{ url_for('employees.list_employees') }}" class="group bg-surface-container p-8 rounded-md text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline/10 hover:shadow-md relative">
+                <div class="w-14 h-14 rounded-md bg-primary/5 group-hover:bg-white/10 flex items-center justify-center mb-6 transition-colors">
+                    <span class="material-symbols-outlined text-primary group-hover:text-white text-3xl">badge</span>
+                </div>
+                <h3 class="text-title-md font-headline font-bold text-on-surface group-hover:text-white mb-2">员工管理</h3>
+                <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">查看员工档案和加班历史</p>
+            </a>
+
+            <!-- Reports -->
+            <a href="{{ url_for('reports.reports_index') }}" class="group bg-surface-container p-8 rounded-md text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline/10 hover:shadow-md relative">
+                <div class="w-14 h-14 rounded-md bg-primary/5 group-hover:bg-white/10 flex items-center justify-center mb-6 transition-colors">
+                    <span class="material-symbols-outlined text-primary group-hover:text-white text-3xl">description</span>
+                </div>
+                <h3 class="text-title-md font-headline font-bold text-on-surface group-hover:text-white mb-2">报表查看</h3>
+                <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">月度统计、工资计算、调休余额</p>
+            </a>
+
+            <!-- Record Search -->
+            <a href="{{ url_for('records.search_records') }}" class="group bg-surface-container p-8 rounded-md text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline/10 hover:shadow-md relative">
+                <div class="w-14 h-14 rounded-md bg-primary/5 group-hover:bg-white/10 flex items-center justify-center mb-6 transition-colors">
+                    <span class="material-symbols-outlined text-primary group-hover:text-white text-3xl">search</span>
+                </div>
+                <h3 class="text-title-md font-headline font-bold text-on-surface group-hover:text-white mb-2">记录查询</h3>
+                <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">跨员工、按日期和类型搜索记录</p>
+            </a>
+        </div>
+    </section>
+
+    <!-- Bento Grid Layout -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Compliance Health Card (spans 2 columns) -->
+        <div class="lg:col-span-2 bg-surface-container-low rounded-md p-8 relative overflow-hidden">
+            <div class="relative z-10">
+                <h3 class="text-label-md font-headline font-bold text-primary mb-6 uppercase tracking-widest">合规健康度</h3>
+                <div class="flex items-center gap-12 mb-8">
+                    <div>
+                        <p class="text-display-sm font-headline font-bold text-on-surface leading-tight">94.8%</p>
+                        <p class="text-label-md text-on-surface-variant">整体合规率</p>
+                    </div>
+                    <div class="h-16 w-px bg-outline-variant/30"></div>
+                    <div>
+                        <p class="text-display-sm font-headline font-bold text-on-surface leading-tight">02</p>
+                        <p class="text-label-md text-on-surface-variant">待处理异常</p>
+                    </div>
+                </div>
+                <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+                    <div class="bg-primary h-full" style="width: 94.8%"></div>
+                </div>
+            </div>
+            <!-- Decorative background icon -->
+            <div class="absolute -bottom-10 -right-10 opacity-5">
+                <span class="material-symbols-outlined text-[15rem]">balance</span>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-surface-container-lowest p-8 rounded-md shadow-sm border-l-4 border-primary">
+            <h3 class="text-label-md font-headline font-bold text-on-surface mb-6">最近活动</h3>
+            <div class="space-y-6">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-sm text-on-secondary-container">add</span>
+                    </div>
+                    <div>
+                        <p class="text-body-sm font-medium text-on-surface">导入加班记录</p>
+                        <p class="text-label-sm text-on-surface-variant">15条记录已导入</p>
+                        <p class="text-label-sm text-on-surface-variant mt-1">10分钟前</p>
+                    </div>
+                </div>
+                <div class="h-px bg-surface-container"></div>
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-sm text-on-primary-fixed">check</span>
+                    </div>
+                    <div>
+                        <p class="text-body-sm font-medium text-on-surface">审批通过</p>
+                        <p class="text-label-sm text-on-surface-variant">张三的调休申请</p>
+                        <p class="text-label-sm text-on-surface-variant mt-1">1小时前</p>
+                    </div>
+                </div>
+                <div class="h-px bg-surface-container"></div>
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-tertiary-container flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-sm text-on-tertiary-container">person_add</span>
+                    </div>
+                    <div>
+                        <p class="text-body-sm font-medium text-on-surface">新员工入职</p>
+                        <p class="text-label-sm text-on-surface-variant">李四已添加到系统</p>
+                        <p class="text-label-sm text-on-surface-variant mt-1">昨天</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}审批队列 - 加班记录管理系统{% endblock %}
+{% block page_title %}审批队列{% endblock %}
+
+{% from "components/modal.html" import confirm_modal with context %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">审核和批准导入的记录</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 border-b border-outline-variant pb-0">
+        <a href="{{ url_for('review.review_queue') }}"
+           class="px-4 py-2 text-body-md font-medium text-primary border-b-2 border-primary">
+            导入审批
+        </a>
+        <a href="{{ url_for('review.comp_off_review_queue') }}"
+           class="px-4 py-2 text-body-md font-medium text-on-surface-variant hover:text-primary transition-colors">
+            调休审批
+        </a>
+    </div>
+
+    <div class="content-card">
+        <div class="content-card-header">
+            <div class="flex items-center gap-4">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">fact_check</span>
+                    待审批记录
+                </h5>
+                {% if pending_items %}
+                <span class="chip chip-warning">
+                    <span class="material-symbols-outlined text-sm">hourglass_empty</span>
+                    {{ pending_items|length }} 条待处理
+                </span>
+                {% endif %}
+            </div>
+
+            {% if pending_items %}
+            <div class="flex gap-3">
+                <button class="btn btn-ghost btn-sm" onclick="showToast('批量审批功能开发中', 'info')">
+                    <span class="material-symbols-outlined">done_all</span>
+                    批量通过
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="content-card-body p-0">
+            {% if pending_items %}
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>来源文件</th>
+                            <th>原始文本</th>
+                            <th>解析数据</th>
+                            <th>创建时间</th>
+                            <th class="text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in pending_items %}
+                        <tr>
+                            <td><code class="font-mono text-label-md">#{{ item.id }}</code></td>
+                            <td>
+                                <span class="text-on-surface-variant text-body-sm truncate" style="max-width: 150px; display: block;" title="{{ item.file_path or '' }}">
+                                    {{ item.file_path or '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-on-surface-variant text-body-sm truncate" style="max-width: 200px; display: block;" title="{{ item.raw_text or '' }}">
+                                    {{ item.raw_text or '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-on-surface-variant text-body-sm truncate" style="max-width: 200px; display: block;" title="{{ item.parsed_data or '' }}">
+                                    {{ item.parsed_data or '-' }}
+                                </span>
+                            </td>
+                            <td class="text-on-surface-variant text-body-sm">{{ item.created_at }}</td>
+                            <td class="text-right">
+                                <a href="{{ url_for('review.review_item', item_id=item.id) }}" class="btn btn-primary btn-sm">
+                                    <span class="material-symbols-outlined icon-sm">visibility</span>
+                                    审批
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-16">
+                <span class="material-symbols-outlined empty-state-icon">inbox</span>
+                <h3 class="empty-state-title">暂无待审批记录</h3>
+                <p class="empty-state-description">所有记录已处理完毕</p>
+                <a href="{{ url_for('records.import_records') }}" class="btn btn-primary mt-6">
+                    <span class="material-symbols-outlined">upload</span>
+                    去导入记录
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if pending_items %}
+    <!-- Processing Tips -->
+    <div class="content-card mt-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">tips_and_updates</span>
+                审批提示
+            </h5>
+        </div>
+        <div class="content-card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-primary">check_circle</span>
+                    </div>
+                    <div>
+                        <h6 class="font-semibold text-on-surface">通过</h6>
+                        <p class="text-body-sm text-on-surface-variant mt-1">数据正确无误，确认导入系统</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-warning-container flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-warning">edit</span>
+                    </div>
+                    <div>
+                        <h6 class="font-semibold text-on-surface">编辑</h6>
+                        <p class="text-body-sm text-on-surface-variant mt-1">数据有误，修改后再提交</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-error">delete</span>
+                    </div>
+                    <div>
+                        <h6 class="font-semibold text-on-surface">拒绝</h6>
+                        <p class="text-body-sm text-on-surface-variant mt-1">数据无效，直接删除</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

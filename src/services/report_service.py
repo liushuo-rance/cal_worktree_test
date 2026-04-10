@@ -177,7 +177,8 @@ def generate_comp_off_report(
 
     for row in cursor.fetchall():
         record = dict(row)
-        hours = _minutes_to_hours(record['remaining_minutes'])
+        remaining_minutes = (record['total_hours'] * 60 + record['total_minutes']) - (record['used_hours'] * 60 + record['used_minutes'])
+        hours = _minutes_to_hours(remaining_minutes)
         total_hours += hours
 
         item = {
@@ -285,6 +286,85 @@ def generate_salary_report(
             'amount': round(holiday_amount, 2)
         },
         'total_amount': round(total_amount, 2)
+    }
+
+
+def generate_overtime_ranking(
+    conn: sqlite3.Connection,
+    year: Optional[int] = None,
+    month: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    生成员工加班排名
+
+    Args:
+        conn: 数据库连接
+        year: 年份（可选，不提供则统计全年）
+        month: 月份（可选，不提供则统计全年）
+
+    Returns:
+        排名数据，按总加班时长降序排列
+    """
+    cursor = conn.cursor()
+
+    # 查询条件构建
+    date_filter = ""
+    params = []
+    if year and month:
+        date_filter = "AND strftime('%Y', work_date) = ? AND strftime('%m', work_date) = ?"
+        params = [str(year), f"{month:02d}"]
+        period_label = f"{year}年{month}月"
+    elif year:
+        date_filter = "AND strftime('%Y', work_date) = ?"
+        params = [str(year)]
+        period_label = f"{year}年"
+    else:
+        period_label = "全部时间"
+
+    # 查询所有员工的加班统计
+    cursor.execute(f"""
+        SELECT
+            e.employee_id,
+            e.name as employee_name,
+            e.department,
+            SUM(o.total_minutes) as total_minutes,
+            SUM(CASE WHEN o.overtime_type = 'weekend' THEN o.total_minutes ELSE 0 END) as weekend_minutes,
+            SUM(CASE WHEN o.overtime_type = 'holiday' THEN o.total_minutes ELSE 0 END) as holiday_minutes,
+            SUM(CASE WHEN o.overtime_type NOT IN ('weekend', 'holiday') THEN o.total_minutes ELSE 0 END) as weekday_minutes,
+            COUNT(o.id) as record_count
+        FROM employees e
+        LEFT JOIN overtime_records o ON e.employee_id = o.employee_id
+            {date_filter}
+        GROUP BY e.employee_id, e.name, e.department
+        ORDER BY total_minutes DESC
+    """, params)
+
+    ranking = []
+    for idx, row in enumerate(cursor.fetchall(), 1):
+        total_minutes = row['total_minutes'] or 0
+        if total_minutes == 0 and not (year or month):
+            continue  # 全部时间视图下跳过无记录员工
+        ranking.append({
+            'rank': idx,
+            'employee_id': row['employee_id'],
+            'employee_name': row['employee_name'],
+            'department': row['department'] or '-',
+            'total_hours': _minutes_to_hours(total_minutes),
+            'weekday_hours': _minutes_to_hours(row['weekday_minutes'] or 0),
+            'weekend_hours': _minutes_to_hours(row['weekend_minutes'] or 0),
+            'holiday_hours': _minutes_to_hours(row['holiday_minutes'] or 0),
+            'record_count': row['record_count'] or 0
+        })
+
+    return {
+        'period_label': period_label,
+        'year': year,
+        'month': month,
+        'ranking': ranking,
+        'summary': {
+            'total_employees': len(ranking),
+            'total_overtime_hours': sum(r['total_hours'] for r in ranking)
+        }
     }
 
 

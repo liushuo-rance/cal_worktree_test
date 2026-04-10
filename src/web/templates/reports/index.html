@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}报表查看 - 加班记录管理系统{% endblock %}
+{% block page_title %}报表查看{% endblock %}
+
+{% from "components/forms.html" import form_select with context %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">查看各类统计报表</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
+        <!-- Ranking -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">emoji_events</span>
+                    加班排名
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <p class="text-on-surface-variant text-body-sm mb-6">查看员工月度/年度加班时长排名</p>
+                <a href="{{ url_for('reports.overtime_ranking') }}" class="btn btn-primary w-full">
+                    <span class="material-symbols-outlined">visibility</span>
+                    查看排名
+                </a>
+            </div>
+        </div>
+
+        <!-- Monthly Report -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">calendar_month</span>
+                    月度报表
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <p class="text-on-surface-variant text-body-sm mb-6">查看指定月份的加班和请假详情</p>
+                <form onsubmit="return goToMonthlyReport()">
+                    {% set emp_options = [] %}
+                    {% for emp in employees %}
+                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': emp.name}) %}
+                    {% endfor %}
+                    {{ form_select('monthly-employee', '选择员工', emp_options, attrs={'id': 'monthly-employee', 'required': 'true'}) }}
+
+                    <div class="form-group">
+                        <label class="form-label">选择年月</label>
+                        <input type="month" id="monthly-date" class="form-input" value="2024-01" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full">
+                        <span class="material-symbols-outlined">visibility</span>
+                        查看报表
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Comp Off Balance -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">savings</span>
+                    调休余额
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <p class="text-on-surface-variant text-body-sm mb-6">查看员工的调休余额和到期提醒</p>
+                <form onsubmit="return goToCompOffReport()">
+                    {% set emp_options = [] %}
+                    {% for emp in employees %}
+                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': emp.name}) %}
+                    {% endfor %}
+                    {{ form_select('compoff-employee', '选择员工', emp_options, attrs={'id': 'compoff-employee', 'required': 'true'}) }}
+
+                    <button type="submit" class="btn btn-secondary w-full">
+                        <span class="material-symbols-outlined">visibility</span>
+                        查看余额
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Salary Calculation -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">payments</span>
+                    工资计算
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <p class="text-on-surface-variant text-body-sm mb-6">查看指定月份的加班工资计算</p>
+                <form onsubmit="return goToSalaryReport()">
+                    {% set emp_options = [] %}
+                    {% for emp in employees %}
+                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': emp.name}) %}
+                    {% endfor %}
+                    {{ form_select('salary-employee', '选择员工', emp_options, attrs={'id': 'salary-employee', 'required': 'true'}) }}
+
+                    <div class="form-group">
+                        <label class="form-label">选择年月</label>
+                        <input type="month" id="salary-date" class="form-input" value="2024-01" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full" style="background: linear-gradient(135deg, #b4891b 0%, #fbc02d 100%);">
+                        <span class="material-symbols-outlined">visibility</span>
+                        查看工资
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function goToMonthlyReport() {
+    const employee = document.getElementById('monthly-employee').value;
+    const date = document.getElementById('monthly-date').value;
+    if (employee && date) {
+        const [year, month] = date.split('-');
+        window.location.href = `/reports/monthly/${employee}/${year}/${month}/`;
+    }
+    return false;
+}
+
+function goToCompOffReport() {
+    const employee = document.getElementById('compoff-employee').value;
+    if (employee) {
+        window.location.href = `/reports/comp-off/${employee}/`;
+    }
+    return false;
+}
+
+function goToSalaryReport() {
+    const employee = document.getElementById('salary-employee').value;
+    const date = document.getElementById('salary-date').value;
+    if (employee && date) {
+        const [year, month] = date.split('-');
+        window.location.href = `/reports/salary/${employee}/${year}/${month}/`;
+    }
+    return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{#
+  Form Components - Minimalist Style
+  Usage:
+    {% from "components/forms.html" import form_input, form_select, form_textarea with context %}
+#}
+
+{% macro form_input(name, label, value='', type='text', placeholder='', required=false, error='', helper='', attrs={}) %}
+<div class="form-group {% if error %}has-error{% endif %}">
+  <label class="form-label" for="{{ name }}">
+    {{ label }}
+    {% if required %}<span class="required">*</span>{% endif %}
+  </label>
+  <input
+    type="{{ type }}"
+    id="{{ name }}"
+    name="{{ name }}"
+    value="{{ value }}"
+    class="form-input"
+    placeholder="{{ placeholder }}"
+    {% if required %}required{% endif %}
+    {% for attr, val in attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}
+  >
+  {% if error %}
+  <span class="form-error">{{ error }}</span>
+  {% elif helper %}
+  <span class="form-helper">{{ helper }}</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_select(name, label, options, value='', required=false, error='', helper='', attrs={}) %}
+<div class="form-group {% if error %}has-error{% endif %}">
+  <label class="form-label" for="{{ name }}">
+    {{ label }}
+    {% if required %}<span class="required">*</span>{% endif %}
+  </label>
+  <div class="select-wrapper">
+    <select
+      id="{{ name }}"
+      name="{{ name }}"
+      class="form-select"
+      {% if required %}required{% endif %}
+      {% for attr, val in attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}
+    >
+      {% if not required %}
+      <option value="">请选择</option>
+      {% endif %}
+      {% for opt in options %}
+      <option value="{{ opt.value }}" {% if opt.value == value %}selected{% endif %}>
+        {{ opt.label }}
+      </option>
+      {% endfor %}
+    </select>
+    <span class="material-symbols-outlined select-icon">expand_more</span>
+  </div>
+  {% if error %}
+  <span class="form-error">{{ error }}</span>
+  {% elif helper %}
+  <span class="form-helper">{{ helper }}</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_textarea(name, label, value='', placeholder='', rows=4, required=false, error='', helper='', attrs={}) %}
+<div class="form-group {% if error %}has-error{% endif %}">
+  <label class="form-label" for="{{ name }}">
+    {{ label }}
+    {% if required %}<span class="required">*</span>{% endif %}
+  </label>
+  <textarea
+    id="{{ name }}"
+    name="{{ name }}"
+    class="form-textarea"
+    rows="{{ rows }}"
+    placeholder="{{ placeholder }}"
+    {% if required %}required{% endif %}
+    {% for attr, val in attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}
+  >{{ value }}</textarea>
+  {% if error %}
+  <span class="form-error">{{ error }}</span>
+  {% elif helper %}
+  <span class="form-helper">{{ helper }}</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_checkbox(name, label, checked=false, value='1', attrs={}) %}
+<div class="form-group form-checkbox-group">
+  <label class="form-checkbox-label">
+    <input
+      type="checkbox"
+      name="{{ name }}"
+      value="{{ value }}"
+      {% if checked %}checked{% endif %}
+      {% for attr, val in attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}
+    >
+    <span class="checkbox-custom"></span>
+    <span class="checkbox-label-text">{{ label }}</span>
+  </label>
+</div>
+{% endmacro %}
+
+{% macro form_radio(name, label, value, selected='', attrs={}) %}
+<div class="form-group form-radio-group">
+  <label class="form-radio-label">
+    <input
+      type="radio"
+      name="{{ name }}"
+      value="{{ value }}"
+      {% if value == selected %}checked{% endif %}
+      {% for attr, val in attrs.items() %}{{ attr }}="{{ val }}"{% endfor %}
+    >
+    <span class="radio-custom"></span>
+    <span class="radio-label-text">{{ label }}</span>
+  </label>
+</div>
+{% endmacro %}
+
+{% macro form_actions(submit_text='提交', cancel_url='', reset=false) %}
+<div class="form-actions">
+  <button type="submit" class="btn btn-primary">
+    <span class="material-symbols-outlined">check</span>
+    {{ submit_text }}
+  </button>
+  {% if cancel_url %}
+  <a href="{{ cancel_url }}" class="btn btn-secondary">取消</a>
+  {% endif %}
+  {% if reset %}
+  <button type="reset" class="btn btn-ghost">重置</button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro search_input(name='q', value='', placeholder='搜索...', action='') %}
+<form class="search-form" action="{{ action }}" method="get">
+  <div class="search-input-wrapper">
+    <span class="material-symbols-outlined search-icon">search</span>
+    <input
+      type="text"
+      name="{{ name }}"
+      value="{{ value }}"
+      class="search-input"
+      placeholder="{{ placeholder }}"
+    >
+    {% if value %}
+    <a href="{{ request.path }}" class="search-clear" title="清除搜索">
+      <span class="material-symbols-outlined">close</span>
+    </a>
+    {% endif %}
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm">搜索</button>
+</form>
+{% endmacro %}
+
+{% macro filter_chips(filters, active_filters) %}
+<div class="filter-chips">
+  {% for filter in filters %}
+  <div class="filter-chip-group">
+    <span class="filter-label">{{ filter.label }}:</span>
+    <div class="filter-options">
+      <a href="{{ filter.url_fn('') }}"
+         class="filter-chip {% if not active_filters.get(filter.key) %}active{% endif %}">
+        全部
+      </a>
+      {% for option in filter.options %}
+      <a href="{{ filter.url_fn(option.value) }}"
+         class="filter-chip {% if active_filters.get(filter.key) == option.value %}active{% endif %}">
+        {{ option.label }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}

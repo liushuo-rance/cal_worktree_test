@@ -256,7 +256,7 @@ CREATE INDEX idx_employees_name ON employees(name);
 | created_at | DATETIME | DEFAULT | 创建时间 |
 | updated_at | DATETIME | DEFAULT | 更新时间 |
 
-### 4.2 ot_records 表
+### 4.2 overtime_records 表
 
 ---
 
@@ -301,7 +301,7 @@ CREATE TABLE overtime_records (
 
     -- 外键约束
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    FOREIGN KEY (file_import_id) REFERENCES file_imports(id) ON DELETE SET NULL,
+    FOREIGN KEY (file_import_id) REFERENCES import_sessions(id) ON DELETE SET NULL,
 
     -- 检查约束：所有时间字段必须为正数
     CONSTRAINT chk_ot_hours_positive CHECK (duration_hours >= 0),
@@ -312,10 +312,10 @@ CREATE TABLE overtime_records (
 );
 
 -- 索引
-CREATE INDEX idx_ot_records_employee_id ON overtime_records(employee_id);
-CREATE INDEX idx_ot_records_date_start ON overtime_records(date_start);
-CREATE INDEX idx_ot_records_date_range ON overtime_records(date_start, date_end);
-CREATE INDEX idx_ot_records_type ON overtime_records(overtime_type);
+CREATE INDEX idx_overtime_records_employee_id ON overtime_records(employee_id);
+CREATE INDEX idx_overtime_records_date_start ON overtime_records(date_start);
+CREATE INDEX idx_overtime_records_date_range ON overtime_records(date_start, date_end);
+CREATE INDEX idx_overtime_records_type ON overtime_records(overtime_type);
 ```
 
 **字段说明**:
@@ -375,7 +375,7 @@ CREATE TABLE leave_records (
 
     -- 外键约束
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    FOREIGN KEY (file_import_id) REFERENCES file_imports(id) ON DELETE SET NULL,
+    FOREIGN KEY (file_import_id) REFERENCES import_sessions(id) ON DELETE SET NULL,
 
     -- 检查约束：所有时间字段必须为正数
     CONSTRAINT chk_leave_hours_positive CHECK (duration_hours >= 0),
@@ -438,7 +438,7 @@ CREATE TABLE comp_off_usage_records (
 
     -- 外键约束
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    FOREIGN KEY (file_import_id) REFERENCES file_imports(id) ON DELETE SET NULL,
+    FOREIGN KEY (file_import_id) REFERENCES import_sessions(id) ON DELETE SET NULL,
 
     -- 检查约束：所有时间字段必须为正数
     CONSTRAINT chk_comp_usage_hours_positive CHECK (duration_hours >= 0),
@@ -584,12 +584,12 @@ CREATE UNIQUE INDEX idx_employee_balances_unique ON employee_balances(employee_i
 | balance_hours | REAL | NOT NULL | 系统计算的合规余额（小时） |
 | created_at | DATETIME | DEFAULT | 创建时间 |
 
-### 4.4 file_imports 表
+### 4.4 import_sessions 表
 
 文件导入记录表，追踪每次导入操作。
 
 ```sql
-CREATE TABLE file_imports (
+CREATE TABLE import_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
@@ -605,8 +605,8 @@ CREATE TABLE file_imports (
 );
 
 -- 索引
-CREATE INDEX idx_file_imports_status ON file_imports(status);
-CREATE INDEX idx_file_imports_imported_at ON file_imports(imported_at);
+CREATE INDEX idx_import_sessions_status ON import_sessions(status);
+CREATE INDEX idx_import_sessions_imported_at ON import_sessions(imported_at);
 ```
 
 **字段说明**:
@@ -766,12 +766,12 @@ CREATE UNIQUE INDEX idx_salary_unique ON salary_calculations(employee_id, month)
 | created_at | DATETIME | DEFAULT | 创建时间 |
 | updated_at | DATETIME | DEFAULT | 更新时间 |
 
-### 4.8 parse_logs 表
+### 4.8 import_records 表
 
 解析日志表，记录每行文本的解析结果。
 
 ```sql
-CREATE TABLE parse_logs (
+CREATE TABLE import_records (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_import_id INTEGER NOT NULL,
     line_number INTEGER NOT NULL,
@@ -781,7 +781,7 @@ CREATE TABLE parse_logs (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     -- 外键约束
-    FOREIGN KEY (file_import_id) REFERENCES file_imports(id) ON DELETE CASCADE,
+    FOREIGN KEY (file_import_id) REFERENCES import_sessions(id) ON DELETE CASCADE,
     
     -- 检查约束
     CONSTRAINT chk_parse_status CHECK (parse_status IN ('success', 'warning', 'error', 'skipped')),
@@ -789,8 +789,8 @@ CREATE TABLE parse_logs (
 );
 
 -- 索引
-CREATE INDEX idx_parse_logs_file_import_id ON parse_logs(file_import_id);
-CREATE INDEX idx_parse_logs_status ON parse_logs(parse_status);
+CREATE INDEX idx_import_records_file_import_id ON import_records(file_import_id);
+CREATE INDEX idx_import_records_status ON import_records(parse_status);
 ```
 
 **字段说明**:
@@ -821,11 +821,11 @@ CREATE INDEX idx_parse_logs_status ON parse_logs(parse_status);
 |------|--------|------|------|------|
 | employees | idx_employees_department | 普通 | department | 按部门查询 |
 | employees | idx_employees_name | 普通 | name | 按姓名查询 |
-| overtime_records | idx_ot_records_employee_id | 普通 | employee_id | 按员工查询记录 |
-| overtime_records | idx_ot_records_date_start | 普通 | date_start | 按日期查询 |
-| overtime_records | idx_ot_records_date_range | 普通 | date_start, date_end | 按日期范围查询 |
-| overtime_records | idx_ot_records_type | 普通 | overtime_type | 按加班类型查询 |
-| overtime_records | idx_ot_records_file_import | 普通 | file_import_id | 按文件查询 |
+| overtime_records | idx_overtime_records_employee_id | 普通 | employee_id | 按员工查询记录 |
+| overtime_records | idx_overtime_records_date_start | 普通 | date_start | 按日期查询 |
+| overtime_records | idx_overtime_records_date_range | 普通 | date_start, date_end | 按日期范围查询 |
+| overtime_records | idx_overtime_records_type | 普通 | overtime_type | 按加班类型查询 |
+| overtime_records | idx_overtime_records_file_import | 普通 | file_import_id | 按文件查询 |
 | leave_records | idx_leave_records_employee_id | 普通 | employee_id | 按员工查询请假 |
 | comp_off_usage_records | idx_comp_usage_employee_id | 普通 | employee_id | 按员工查询调休使用 |
 | comp_off_balance | idx_comp_off_employee_id | 普通 | employee_id | 按员工查询调休余额 |
@@ -834,10 +834,10 @@ CREATE INDEX idx_parse_logs_status ON parse_logs(parse_status);
 | employee_balances | idx_employee_balances_employee_id | 普通 | employee_id | 按员工查询余额 |
 | employee_balances | idx_employee_balances_date | 普通 | balance_date | 按日期查询余额 |
 | employee_balances | idx_employee_balances_unique | 唯一 | employee_id, balance_date | 防止重复余额记录 |
-| file_imports | idx_file_imports_status | 普通 | status | 按状态查询 |
-| file_imports | idx_file_imports_imported_at | 普通 | imported_at | 按时间查询 |
-| parse_logs | idx_parse_logs_file_import_id | 普通 | file_import_id | 按文件查询日志 |
-| parse_logs | idx_parse_logs_status | 普通 | parse_status | 按状态查询日志 |
+| import_sessions | idx_import_sessions_status | 普通 | status | 按状态查询 |
+| import_sessions | idx_import_sessions_imported_at | 普通 | imported_at | 按时间查询 |
+| import_records | idx_import_records_file_import_id | 普通 | file_import_id | 按文件查询日志 |
+| import_records | idx_import_records_status | 普通 | parse_status | 按状态查询日志 |
 
 ### 5.2 索引策略说明
 
@@ -1089,22 +1089,22 @@ END;
 ### 7.2 导入统计更新触发器
 
 ```sql
--- 插入 ot_records 后更新 file_imports 统计
+-- 插入 overtime_records 后更新 import_sessions 统计
 CREATE TRIGGER trg_update_import_stats_after_insert
-AFTER INSERT ON ot_records
+AFTER INSERT ON overtime_records
 WHEN NEW.file_import_id IS NOT NULL
 BEGIN
-    UPDATE file_imports 
+    UPDATE import_sessions 
     SET success_count = success_count + 1
     WHERE id = NEW.file_import_id;
 END;
 
--- 插入 parse_logs 错误记录后更新统计
+-- 插入 import_records 错误记录后更新统计
 CREATE TRIGGER trg_update_import_stats_on_error
-AFTER INSERT ON parse_logs
+AFTER INSERT ON import_records
 WHEN NEW.parse_status = 'error'
 BEGIN
-    UPDATE file_imports 
+    UPDATE import_sessions 
     SET error_count = error_count + 1
     WHERE id = NEW.file_import_id;
 END;
@@ -1140,8 +1140,8 @@ sqlite3 ot_database.db ".dump" > /backup/ot_database_$(date +%Y%m%d).sql
 
 ### 9.1 查询优化建议
 
-1. **日期范围查询**: 使用 `idx_ot_records_date_range` 索引
-2. **员工记录查询**: 使用 `idx_ot_records_employee_id` 索引
+1. **日期范围查询**: 使用 `idx_overtime_records_date_range` 索引
+2. **员工记录查询**: 使用 `idx_overtime_records_employee_id` 索引
 3. **分页查询**: 使用 `LIMIT` 和 `OFFSET`，配合排序索引
 
 ### 9.2 批量插入优化
@@ -1159,7 +1159,7 @@ conn.execute('BEGIN TRANSACTION')
 try:
     # 批量插入
     cursor.executemany('''
-        INSERT INTO ot_records 
+        INSERT INTO overtime_records 
         (employee_id, date_start, date_end, record_type, hours, description, raw_text)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', records_batch)

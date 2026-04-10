@@ -5,9 +5,10 @@
 | 项目 | 内容 |
 |------|------|
 | 文档名称 | 数据解析策略文档 |
-| 版本 | 1.0 |
+| 版本 | 2.0 |
 | 创建日期 | 2026-04-04 |
-| 状态 | 初稿 |
+| 更新日期 | 2026-04-08 |
+| 状态 | 已更新（适配AI大模型解析） |
 
 ---
 
@@ -21,16 +22,39 @@
 - 多种时长描述解析
 - 数据验证和清洗
 
-### 2.2 解析原则
+### 2.2 解析策略
 
-1. **渐进式解析**：从粗到细，逐步提取信息
-2. **容错处理**：对无法解析的记录保留原始信息
-3. **可配置性**：解析规则支持外部配置
-4. **可追溯性**：保留原始文本用于审计
+系统采用**AI大模型解析优先**策略，完全依赖火山方舟API进行智能文本解析：
+
+```
+用户上传文件
+    │
+    ▼
+┌─────────────────┐
+│  提取有效行      │  ← 本地预处理：过滤空行、标题行、累计行
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  AI大模型解析    │  ← 火山方舟API (ep-20260331092634-wfnm8)
+│  理解自然语义    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  置信度分级/异常检测 │  ← 本地后处理
+└─────────────────┘
+```
+
+**核心特点：**
+- **AI解析唯一**：不再使用本地关键词/正则规则解析，完全依赖AI大模型
+- **自然语言理解**：AI理解语义，不受固定关键词限制
+- **透明可审计**：显示完整Prompt和Response，便于调试和审计
+- **失败不回退**：AI解析失败直接报错，不回退到本地规则
 
 ---
 
-## 3. 解析流程图
+## 3. 解析流程
 
 ### 3.1 整体解析流程
 
@@ -45,200 +69,143 @@ flowchart TD
     E --> D
 
     D --> F[按行分割]
-    F --> G[过滤空行]
-    G --> H[行级处理循环]
+    F --> G[过滤无效行]
+    G --> H[提取有效行列表]
 
-    H --> I{还有更多行?}
-    I -->|是| J[读取下一行]
-    I -->|否| EndLoop[结束循环]
+    H --> I{有效行数>0?}
+    I -->|否| J[返回空结果]
+    I -->|是| K[构建AI Prompt]
 
-    J --> K[行预处理]
-    K --> L[提取日期]
-    L --> M{日期有效?}
-    M -->|否| N[标记错误]
-    M -->|是| O[识别记录类型]
+    K --> L[调用AI大模型API]
+    L --> M{API调用成功?}
+    M -->|否| N[返回错误信息]
+    M -->|是| O[解析JSON响应]
 
-    O --> P{类型识别成功?}
-    P -->|否| Q[尝试通用解析]
-    P -->|是| R[解析时长]
+    O --> P{JSON解析成功?}
+    P -->|否| Q[返回解析错误]
+    P -->|是| R[转换内部格式]
 
-    Q --> R
+    R --> S[置信度分级]
+    S --> T[异常检测]
+    T --> U[生成处理报告]
+    U --> End([结束])
 
-    R --> S{时长解析成功?}
-    S -->|否| T[记录警告]
-    S -->|是| U[构建记录对象]
-
-    N --> V[记录错误]
-    T --> U
-    U --> W[验证记录]
-
-    W --> X{验证通过?}
-    X -->|否| Y[记录验证错误]
-    X -->|是| Z[保存到数据库]
-
-    Y --> H
-    Z --> H
-    V --> H
-
-    EndLoop --> AA[生成处理报告]
-    AA --> BB[输出统计信息]
-    BB --> End([结束])
+    J --> End
+    N --> End
+    Q --> End
 ```
 
-### 3.2 单行解析详细流程
+### 3.2 AI解析详细流程
 
 ```mermaid
 flowchart TD
-    A[输入: 原始行文本] --> B[去除首尾空白]
-    B --> C[标准化标点符号]
+    A[输入: 有效行列表] --> B[构建Prompt]
 
-    C --> D[日期提取阶段]
-    D --> D1[匹配日期模式]
-    D1 --> D2{是否日期范围?}
-    D2 -->|是| D3[解析开始日期]
-    D2 -->|否| D4[解析单日期]
-    D3 --> D5[解析结束日期]
-    D4 --> D6[标准化日期格式]
-    D5 --> D6
+    B --> C[系统角色设定]
+    C --> D["你是一个专业的加班记录解析助手"]
 
-    D6 --> E[内容提取阶段]
-    E --> E1[移除日期部分]
-    E1 --> E2[提取描述文本]
+    D --> E[用户Prompt内容]
+    E --> F["待解析文本行 + 解析规则说明"]
 
-    E2 --> F[类型识别阶段]
-    F --> F1[关键词匹配]
-    F1 --> F2[模式匹配]
-    F2 --> F3[置信度计算]
-    F3 --> F4{置信度>=阈值?}
-    F4 -->|是| F5[确定记录类型]
-    F4 -->|否| F6[标记为未知类型]
+    F --> G[调用火山方舟API]
+    G --> H{API响应}
 
-    F5 --> G[时长解析阶段]
-    F6 --> G
-    G --> G1{记录类型?}
+    H -->|成功| I[提取content字段]
+    H -->|失败| J[记录错误日志]
+    J --> K[返回错误]
 
-    G1 -->|加班| G2[解析加班时长]
-    G1 -->|请假| G3[解析请假时长]
-    G1 -->|调休| G4[解析调休时长]
-    G1 -->|其他| G5[尝试通用解析]
+    I --> L[正则提取JSON数组]
+    L --> M{JSON解析成功?}
+    M -->|否| N[返回JSON解析错误]
+    M -->|是| O[遍历解析结果]
 
-    G2 --> G6[计算小时数]
-    G3 --> G6
-    G4 --> G6
-    G5 --> G6
+    O --> P[转换每条记录]
+    P --> Q[填充日期/类型/时长]
+    Q --> R[计算置信度]
+    R --> S[标记ai_parsed标志]
+    S --> T[返回结构化记录列表]
 
-    G6 --> H[记录构建阶段]
-    H --> H1[创建记录对象]
-    H1 --> H2[填充日期字段]
-    H2 --> H3[填充类型字段]
-    H3 --> H4[填充时长字段]
-    H4 --> H5[填充描述字段]
-    H5 --> H6[填充原始文本]
-
-    H6 --> I[验证阶段]
-    I --> I1[必填字段检查]
-    I1 --> I2[日期范围检查]
-    I2 --> I3[时长合理性检查]
-    I3 --> I4{全部通过?}
-
-    I4 -->|是| J[输出: 标准化记录]
-    I4 -->|否| K[输出: 错误信息]
-
-    K --> L[记录到错误日志]
-    J --> M[返回记录对象]
-    L --> N[返回空/部分记录]
+    N --> U
+    K --> U
+    T --> V
 ```
 
 ---
 
-## 4. 记录类型识别状态机
+## 4. AI解析配置
 
-### 4.1 类型识别主状态机
+### 4.1 API配置
 
-```mermaid
-stateDiagram-v2
-    [*] --> InitialScan: 开始识别
+**硬编码配置（src/services/ai_parser_service.py）：**
 
-    InitialScan --> KeywordCheck: 扫描关键词
-
-    KeywordCheck --> OvertimeDetected: 匹配"晚上/早/小时"
-    KeywordCheck --> LeaveDetected: 匹配"请假"
-    KeywordCheck --> CompOffDetected: 匹配"调休"
-    KeywordCheck --> BalanceDetected: 匹配"累计"
-    KeywordCheck --> UnknownType: 无匹配
-
-    OvertimeDetected --> HoursExtract: 提取时长
-    LeaveDetected --> DurationExtract: 提取时长
-    CompOffDetected --> DurationExtract: 提取时长
-    BalanceDetected --> ValueExtract: 提取数值
-    UnknownType --> PatternRetry: 尝试模式匹配
-
-    HoursExtract --> ValidateHours: 验证时长
-    DurationExtract --> ValidateDuration: 验证时长
-    ValueExtract --> RecordBuild: 构建记录
-    PatternRetry --> FallbackParser: 通用解析
-
-    ValidateHours --> RecordBuild: 有效
-    ValidateHours --> ErrorState: 无效
-    ValidateDuration --> RecordBuild: 有效
-    ValidateDuration --> ErrorState: 无效
-    FallbackParser --> RecordBuild: 成功
-    FallbackParser --> ErrorState: 失败
-
-    RecordBuild --> [*]: 返回记录
-    ErrorState --> [*]: 返回错误
+```python
+# 火山方舟API配置
+API_KEY = "39fb2f6b-3062-41f7-8abb-3e879f03270b"
+BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
+MODEL = "ep-20260331092634-wfnm8"
 ```
 
-### 4.2 加班类型子状态机
+**模型参数：**
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| model | ep-20260331092634-wfnm8 | 火山方舟端点模型 |
+| temperature | 0.1 | 低随机性，保证解析一致性 |
+| max_tokens | 4000 | 支持批量解析 |
+| timeout | 300秒 | API调用超时时间 |
 
-```mermaid
-stateDiagram-v2
-    [*] --> OvertimeStart: 识别为加班
+### 4.2 Prompt设计
 
-    OvertimeStart --> PatternMatch: 匹配子类型模式
-
-    PatternMatch --> EveningOT: "晚上X小时"
-    PatternMatch --> TimeRangeOT: "早X到晚Y"
-    PatternMatch --> DirectHoursOT: "X小时"
-    PatternMatch --> ImplicitOT: 隐含加班
-
-    EveningOT --> ExtractEveningHours: 提取数字
-    TimeRangeOT --> CalculateDuration: 计算时间差
-    DirectHoursOT --> ExtractDirectHours: 提取数字
-    ImplicitOT --> InferHours: 推断时长
-
-    ExtractEveningHours --> ValidateHours: 验证
-    CalculateDuration --> ValidateHours: 验证
-    ExtractDirectHours --> ValidateHours: 验证
-    InferHours --> ValidateHours: 验证
-
-    ValidateHours --> [*]: 返回加班记录
+**系统角色：**
+```
+你是一个专业的加班记录解析助手，擅长从非结构化文本中提取时间、类型、时长等信息。请严格返回JSON格式。
 ```
 
-### 4.3 请假类型子状态机
+**用户Prompt结构：**
+```
+你是一个加班记录解析助手。请解析以下文本中的每一行，提取日期、类型、时长等信息。
 
-```mermaid
-stateDiagram-v2
-    [*] --> LeaveStart: 识别为请假
+待解析的文本行：
+1. 2025.01.15 晚上加班2小时
+2. 2025.01.16 请假半天
+...
 
-    LeaveStart --> DurationPattern: 匹配时长描述
+请对每一行进行分析，返回JSON数组格式：
+[
+  {
+    "line_num": 1,
+    "date": "2025-01-15",
+    "type": "overtime|leave|comp_off|unknown",
+    "subtype": "weekday_evening|weekday_morning|...",
+    "hours": 2.0,
+    "description": "描述文本",
+    "confidence": 0.95,
+    "reasoning": "解析理由"
+  }
+]
 
-    DurationPattern --> HalfDay: "半天"
-    DurationPattern --> FullDay: "一天/全天"
-    DurationPattern --> MultiDay: "X天"
-    DurationPattern --> DateRange: "日期范围"
+解析规则：
+1. type字段：overtime(加班)、leave(请假)、comp_off(调休)、unknown(未知)
+2. subtype字段：weekday_morning(早上)、weekday_lunch(午休)、weekday_evening(晚上)、weekend(周末)、holiday(法定节假日)、personal(事假)、sick(病假)、annual(年假)、half_day(半天)、full_day(全天)
+3. 特殊处理："下午xx小时"、"晚上xx小时"默认为加班
+4. hours字段：提取数字部分，半天=4.0，一天=8.0
+5. confidence字段：0.9-1.0非常确定，0.7-0.9比较确定，0.5-0.7不太确定
 
-    HalfDay --> Set4Hours: 设置4小时
-    FullDay --> Set8Hours: 设置8小时
-    MultiDay --> MultiplyDays: 天数×8
-    DateRange --> CalculateDays: 计算天数差
+请只返回JSON数组，不要返回其他内容。
+```
 
-    Set4Hours --> SaveRecord: 存储正数4小时
-    Set8Hours --> SaveRecord: 存储正数8小时
-    MultiplyDays --> SaveRecord: 存储正数
-    CalculateDays --> MultiplyDays
+### 4.3 分批处理策略
 
-    SaveRecord --> [*]: 返回请假记录（时间存正数，通过leave_type区分类型）
+为避免API超时，系统采用分批处理：
+
+```python
+# 分批配置
+BATCH_SIZE = 1      # 每批处理1行
+MAX_LINES = 5       # 最多处理前5行
+
+# 逐行顺序处理
+for batch_start in range(0, len(text_lines), BATCH_SIZE):
+    batch_lines = text_lines[batch_start:batch_start + BATCH_SIZE]
+    result = _parse_batch(batch_lines, batch_start)
 ```
 
 ---
@@ -247,245 +214,109 @@ stateDiagram-v2
 
 ### 5.1 日期解析规则
 
-```yaml
-# 日期解析规则配置
-date_rules:
-  # 单日期模式
-  single_date:
-    - pattern: '(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})'
-      format: 'yyyy.m.d'
-      example: '2025.08.15, 2025.9.18'
-    
-    - pattern: '(\d{4})年(\d{1,2})月(\d{1,2})日'
-      format: 'yyyy年m月d日'
-      example: '2025年8月15日'
-  
-  # 日期范围模式
-  date_range:
-    - pattern: '(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})'
-      format: 'yyyy.m.d-d'
-      example: '2025.10.27-29'
-      note: '同月日期范围'
-    
-    - pattern: '(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})[.\-/](\d{1,2})'
-      format: 'yyyy.m.d-m.d'
-      example: '2025.10.27-11.3'
-      note: '跨月日期范围'
-```
+AI模型支持的日期格式：
+
+| 格式 | 示例 | 解析结果 |
+|------|------|----------|
+| 标准格式 | 2025.08.15 | 2025-08-15 |
+| ISO格式 | 2025-01-15 | 2025-01-15 |
+| 中文格式 | 2025年1月15日 | 2025-01-15 |
+| 日期范围（同月） | 2025.10.27-29 | 2025-10-27 至 2025-10-29 |
+| 日期范围（跨月） | 2025.10.27-11.3 | 2025-10-27 至 2025-11-03 |
 
 ### 5.2 类型识别规则
 
-```yaml
-# 记录类型识别规则
-type_rules:
-  overtime:
-    keywords:
-      - '晚上'
-      - '早'
-      - '小时'
-      - '加班'
-    patterns:
-      - '晚上\s*\d+\.?\d*\s*小时'
-      - '早\s*\d+\s*到晚\s*\d+'
-      - '\d+\.?\d*\s*小时'
-    confidence: 0.8
-  
-  leave:
-    keywords:
-      - '请假'
-      - '休假'
-      - '事假'
-      - '病假'
-    patterns:
-      - '请假\s*(半天|一天|全天|\d+\s*天)'
-    confidence: 0.9
-  
-  comp_off:
-    keywords:
-      - '调休'
-      - '补休'
-    patterns:
-      - '调休\s*(半天|一天|全天|\d+\s*天)'
-    confidence: 0.9
-  
-  balance:
-    keywords:
-      - '累计'
-      - '余额'
-      - '剩余'
-    patterns:
-      - '累计\s*\d+\.?\d*\s*小时'
-    confidence: 0.7
-    note: '⚠️ 仅提取用于参考展示，**不用于系统计算**。系统独立按《劳动法》规则计算各类加班余额。'
-```
+AI模型识别的类型映射：
+
+| 类型 | AI识别关键词/模式 | 示例 | 默认子类型 |
+|------|------------------|------|-----------|
+| 加班(overtime) | 晚上、下午、早、小时、加班 | "晚上加班2小时"、"下午3小时" | weekday_evening |
+| 请假(leave) | 请假、病假、事假、年假 | "请假半天，病假" | personal |
+| 调休(comp_off) | 调休、补休 | "调休一天" | half_day/full_day |
+| 未知(unknown) | 累计、余额、剩余 | "累计加班100小时" | - |
+
+**特殊规则：**
+- **下午xx小时** 或 **晚上xx小时**：如果没有"请假"、"调休"等字样，默认识别为**加班**，子类型为**工作日-晚上**
+- **请假半天**：默认为leave，subtype为personal，hours为4
+- **请假一天**：默认为leave，subtype为personal，hours为8
 
 ### 5.3 时长解析规则
 
-#### 工作时间定义
+AI模型提取的时长映射：
 
-```yaml
-work_schedule:
-  workdays: [1, 2, 3, 4, 5]  # 周一到周五
-  morning:
-    start: '08:30'
-    end: '12:00'
-    hours: 3.5
-  lunch_break:
-    start: '12:00'
-    end: '13:00'
-    is_work_time: false
-  afternoon:
-    start: '13:00'
-    end: '17:30'
-    hours: 4.5
-  standard_daily_hours: 8.0
-```
-
-#### 工作日延时加班时段分解
-
-对于包含多个时段的描述，需要分解为独立的加班记录：
-
-```yaml
-overtime_periods:
-  weekday_morning:
-    condition: 'end_time <= 08:30'
-    description: '早晨加班'
-    examples:
-      - '早7点到岗' -> 08:30 - 07:00 = 1.5小时
-      - '早晨1.5小时' -> 1.5小时
-  
-  weekday_lunch:
-    condition: '12:00 <= start_time < 13:00'
-    description: '午休加班'
-    examples:
-      - '中午12:30-13:00加班' -> 0.5小时
-      - '午休1小时' -> 1.0小时
-  
-  weekday_evening:
-    condition: 'start_time >= 17:30'
-    description: '晚间加班'
-    examples:
-      - '晚上加班到20:00' -> 20:00 - 17:30 = 2.5小时
-      - '晚17:30-22:00' -> 4.5小时
-
-multi_period_parsing:
-  # 同一条记录包含多个时段的处理
-  example: '2025.10.24，早晨1.5小时，晚上5.5小时'
-  result:
-    - period: weekday_morning, hours: 1.5
-    - period: weekday_evening, hours: 5.5
-  total_overtime: 7.0小时
-```
-
-#### 时长解析规则配置
-
-```yaml
-# 时长解析规则
-hours_rules:
-  # 直接时长
-  direct_hours:
-    pattern: '(\d+\.?\d*)\s*小时'
-    action: 'extract_number'
-  
-  # 时间段计算（需根据工作时间判断是否跨时段）
-  time_range:
-    pattern: '早\s*(\d{1,2})\s*到\s*晚\s*(\d{1,2})'
-    action: 'calculate_overtime_range'
-    formula: |
-      # 计算实际加班时长，扣除标准工作时间
-      total_duration = end - start
-      if crosses_work_hours(start, end):
-        # 跨工作时间，只计算08:30前和17:30后的部分
-        overtime = calculate_outside_work_hours(start, end)
-      else:
-        # 全部在标准工作时间外
-        overtime = total_duration
-  
-  # 半天/全天
-  duration_keywords:
-    '半天': 4
-    '一天': 8
-    '全天': 8
-  
-  # 天数转换
-  days_to_hours:
-    pattern: '(\d+)\s*天'
-    multiplier: 8
-    action: 'multiply'
-  
-  # 调整关键词
-  adjustment_keywords:
-    '减': -1
-    '加': 1
-    '增加': 1
-    '减少': -1
-```
+| 描述 | 解析结果 | 说明 |
+|------|----------|------|
+| "X小时" | X.0h | 直接数值 |
+| "X.5小时" | X.5h | 小数支持 |
+| "半天" | 4.0h | 固定映射 |
+| "一天/全天" | 8.0h | 固定映射 |
+| "X天" | X * 8.0h | 天数转换 |
 
 ---
 
 ## 6. 解析器组件设计
 
-### 6.1 解析器类层次
+### 6.1 AI解析服务类
+
+```python
+# src/services/ai_parser_service.py
+
+class AIParserService:
+    """AI大模型解析服务"""
+
+    def __init__(self):
+        # 硬编码火山方舟API配置
+        self.api_key = "39fb2f6b-3062-41f7-8abb-3e879f03270b"
+        self.base_url = "https://ark.cn-beijing.volces.com/api/v3"
+        self.model = "ep-20260331092634-wfnm8"
+        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+
+    def parse_lines(self, text_lines: List[str]) -> Dict[str, Any]:
+        """
+        使用AI解析文本行，分批处理避免超时
+        Returns: {
+            'records': [...],      # 解析后的记录列表
+            'prompt': '',          # 完整Prompt
+            'response': '',        # AI原始响应
+            'error': None          # 错误信息（如有）
+        }
+        """
+
+    def _build_prompt(self, text_lines: List[str]) -> str:
+        """构建解析Prompt"""
+
+    def _parse_batch(self, text_lines: List[str], line_offset: int) -> Dict[str, Any]:
+        """解析一批文本行"""
+```
+
+### 6.2 解析流程图
 
 ```mermaid
 classDiagram
-    class BaseParser {
-        <<abstract>>
-        +parse(text: str): ParseResult
-        +validate(result: ParseResult): bool
-        +get_error(): str
+    class AIParserService {
+        +api_key: str
+        +base_url: str
+        +model: str
+        +client: OpenAI
+        +parse_lines(text_lines: List[str]): Dict
+        +_build_prompt(text_lines: List[str]): str
+        +_parse_batch(lines: List[str], offset: int): Dict
+        +_get_weekday(date_str: str): str
     }
 
-    class DateParser {
-        +parse_date(text: str): DateResult
-        +parse_range(text: str): DateRangeResult
-        +normalize(date: datetime): str
+    class RecordService {
+        +process_parse_results(records: List[Dict]): List[Dict]
+        +calculate_confidence_level(confidence: float): str
+        +detect_anomalies(record: Dict): bool
     }
 
-    class TypeParser {
-        +classify(text: str): RecordType
-        +get_confidence(): float
-        +get_matched_pattern(): str
+    class WebRoutes {
+        +parse_file_content(content: str): Dict
+        +update_parse_progress(step: str, message: str)
     }
 
-    class HoursParser {
-        +parse_hours(text: str, type: RecordType): float
-        +parse_time_range(start: str, end: str): float
-        +keyword_to_hours(keyword: str): float
-    }
-
-    class DescriptionParser {
-        +extract_description(text: str): str
-        +clean_description(desc: str): str
-    }
-
-    class ValidationParser {
-        +validate_record(record: OTRecord): ValidationResult
-        +validate_date(date: DateResult): bool
-        +validate_hours(hours: float): bool
-    }
-
-    BaseParser <|-- DateParser
-    BaseParser <|-- TypeParser
-    BaseParser <|-- HoursParser
-    BaseParser <|-- DescriptionParser
-    BaseParser <|-- ValidationParser
-```
-
-### 6.2 解析管道设计
-
-```mermaid
-flowchart LR
-    A[Input] --> B[DateParser]
-    B --> C[TypeParser]
-    C --> D[HoursParser]
-    D --> E[DescriptionParser]
-    E --> F[ValidationParser]
-    F --> G[Output]
-
-    B -.->|剩余文本| C
-    C -.->|剩余文本| D
-    D -.->|剩余文本| E
+    AIParserService --> RecordService : 返回解析结果
+    RecordService --> WebRoutes : 置信度分级/异常检测
 ```
 
 ---
@@ -496,148 +327,149 @@ flowchart LR
 
 | 错误级别 | 说明 | 处理方式 |
 |----------|------|----------|
-| CRITICAL | 日期解析失败 | 跳过该行，记录错误 |
-| HIGH | 类型识别失败 | 标记为未知类型，尝试通用解析 |
-| MEDIUM | 时长解析失败 | 保留记录，时长设为NULL |
-| LOW | 描述提取不完整 | 记录警告，继续处理 |
+| CRITICAL | API调用失败/超时 | 显示错误页面，展示完整Prompt和Response |
+| HIGH | JSON解析失败 | 显示错误信息，包含AI原始响应 |
+| MEDIUM | 单条记录解析失败 | 跳过该条，继续处理其他 |
+| LOW | 置信度较低 | 标记为低置信度，建议人工复核 |
 
 ### 7.2 错误处理流程
 
 ```mermaid
 flowchart TD
-    A[解析错误] --> B{错误级别?}
+    A[调用AI API] --> B{API响应}
 
-    B -->|CRITICAL| C[记录到error_log]
-    B -->|HIGH| D[尝试备用解析]
-    B -->|MEDIUM| E[使用默认值]
-    B -->|LOW| F[记录警告]
+    B -->|超时/异常| C[记录错误日志]
+    C --> D[显示错误页面]
+    D --> E[展示Prompt和Response]
+    E --> F[等待用户操作]
 
-    C --> G[跳过当前行]
-    D --> H{备用成功?}
-    H -->|是| I[继续处理]
-    H -->|否| C
-    E --> I
-    F --> I
+    B -->|成功| G[提取content]
+    G --> H{包含JSON?}
+    H -->|否| I[正则提取失败]
+    I --> J[返回JSON提取错误]
 
-    I --> J[继续下一行]
-    G --> J
+    H -->|是| K[解析JSON]
+    K --> L{JSON有效?}
+    L -->|否| M[返回JSON解析错误]
+    L -->|是| N[继续处理]
+
+    J --> O
+    M --> O
+    N --> P[返回结果]
+    F --> Q[用户重试/放弃]
 ```
+
+### 7.3 失败不回退原则
+
+**重要：** AI解析失败时**不再回退到本地规则**解析：
+
+- 直接显示错误信息和完整的AI交互记录
+- 便于用户了解失败原因并调整输入
+- 透明展示AI解析过程和推理
+- 失败时停留在错误页面，等待用户操作
 
 ---
 
-## 8. 性能优化策略
+## 8. 置信度与异常检测
 
-### 8.1 正则表达式优化
+### 8.1 置信度分级
 
-1. **预编译**：所有正则表达式在初始化时预编译
-2. **顺序优化**：按匹配频率排序，常用模式优先
-3. **锚点使用**：使用 `^` 和 `$` 减少回溯
+| 级别 | 分数范围 | 标识 | 说明 |
+|------|----------|------|------|
+| HIGH | 0.9 - 1.0 | 绿色 | 解析结果可信，建议导入 |
+| MEDIUM | 0.7 - 0.89 | 蓝色 | 解析结果基本可信，建议检查 |
+| LOW | < 0.7 | 红色 | 解析结果存疑，需要人工确认 |
 
-### 8.2 批处理策略
+### 8.2 异常检测规则
 
-```mermaid
-flowchart LR
-    A[文件读取] --> B[批量解析]
-    B --> C[批量验证]
-    C --> D[批量插入]
-
-    B -->|100条/批| B1[解析批次1]
-    B -->|100条/批| B2[解析批次2]
-    B -->|100条/批| B3[解析批次N]
-
-    B1 --> C
-    B2 --> C
-    B3 --> C
-```
+| 异常类型 | 检测条件 | 处理方式 |
+|----------|----------|----------|
+| 加班时长过长 | hours > 12 | 标记警告，建议检查 |
+| 未来日期 | date > today | 标记警告，建议检查 |
+| 类型不匹配 | 周末但标记为工作日加班 | 标记警告 |
+| 缺少子类型 | 请假但未指定leave_type | 标记为需编辑 |
 
 ---
 
-## 9. 配置管理
+## 9. 性能优化策略
 
-### 9.1 配置文件结构
+### 9.1 分批处理优化
 
-```yaml
-# config/parsing_rules.yaml
-version: "1.0"
+```python
+# 配置参数
+BATCH_SIZE = 1      # 小批次，避免超时
+MAX_LINES = 5       # 限制处理行数
+TIMEOUT = 300       # 5分钟超时
 
-parsing:
-  # 通用设置
-  general:
-    encoding: "utf-8"
-    line_separator: "\n"
-    skip_empty_lines: true
-    confidence_threshold: 0.7
-  
-  # 日期解析
-  date_parsing:
-    default_year: null  # null表示从数据中提取
-    date_formats:
-      - "%Y.%m.%d"
-      - "%Y-%m-%d"
-      - "%Y/%m/%d"
-      - "%Y年%m月%d日"
-  
-  # 类型识别
-  type_classification:
-    overtime:
-      weight: 1.0
-      keywords: ["晚上", "早", "小时", "加班"]
-    leave:
-      weight: 1.0
-      keywords: ["请假", "休假", "事假", "病假"]
-    comp_off:
-      weight: 1.0
-      keywords: ["调休", "补休"]
-  
-  # 时长计算
-  hours_calculation:
-    work_hours_per_day: 8
-    half_day_hours: 4
-    time_range_format: "24h"
+# 逐行顺序处理，避免API压力过大
 ```
 
-### 9.2 规则热更新
+### 9.2 缓存策略
 
-```mermaid
-flowchart TD
-    A[启动] --> B[加载规则文件]
-    B --> C[编译正则表达式]
-    C --> D[初始化解析器]
-
-    E[文件变更] --> F[检测变更]
-    F --> G[重新加载规则]
-    G --> H[重新编译]
-    H --> I[更新解析器]
-    I --> D
-```
+- AI解析结果不缓存，确保实时性
+- 解析进度存储在Session中，支持前端轮询
 
 ---
 
 ## 10. 测试策略
 
-### 10.1 解析器测试矩阵
+### 10.1 AI解析测试用例
 
 | 测试类型 | 测试内容 | 预期结果 |
 |----------|----------|----------|
-| 日期解析 | 2025.08.15 | 2025-08-15 |
-| 日期解析 | 2025.9.18 | 2025-09-18 |
-| 日期范围 | 2025.10.27-29 | 2025-10-27 至 2025-10-29 |
-| 加班识别 | 晚上3.5小时 | 类型=overtime, 时长=3.5 |
-| 请假识别 | 请假半天 | 类型=leave, 时长=-4 |
-| 调休识别 | 调休三天 | 类型=comp_off, 时长=-24 |
-| 时间范围 | 早7到晚10 | 时长=15 |
+| 简单加班 | "2025.08.15 晚上3小时" | type=overtime, hours=3.0 |
+| 请假识别 | "2025.08.15 请假半天" | type=leave, hours=4.0 |
+| 调休识别 | "2025.08.15 调休一天" | type=comp_off, hours=8.0 |
+| 下午加班 | "2025.08.15 下午2小时" | type=overtime, subtype=weekday_evening |
+| 未知类型 | "2025.08.15 累计10小时" | type=unknown |
 
-### 10.2 模糊测试用例
+### 10.2 边界情况测试
 
 ```python
-# 边界情况测试用例
+# 需要测试的边界情况
 edge_cases = [
-    "2025.02.29",  # 无效日期
-    "2025.13.01",  # 无效月份
-    "晚上-3小时",  # 负时长
-    "请假0天",     # 零时长
-    "",            # 空行
-    "累计小时",    # 缺少数字
-    "2025.08.15",  # 只有日期无内容
+    "2025.02.29",           # 无效日期
+    "晚上-3小时",           # 负时长
+    "",                     # 空行
+    "累计小时",             # 缺少数字
 ]
 ```
+
+---
+
+## 11. 配置管理
+
+### 11.1 API配置
+
+配置位置：`src/services/ai_parser_service.py`（硬编码）
+
+```python
+# 如需修改API配置，编辑以下变量：
+self.api_key = "your-api-key"
+self.base_url = "https://ark.cn-beijing.volces.com/api/v3"
+self.model = "your-model-endpoint"
+```
+
+### 11.2 分批处理配置
+
+```python
+# 在 parse_lines 方法中修改：
+BATCH_SIZE = 1      # 每批处理行数
+MAX_LINES = 5       # 最大处理行数
+```
+
+---
+
+## 12. 修订历史
+
+| 版本 | 日期 | 修订内容 | 修订人 |
+|------|------|----------|--------|
+| 1.0 | 2026-04-04 | 初始版本，基于本地规则解析 | 系统管理员 |
+| 2.0 | 2026-04-08 | **重大重构**：完全改为AI大模型解析策略，删除本地关键词/正则解析相关内容，增加火山方舟API配置说明 | 系统管理员 |
+
+---
+
+## 13. 相关文档
+
+- [20-record-import-feature.md](./20-record-import-feature.md) - 记录导入功能详细设计
+- [06-technical-implementation.md](./06-technical-implementation.md) - 技术实现文档（需同步更新）

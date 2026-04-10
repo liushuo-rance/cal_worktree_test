@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}审批记录 #{{ item.id if item else '-' }} - 加班记录管理系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>审批记录</h1>
+            <p class="text-muted mb-0">ID: #{{ item.id if item else '-' }}</p>
+        </div>
+        <a href="{{ url_for('review.review_queue') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回队列
+        </a>
+    </div>
+</div>
+
+{% if item %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5><i class="bi bi-file-text"></i> 记录详情</h5>
+            </div>
+            <div class="content-card-body">
+                <div class="mb-4">
+                    <label class="text-muted small">来源文件</label>
+                    <p class="mb-0"><code>{{ item.file_path or '-' }}</code></p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-muted small">原始文本</label>
+                    <pre class="bg-light p-3 rounded mb-0"><code>{{ item.raw_text or '-' }}</code></pre>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-muted small">解析数据</label>
+                    <pre class="bg-light p-3 rounded mb-0"><code>{{ item.parsed_data or '-' }}</code></pre>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="text-muted small">记录类型</label>
+                        <p class="mb-0">
+                            <span class="badge bg-info">{{ item.record_type or '未知' }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">创建时间</label>
+                        <p class="mb-0">{{ item.created_at }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5><i class="bi bi-question-circle"></i> 审批操作</h5>
+            </div>
+            <div class="content-card-body">
+                <form method="POST">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action" value="approve" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-lg"></i> 批准
+                        </button>
+                        <button type="submit" name="action" value="reject" class="btn btn-danger btn-lg">
+                            <i class="bi bi-x-lg"></i> 拒绝
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>提示：</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>批准后记录将正式生效</li>
+                        <li>拒绝后记录将被标记为无效</li>
+                        <li>周末加班将自动生成调休余额</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i> 未找到该审批记录
+</div>
+{% endif %}
+{% endblock %}

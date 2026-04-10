@@ -57,6 +57,20 @@ class TestSolarToLunar:
         result = solar_to_lunar(date(2026, 6, 19))
         assert result == (2026, 5, 5, False)
 
+    def test_before_spring_festival(self):
+        """春节前公历转农历（应归属上一年）"""
+        from src.utils.lunar_converter import solar_to_lunar
+        result = solar_to_lunar(date(2026, 1, 15))  # 春节前
+        assert result[0] == 2025  # 农历年应为2025
+
+    def test_leap_month_in_solar_conversion(self):
+        """公历转农历遇到闰月"""
+        from src.utils.lunar_converter import solar_to_lunar
+        # 2025年闰六月，测试闰月期间的日期
+        result = solar_to_lunar(date(2025, 8, 1))  # 应在闰六月期间
+        assert result[1] == 6  # 六月
+        assert result[3] is True  # 是闰月
+
 
 class TestLeapMonth:
     """闰月测试"""
@@ -90,6 +104,13 @@ class TestFestivalDates:
         result = get_festival_date('中秋节', 2026)
         assert result == date(2026, 9, 25)
 
+    def test_get_festival_with_alias(self):
+        """使用节日别名获取日期"""
+        from src.utils.lunar_converter import get_festival_date
+        # 使用别名'端午'而不是'端午节'
+        result = get_festival_date('端午', 2026)
+        assert result == date(2026, 6, 19)
+
 
 class TestLunarConverterErrors:
     """转换错误处理测试"""
@@ -118,8 +139,21 @@ class TestLunarConverterErrors:
         with pytest.raises(LunarConversionError):
             lunar_to_solar(2026, 1, 1, is_leap=True)  # 2026年无闰月
 
+    def test_wrong_leap_month(self):
+        """错误地标记非闰月为闰月"""
+        from src.utils.lunar_converter import lunar_to_solar, LunarConversionError
+        # 2025年闰六月，但尝试标记五月为闰月
+        with pytest.raises(LunarConversionError):
+            lunar_to_solar(2025, 5, 1, is_leap=True)
+
     def test_unknown_festival(self):
         """未知节日"""
         from src.utils.lunar_converter import get_festival_date, LunarConversionError
         with pytest.raises(LunarConversionError):
             get_festival_date('元宵节', 2026)
+
+    def test_unsupported_year_lunar_to_solar(self):
+        """农历转公历不支持的年度"""
+        from src.utils.lunar_converter import lunar_to_solar, LunarConversionError
+        with pytest.raises(LunarConversionError):
+            lunar_to_solar(2030, 1, 1)

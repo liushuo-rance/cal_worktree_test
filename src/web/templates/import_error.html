@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}AI解析失败 - 加班记录管理系统{% endblock %}
+{% block page_title %}AI解析失败{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Error Alert -->
+    <div class="alert alert-error mb-8">
+        <span class="material-symbols-outlined" style="font-size: 32px;">error</span>
+        <div>
+            <h3 class="font-headline font-bold text-lg">AI大模型解析失败</h3>
+            <p class="mt-1">{{ error }}</p>
+        </div>
+    </div>
+
+    <!-- File Info -->
+    <div class="content-card mb-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">info</span>
+                文件信息
+            </h5>
+        </div>
+        <div class="content-card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-label-sm text-on-surface-variant">文件名</p>
+                    <p class="font-medium">{{ filename }}</p>
+                </div>
+                <div>
+                    <p class="text-label-sm text-on-surface-variant">员工</p>
+                    <p class="font-medium">{{ employee_name }} ({{ employee_id }})</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-between mb-8">
+        <a href="{{ url_for('records.import_records') }}" class="btn btn-secondary">
+            <span class="material-symbols-outlined">arrow_back</span>
+            返回重新导入
+        </a>
+        <button type="button" class="btn btn-primary" onclick="toggleDetails()">
+            <span class="material-symbols-outlined">code</span>
+            展开/收起技术详情
+        </button>
+    </div>
+
+    <!-- Technical Details -->
+    <div id="technical-details" style="display: block;">
+        <!-- Prompt Section -->
+        <div class="content-card mb-8">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">send</span>
+                    📤 发送给AI的Prompt
+                </h5>
+            </div>
+            <div class="content-card-body">
+                {% if prompt %}
+                <pre class="code-preview" style="max-height: 500px; overflow: auto;"><code>{{ prompt }}</code></pre>
+                {% else %}
+                <p class="text-on-surface-variant italic">没有生成Prompt</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Response Section -->
+        <div class="content-card mb-8">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">reply</span>
+                    📥 AI返回的Response
+                </h5>
+            </div>
+            <div class="content-card-body">
+                {% if response %}
+                <pre class="code-preview" style="max-height: 500px; overflow: auto;"><code>{{ response }}</code></pre>
+                {% else %}
+                <p class="text-on-surface-variant italic">没有收到Response</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- File Content Section -->
+        <div class="content-card mb-8">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">description</span>
+                    📝 文件内容（部分）
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <pre class="code-preview" style="max-height: 300px; overflow: auto;"><code>{{ file_content }}</code></pre>
+                {% if file_content|length >= 2000 %}
+                <p class="text-body-sm text-on-surface-variant mt-2">... (内容已截断)</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="content-card">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">help</span>
+                可能的解决方案
+            </h5>
+        </div>
+        <div class="content-card-body">
+            <ul class="space-y-3">
+                <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-primary">check_circle</span>
+                    <span>检查API密钥是否有效</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-primary">check_circle</span>
+                    <span>检查文件内容是否为有效的Markdown格式</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-primary">check_circle</span>
+                    <span>查看"发送给AI的Prompt"确认文本是否正确提取</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-primary">check_circle</span>
+                    <span>查看"AI返回的Response"了解AI的响应内容</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="material-symbols-outlined text-primary">check_circle</span>
+                    <span>如果问题持续，请联系管理员检查AI服务状态</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDetails() {
+    const details = document.getElementById('technical-details');
+    details.style.display = details.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+
+<style>
+.code-preview {
+    background: var(--color-surface-container-low);
+    border-radius: var(--radius-sm);
+    padding: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: var(--text-body-sm);
+    line-height: 1.6;
+    color: var(--color-on-surface);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.alert-error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background: var(--color-error-container);
+    border-radius: var(--radius-md);
+    color: var(--color-on-error-container);
+}
+</style>
+{% endblock %}

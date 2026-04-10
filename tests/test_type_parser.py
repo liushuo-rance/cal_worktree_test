@@ -7,9 +7,6 @@
 4. 置信度计算
 """
 
-import pytest
-
-
 class TestOvertimeTypeRecognition:
     """加班类型识别测试"""
 

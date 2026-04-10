@@ -147,11 +147,23 @@ class TestDateExtractor:
         with pytest.raises(DateParseError):
             parse_date_range("2025.10.29-27")  # 29日到27日
 
+    def test_cross_month_end_before_start(self):
+        """跨月范围结束日期在开始日期之前应该报错"""
+        from src.parsers.date_parser import parse_date_range, DateParseError
+        with pytest.raises(DateParseError):
+            parse_date_range("2025.11.03-10.27")  # 11月3日到10月27日
+
     def test_invalid_partial_date(self):
         """无效的部分日期应该报错"""
         from src.parsers.date_parser import parse_partial_date, DateParseError
         with pytest.raises(DateParseError):
             parse_partial_date("13.45", 2025)  # 13月无效
+
+    def test_partial_date_unparseable(self):
+        """无法解析的部分日期格式应该报错"""
+        from src.parsers.date_parser import parse_partial_date, DateParseError
+        with pytest.raises(DateParseError):
+            parse_partial_date("invalid", 2025)
 
     def test_cross_month_invalid_day(self):
         """跨月范围无效日期应该报错"""
@@ -164,3 +176,11 @@ class TestDateExtractor:
         from src.parsers.date_parser import extract_date_from_line
         result = extract_date_from_line("2025.08.15")
         assert result is None  # 没有分隔符和后续内容
+
+    def test_extract_chinese_date(self):
+        """提取中文格式日期"""
+        from src.parsers.date_parser import extract_date_from_line
+        result = extract_date_from_line("2025年8月15日，下午请假")
+        assert result is not None
+        assert result[0] == "2025年8月15日"
+        assert result[1] == "下午请假"

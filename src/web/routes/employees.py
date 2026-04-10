@@ -1,0 +1,397 @@
+"""
+员工管理路由
+"""
+
+import sqlite3
+import logging
+
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
+
+from web.utils import get_db
+
+bp = Blueprint('employees', __name__, url_prefix='/employees')
+logger = logging.getLogger(__name__)
+
+
+@bp.route('/')
+def list_employees():
+    """员工列表"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    employees = []
+    try:
+        cursor.execute("SELECT * FROM employees ORDER BY name")
+        employees = [dict(row) for row in cursor.fetchall()]
+        logger.info(f"查询到 {len(employees)} 名员工")
+    except sqlite3.Error as e:
+        logger.error(f"查询员工列表失败: {e}")
+        flash('查询员工列表失败', 'error')
+    finally:
+        conn.close()
+
+    return render_template('employees.html', employees=employees)
+
+
+@bp.route('/create/', methods=['POST'])
+def create_employee():
+    """创建员工"""
+    employee_id = request.form.get('employee_id', '').strip()
+    name = request.form.get('name', '').strip()
+    department = request.form.get('department', '').strip()
+
+    logger.info(f"尝试创建员工: ID={employee_id}, 姓名={name}, 部门={department}")
+
+    # 验证输入
+    if not employee_id:
+        logger.warning("创建员工失败: 员工ID为空")
+        flash('员工ID不能为空', 'error')
+        return redirect(url_for('employees.list_employees'))
+
+    if not name:
+        logger.warning("创建员工失败: 姓名为空")
+        flash('姓名不能为空', 'error')
+        return redirect(url_for('employees.list_employees'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO employees (employee_id, name, department)
+            VALUES (?, ?, ?)
+        """, (employee_id, name, department))
+        conn.commit()
+        logger.info(f"员工创建成功: {employee_id} - {name}")
+        flash(f'员工 {name} 创建成功', 'success')
+    except sqlite3.IntegrityError as e:
+        conn.rollback()
+        logger.error(f"创建员工失败: 员工ID {employee_id} 已存在 - {e}")
+        flash(f'员工ID {employee_id} 已存在', 'error')
+    except sqlite3.Error as e:
+        conn.rollback()
+        logger.error(f"创建员工失败: {e}")
+        flash('创建员工失败', 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('employees.list_employees'))
+
+
+@bp.route('/<employee_id>/')
+def employee_detail(employee_id):
+    """员工详情"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    employee = None
+    overtime_records = []
+    leave_records = []
+    comp_off_records = []
+
+    try:
+        cursor.execute("SELECT * FROM employees WHERE employee_id = ?", (employee_id,))
+        row = cursor.fetchone()
+        if row:
+            employee = dict(row)
+
+            # 获取加班记录
+            cursor.execute("""
+                SELECT * FROM overtime_records
+                WHERE employee_id = ?
+                ORDER BY work_date DESC
+                LIMIT 10
+            """, (employee_id,))
+            overtime_records = [dict(row) for row in cursor.fetchall()]
+
+            # 获取请假记录
+            cursor.execute("""
+                SELECT * FROM leave_records
+                WHERE employee_id = ?
+                ORDER BY leave_date DESC
+                LIMIT 10
+            """, (employee_id,))
+            leave_records = [dict(row) for row in cursor.fetchall()]
+
+            # 获取调休记录
+            cursor.execute("""
+                SELECT * FROM comp_off_usage_records
+                WHERE employee_id = ?
+                ORDER BY usage_date DESC
+                LIMIT 10
+            """, (employee_id,))
+            comp_off_records = [dict(row) for row in cursor.fetchall()]
+
+            logger.info(f"查询员工详情: {employee_id}, 加班 {len(overtime_records)} 条, 请假 {len(leave_records)} 条, 调休 {len(comp_off_records)} 条")
+        else:
+            logger.warning(f"员工不存在: {employee_id}")
+            flash('员工不存在', 'error')
+    except sqlite3.Error as e:
+        logger.error(f"查询员工详情失败: {e}")
+        flash('查询失败', 'error')
+    finally:
+        conn.close()
+
+    return render_template(
+        'employee_detail.html',
+        employee=employee,
+        overtime_records=overtime_records,
+        leave_records=leave_records,
+        comp_off_records=comp_off_records
+    )
+
+
+@bp.route('/<employee_id>/records/')
+def employee_records(employee_id):
+    """员工记录管理页面"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    employee = None
+    overtime_records = []
+    leave_records = []
+    comp_off_records = []
+    active_tab = request.args.get('tab', 'overtime')
+
+    try:
+        cursor.execute("SELECT * FROM employees WHERE employee_id = ?", (employee_id,))
+        row = cursor.fetchone()
+        if row:
+            employee = dict(row)
+
+            cursor.execute("""
+                SELECT * FROM overtime_records
+                WHERE employee_id = ?
+                ORDER BY work_date DESC
+            """, (employee_id,))
+            overtime_records = [dict(row) for row in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT * FROM leave_records
+                WHERE employee_id = ?
+                ORDER BY leave_date DESC
+            """, (employee_id,))
+            leave_records = [dict(row) for row in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT * FROM comp_off_usage_records
+                WHERE employee_id = ?
+                ORDER BY usage_date DESC
+            """, (employee_id,))
+            comp_off_records = [dict(row) for row in cursor.fetchall()]
+        else:
+            flash('员工不存在', 'error')
+    except sqlite3.Error as e:
+        logger.error(f"查询员工记录失败: {e}")
+        flash('查询失败', 'error')
+    finally:
+        conn.close()
+
+    return render_template(
+        'employee_records.html',
+        employee=employee,
+        overtime_records=overtime_records,
+        leave_records=leave_records,
+        comp_off_records=comp_off_records,
+        active_tab=active_tab
+    )
+
+
+@bp.route('/<employee_id>/records/create/', methods=['GET', 'POST'])
+def create_record(employee_id):
+    """创建员工记录"""
+    record_type = request.args.get('type', 'overtime')
+    if record_type not in ('overtime', 'leave', 'comp_off'):
+        record_type = 'overtime'
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM employees WHERE employee_id = ?", (employee_id,))
+    employee = cursor.fetchone()
+    if not employee:
+        conn.close()
+        flash('员工不存在', 'error')
+        return redirect(url_for('employees.list_employees'))
+
+    if request.method == 'POST':
+        record_date = request.form.get('record_date', '').strip()
+        duration_hours = int(request.form.get('duration_hours', 0) or 0)
+        duration_minutes = int(request.form.get('duration_minutes', 0) or 0)
+        subtype = request.form.get('subtype', '').strip()
+        description = request.form.get('description', '').strip()
+        total_minutes = duration_hours * 60 + duration_minutes
+
+        if not record_date:
+            flash('日期不能为空', 'error')
+            conn.close()
+            return redirect(request.url)
+
+        try:
+            if record_type == 'overtime':
+                cursor.execute("""
+                    INSERT INTO overtime_records
+                    (employee_id, work_date, overtime_type, duration_hours, duration_minutes,
+                     total_minutes, description)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (employee_id, record_date, subtype or 'weekday_evening',
+                      duration_hours, duration_minutes, total_minutes, description))
+            elif record_type == 'leave':
+                cursor.execute("""
+                    INSERT INTO leave_records
+                    (employee_id, leave_date, leave_type, duration_hours, duration_minutes,
+                     total_minutes, description)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (employee_id, record_date, subtype or 'personal',
+                      duration_hours, duration_minutes, total_minutes, description))
+            elif record_type == 'comp_off':
+                cursor.execute("""
+                    INSERT INTO comp_off_usage_records
+                    (employee_id, usage_date, duration_hours, duration_minutes,
+                     total_minutes, description, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pending')
+                """, (employee_id, record_date, duration_hours, duration_minutes,
+                      total_minutes, description))
+
+            conn.commit()
+            flash('记录创建成功', 'success')
+            return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+        except sqlite3.Error as e:
+            conn.rollback()
+            logger.error(f"创建记录失败: {e}")
+            flash(f'创建失败: {e}', 'error')
+        finally:
+            conn.close()
+
+        return redirect(request.url)
+
+    conn.close()
+    return render_template(
+        'employee_record_form.html',
+        employee=dict(employee),
+        record=None,
+        record_type=record_type,
+        mode='create'
+    )
+
+
+@bp.route('/<employee_id>/records/<record_type>/<int:record_id>/edit/', methods=['GET', 'POST'])
+def edit_record(employee_id, record_type, record_id):
+    """编辑员工记录"""
+    if record_type not in ('overtime', 'leave', 'comp_off'):
+        abort(404)
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM employees WHERE employee_id = ?", (employee_id,))
+    employee = cursor.fetchone()
+    if not employee:
+        conn.close()
+        flash('员工不存在', 'error')
+        return redirect(url_for('employees.list_employees'))
+
+    # 查询记录
+    if record_type == 'overtime':
+        cursor.execute("SELECT * FROM overtime_records WHERE id = ? AND employee_id = ?", (record_id, employee_id))
+    elif record_type == 'leave':
+        cursor.execute("SELECT * FROM leave_records WHERE id = ? AND employee_id = ?", (record_id, employee_id))
+    else:
+        cursor.execute("SELECT * FROM comp_off_usage_records WHERE id = ? AND employee_id = ?", (record_id, employee_id))
+
+    record = cursor.fetchone()
+    if not record:
+        conn.close()
+        flash('记录不存在', 'error')
+        return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+
+    if request.method == 'POST':
+        record_date = request.form.get('record_date', '').strip()
+        duration_hours = int(request.form.get('duration_hours', 0) or 0)
+        duration_minutes = int(request.form.get('duration_minutes', 0) or 0)
+        subtype = request.form.get('subtype', '').strip()
+        description = request.form.get('description', '').strip()
+        total_minutes = duration_hours * 60 + duration_minutes
+
+        if not record_date:
+            flash('日期不能为空', 'error')
+            conn.close()
+            return redirect(request.url)
+
+        try:
+            if record_type == 'overtime':
+                cursor.execute("""
+                    UPDATE overtime_records
+                    SET work_date = ?, overtime_type = ?, duration_hours = ?,
+                        duration_minutes = ?, total_minutes = ?, description = ?
+                    WHERE id = ? AND employee_id = ?
+                """, (record_date, subtype or 'weekday_evening',
+                      duration_hours, duration_minutes, total_minutes, description,
+                      record_id, employee_id))
+            elif record_type == 'leave':
+                cursor.execute("""
+                    UPDATE leave_records
+                    SET leave_date = ?, leave_type = ?, duration_hours = ?,
+                        duration_minutes = ?, total_minutes = ?, description = ?
+                    WHERE id = ? AND employee_id = ?
+                """, (record_date, subtype or 'personal',
+                      duration_hours, duration_minutes, total_minutes, description,
+                      record_id, employee_id))
+            else:
+                cursor.execute("""
+                    UPDATE comp_off_usage_records
+                    SET usage_date = ?, duration_hours = ?,
+                        duration_minutes = ?, total_minutes = ?, description = ?
+                    WHERE id = ? AND employee_id = ?
+                """, (record_date, duration_hours, duration_minutes,
+                      total_minutes, description, record_id, employee_id))
+
+            conn.commit()
+            flash('记录更新成功', 'success')
+            return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+        except sqlite3.Error as e:
+            conn.rollback()
+            logger.error(f"更新记录失败: {e}")
+            flash(f'更新失败: {e}', 'error')
+        finally:
+            conn.close()
+
+        return redirect(request.url)
+
+    conn.close()
+    return render_template(
+        'employee_record_form.html',
+        employee=dict(employee),
+        record=dict(record),
+        record_type=record_type,
+        mode='edit'
+    )
+
+
+@bp.route('/<employee_id>/records/<record_type>/<int:record_id>/delete/', methods=['POST'])
+def delete_record(employee_id, record_type, record_id):
+    """删除员工记录"""
+    if record_type not in ('overtime', 'leave', 'comp_off'):
+        abort(404)
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        if record_type == 'overtime':
+            cursor.execute("DELETE FROM overtime_records WHERE id = ? AND employee_id = ?", (record_id, employee_id))
+        elif record_type == 'leave':
+            cursor.execute("DELETE FROM leave_records WHERE id = ? AND employee_id = ?", (record_id, employee_id))
+        else:
+            cursor.execute("DELETE FROM comp_off_usage_records WHERE id = ? AND employee_id = ?", (record_id, employee_id))
+
+        conn.commit()
+        flash('记录删除成功', 'success')
+    except sqlite3.Error as e:
+        conn.rollback()
+        logger.error(f"删除记录失败: {e}")
+        flash(f'删除失败: {e}', 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))

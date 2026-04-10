@@ -1,0 +1,68 @@
+{#
+  Modal Component - Glassmorphism Style
+  Usage:
+    {% from "components/modal.html" import modal, confirm_modal with context %}
+    {{ modal('modal_id', 'Title', modal_content) }}
+#}
+
+{% macro modal(id, title, content, size='md', footer='') %}
+<div id="{{ id }}" class="modal" role="dialog" aria-labelledby="{{ id }}-title" aria-modal="true">
+  <div class="modal-backdrop" onclick="closeModal('{{ id }}')"></div>
+  <div class="modal-dialog modal-{{ size }}">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="{{ id }}-title" class="modal-title">{{ title }}</h3>
+        <button type="button" class="modal-close" onclick="closeModal('{{ id }}')" aria-label="关闭">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        {{ content }}
+      </div>
+      {% if footer %}
+      <div class="modal-footer">
+        {{ footer }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro confirm_modal(id, title, message, confirm_url, confirm_text='确认', confirm_type='danger', cancel_text='取消') %}
+<div id="{{ id }}" class="modal modal-confirm" role="dialog" aria-labelledby="{{ id }}-title" aria-modal="true">
+  <div class="modal-backdrop" onclick="closeModal('{{ id }}')"></div>
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-body text-center">
+        <div class="confirm-icon confirm-{{ confirm_type }}">
+          <span class="material-symbols-outlined">
+            {% if confirm_type == 'danger' %}delete_forever
+            {% elif confirm_type == 'warning' %}warning
+            {% else %}help{% endif %}
+          </span>
+        </div>
+        <h3 id="{{ id }}-title" class="modal-title">{{ title }}</h3>
+        <p class="confirm-message">{{ message }}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('{{ id }}')">
+            {{ cancel_text }}
+          </button>
+          <form action="{{ confirm_url }}" method="post" style="display: inline;">
+            <button type="submit" class="btn btn-{{ confirm_type }}">
+              {{ confirm_text }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro modal_trigger(target_id, text, icon='', btn_class='btn btn-primary') %}
+<button type="button" class="{{ btn_class }}" onclick="openModal('{{ target_id }}')">
+  {% if icon %}<span class="material-symbols-outlined">{{ icon }}</span>{% endif %}
+  {{ text }}
+</button>
+{% endmacro %}

@@ -83,7 +83,111 @@ def parse_hours(text: str) -> Optional[Tuple[int, int, int]]:
         total_hours = days * 8
         return (total_hours, 0, total_hours * 60)
 
+    # 8. 尝试从时间范围计算时长
+    range_result = _parse_time_range(text)
+    if range_result is not None:
+        return range_result
+
     # 无法解析
+    return None
+
+
+def _parse_time_range(text: str) -> Optional[Tuple[int, int, int]]:
+    """
+    从时间范围字符串中计算时长。
+
+    支持的格式：
+    - "早7到晚10" / "早上7点到晚上10点"
+    - "7:00-22:00" / "07:00~22:00"
+    - "上午8点至下午5点"
+
+    Args:
+        text: 可能包含时间范围的文本
+
+    Returns:
+        (小时, 分钟, 总分钟数) 元组，未匹配到时间范围返回 None
+    """
+    if not text:
+        return None
+
+    # 辅助：将匹配到的小时和可选分钟转换为当天的总分钟数
+    def to_minutes(hour_str: str, minute_str: Optional[str] = None) -> int:
+        h = int(hour_str)
+        m = int(minute_str) if minute_str else 0
+        return h * 60 + m
+
+    # 模式A: "早7到晚10" / "早上7点到晚上10点" / "早7:30到晚10:30"
+    # 匹配早上/上午/早 后接数字时间，到晚上/下午/晚 后接数字时间
+    pattern_am_pm = re.compile(
+        r'(?:早上|上午|早)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:点|)?\s*'
+        r'(?:到|至|~|-)\s*'
+        r'(?:晚上|下午|晚)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:点|)?'
+    )
+    match = pattern_am_pm.search(text)
+    if match:
+        start_min = to_minutes(match.group(1), match.group(2))
+        # 晚上/下午时间若是12小时制（1-11），自动加12
+        end_h = int(match.group(3))
+        if end_h < 12:
+            end_h += 12
+        end_m = int(match.group(4)) if match.group(4) else 0
+        end_min = end_h * 60 + end_m
+        if end_min > start_min:
+            total = end_min - start_min
+            h, m = divmod(total, 60)
+            return (h, m, total)
+
+    # 模式B: "上午8点至下午5点" (均已带上午/下午)
+    pattern_am_pm_both = re.compile(
+        r'(?:上午|早上|早)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:点|)?\s*'
+        r'(?:到|至|~|-)\s*'
+        r'(?:下午|晚上|晚)\s*(\d{1,2})(?::(\d{1,2}))?\s*(?:点|)?'
+    )
+    match = pattern_am_pm_both.search(text)
+    if match:
+        start_min = to_minutes(match.group(1), match.group(2))
+        end_h = int(match.group(3))
+        if end_h < 12:
+            end_h += 12
+        end_m = int(match.group(4)) if match.group(4) else 0
+        end_min = end_h * 60 + end_m
+        if end_min > start_min:
+            total = end_min - start_min
+            h, m = divmod(total, 60)
+            return (h, m, total)
+
+    # 模式C: "7:00-22:00" / "07:00~22:00" / "7:00到22:00"
+    pattern_digital = re.compile(
+        r'(\d{1,2}):(\d{2})\s*(?:到|至|~|-)\s*(\d{1,2}):(\d{2})'
+    )
+    match = pattern_digital.search(text)
+    if match:
+        start_min = to_minutes(match.group(1), match.group(2))
+        end_min = to_minutes(match.group(3), match.group(4))
+        if end_min > start_min:
+            total = end_min - start_min
+            h, m = divmod(total, 60)
+            return (h, m, total)
+
+    # 模式D: 单独的数字范围如 "18:00-20:00" (已包含在C中)
+    # 模式E: 早晚数字简写 "早7点-晚10点"
+    pattern_short = re.compile(
+        r'(?:早上|上午|早)\s*(\d{1,2})(?::(\d{1,2}))?\s*点?\s*[-~至到]\s*'
+        r'(?:晚上|下午|晚)\s*(\d{1,2})(?::(\d{1,2}))?\s*点?'
+    )
+    match = pattern_short.search(text)
+    if match:
+        start_min = to_minutes(match.group(1), match.group(2))
+        end_h = int(match.group(3))
+        if end_h < 12:
+            end_h += 12
+        end_m = int(match.group(4)) if match.group(4) else 0
+        end_min = end_h * 60 + end_m
+        if end_min > start_min:
+            total = end_min - start_min
+            h, m = divmod(total, 60)
+            return (h, m, total)
+
     return None
 
 

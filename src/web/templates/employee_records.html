@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.name if employee else '未知' }} - 记录管理 - 加班记录管理系统{% endblock %}
+{% block page_title %}{{ employee.name if employee else '未知' }} - 记录管理{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb mb-6">
+        <a href="{{ url_for('employees.list_employees') }}">员工管理</a>
+        <span class="breadcrumb-separator material-symbols-outlined">chevron_right</span>
+        <a href="{{ url_for('employees.employee_detail', employee_id=employee.employee_id) }}">{{ employee.name if employee else '未知' }}</a>
+        <span class="breadcrumb-separator material-symbols-outlined">chevron_right</span>
+        <span class="breadcrumb-current">记录管理</span>
+    </nav>
+
+    {% if employee %}
+    <!-- Tabs -->
+    <div class="mb-6 border-b border-outline-variant">
+        <div class="flex gap-4">
+            <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id, tab='overtime') }}"
+               class="pb-3 px-2 text-label-md font-medium border-b-2 transition-colors {% if active_tab == 'overtime' %}border-primary text-primary{% else %}border-transparent text-on-surface-variant hover:text-on-surface{% endif %}">
+                加班记录 ({{ overtime_records|length }})
+            </a>
+            <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id, tab='leave') }}"
+               class="pb-3 px-2 text-label-md font-medium border-b-2 transition-colors {% if active_tab == 'leave' %}border-primary text-primary{% else %}border-transparent text-on-surface-variant hover:text-on-surface{% endif %}">
+                请假记录 ({{ leave_records|length }})
+            </a>
+            <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id, tab='comp_off') }}"
+               class="pb-3 px-2 text-label-md font-medium border-b-2 transition-colors {% if active_tab == 'comp_off' %}border-primary text-primary{% else %}border-transparent text-on-surface-variant hover:text-on-surface{% endif %}">
+                调休记录 ({{ comp_off_records|length }})
+            </a>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="flex justify-end mb-6">
+        <a href="{{ url_for('employees.create_record', employee_id=employee.employee_id, type=active_tab) }}" class="btn btn-primary">
+            <span class="material-symbols-outlined">add</span>
+            新增记录
+        </a>
+    </div>
+
+    {% if active_tab == 'overtime' %}
+    <!-- Overtime Records -->
+    <div class="content-card">
+        <div class="content-card-body p-0">
+            {% if overtime_records %}
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>类型</th>
+                            <th class="text-right">时长</th>
+                            <th>描述</th>
+                            <th style="width: 120px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in overtime_records %}
+                        <tr>
+                            <td>{{ record.work_date }}</td>
+                            <td>
+                                {% if record.overtime_type == 'weekday_morning' %}
+                                <span class="badge badge-outline">工作日-早上</span>
+                                {% elif record.overtime_type == 'weekday_lunch' %}
+                                <span class="badge badge-outline">工作日-午休</span>
+                                {% elif record.overtime_type == 'weekday_evening' %}
+                                <span class="badge badge-outline">工作日-晚上</span>
+                                {% elif record.overtime_type == 'weekday_mixed' %}
+                                <span class="badge badge-outline">工作日-全天</span>
+                                {% elif record.overtime_type == 'weekend' %}
+                                <span class="chip chip-warning">周末</span>
+                                {% elif record.overtime_type == 'holiday' %}
+                                <span class="chip chip-error">法定节假日</span>
+                                {% else %}
+                                <span class="badge badge-outline">{{ record.overtime_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono">{{ record.duration_hours }}h {{ record.duration_minutes }}m</td>
+                            <td class="text-on-surface-variant truncate max-w-xs" title="{{ record.description or '' }}">{{ record.description or '-' }}</td>
+                            <td>
+                                <div class="flex items-center gap-1">
+                                    <a href="{{ url_for('employees.edit_record', employee_id=employee.employee_id, record_type='overtime', record_id=record.id) }}"
+                                       class="action-btn text-primary" title="编辑">
+                                        <span class="material-symbols-outlined">edit</span>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('employees.delete_record', employee_id=employee.employee_id, record_type='overtime', record_id=record.id) }}"
+                                          class="inline" onsubmit="return confirm('确定删除这条加班记录吗？')">
+                                        <button type="submit" class="action-btn text-error" title="删除">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-16">
+                <span class="material-symbols-outlined empty-state-icon">schedule</span>
+                <h3 class="empty-state-title">暂无加班记录</h3>
+                <p class="empty-state-description">该员工还没有加班记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% elif active_tab == 'leave' %}
+    <!-- Leave Records -->
+    <div class="content-card">
+        <div class="content-card-body p-0">
+            {% if leave_records %}
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>类型</th>
+                            <th class="text-right">时长</th>
+                            <th>描述</th>
+                            <th style="width: 120px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in leave_records %}
+                        <tr>
+                            <td>{{ record.leave_date }}</td>
+                            <td>
+                                {% if record.leave_type == 'personal' %}
+                                <span class="badge badge-outline">事假</span>
+                                {% elif record.leave_type == 'sick' %}
+                                <span class="badge badge-outline">病假</span>
+                                {% elif record.leave_type == 'annual' %}
+                                <span class="badge badge-outline">年假</span>
+                                {% else %}
+                                <span class="badge badge-outline">{{ record.leave_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono">{{ record.duration_hours }}h {{ record.duration_minutes }}m</td>
+                            <td class="text-on-surface-variant truncate max-w-xs" title="{{ record.description or '' }}">{{ record.description or '-' }}</td>
+                            <td>
+                                <div class="flex items-center gap-1">
+                                    <a href="{{ url_for('employees.edit_record', employee_id=employee.employee_id, record_type='leave', record_id=record.id) }}"
+                                       class="action-btn text-primary" title="编辑">
+                                        <span class="material-symbols-outlined">edit</span>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('employees.delete_record', employee_id=employee.employee_id, record_type='leave', record_id=record.id) }}"
+                                          class="inline" onsubmit="return confirm('确定删除这条请假记录吗？')">
+                                        <button type="submit" class="action-btn text-error" title="删除">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-16">
+                <span class="material-symbols-outlined empty-state-icon">event_busy</span>
+                <h3 class="empty-state-title">暂无请假记录</h3>
+                <p class="empty-state-description">该员工还没有请假记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Comp-Off Records -->
+    <div class="content-card">
+        <div class="content-card-body p-0">
+            {% if comp_off_records %}
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th class="text-right">时长</th>
+                            <th>描述</th>
+                            <th style="width: 120px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in comp_off_records %}
+                        <tr>
+                            <td>{{ record.usage_date }}</td>
+                            <td class="text-right font-mono">{{ record.duration_hours }}h {{ record.duration_minutes }}m</td>
+                            <td class="text-on-surface-variant truncate max-w-xs" title="{{ record.description or '' }}">{{ record.description or '-' }}</td>
+                            <td>
+                                <div class="flex items-center gap-1">
+                                    <a href="{{ url_for('employees.edit_record', employee_id=employee.employee_id, record_type='comp_off', record_id=record.id) }}"
+                                       class="action-btn text-primary" title="编辑">
+                                        <span class="material-symbols-outlined">edit</span>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('employees.delete_record', employee_id=employee.employee_id, record_type='comp_off', record_id=record.id) }}"
+                                          class="inline" onsubmit="return confirm('确定删除这条调休记录吗？')">
+                                        <button type="submit" class="action-btn text-error" title="删除">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-16">
+                <span class="material-symbols-outlined empty-state-icon">savings</span>
+                <h3 class="empty-state-title">暂无调休记录</h3>
+                <p class="empty-state-description">该员工还没有调休使用记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="content-card">
+        <div class="empty-state py-16">
+            <span class="material-symbols-outlined empty-state-icon text-warning">person_off</span>
+            <h3 class="empty-state-title">未找到该员工信息</h3>
+            <a href="{{ url_for('employees.list_employees') }}" class="btn btn-primary mt-6">
+                <span class="material-symbols-outlined">arrow_back</span>
+                返回员工列表
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{#
+  Toast Notification Component
+  Usage:
+    {% from "components/toast.html" import toast_container, toast with context %}
+    {{ toast_container() }}
+#}
+
+{% macro toast_container() %}
+<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(function() {
+  // Toast configuration
+  const TOAST_DURATION = 5000;
+  const TOAST_LIMIT = 5;
+
+  // Create toast element
+  function createToast(message, type = 'info', title = '') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    // Limit number of toasts
+    while (container.children.length >= TOAST_LIMIT) {
+      container.removeChild(container.firstChild);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.setAttribute('role', 'alert');
+
+    const iconMap = {
+      success: 'check_circle',
+      error: 'error',
+      warning: 'warning',
+      info: 'info'
+    };
+
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <span class="material-symbols-outlined">${iconMap[type] || 'info'}</span>
+      </div>
+      <div class="toast-content">
+        ${title ? `<div class="toast-title">${title}</div>` : ''}
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close" aria-label="关闭">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <div class="toast-progress"><div class="toast-progress-bar"></div></div>
+    `;
+
+    // Close button handler
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => removeToast(toast));
+
+    // Progress bar animation
+    const progressBar = toast.querySelector('.toast-progress-bar');
+    progressBar.style.animation = `toast-progress ${TOAST_DURATION}ms linear forwards`;
+
+    container.appendChild(toast);
+
+    // Auto remove
+    setTimeout(() => removeToast(toast), TOAST_DURATION);
+
+    return toast;
+  }
+
+  // Remove toast with animation
+  function removeToast(toast) {
+    if (!toast || toast.classList.contains('toast-hiding')) return;
+
+    toast.classList.add('toast-hiding');
+    toast.addEventListener('animationend', () => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    });
+  }
+
+  // Expose globally
+  window.showToast = createToast;
+
+  // Show flash messages as toasts
+  document.addEventListener('DOMContentLoaded', () => {
+    const flashMessages = document.querySelectorAll('[data-flash-message]');
+    flashMessages.forEach(el => {
+      const type = el.dataset.type || 'info';
+      const message = el.dataset.message;
+      if (message) {
+        createToast(message, type);
+        el.remove();
+      }
+    });
+  });
+})();
+</script>
+{% endmacro %}
+
+{% macro flash_toasts(messages) %}
+<div style="display: none;">
+  {% for category, message in messages %}
+  <div data-flash-message data-type="{{ 'error' if category == 'error' else category }}" data-message="{{ message }}"></div>
+  {% endfor %}
+</div>
+{% endmacro %}

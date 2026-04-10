@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}员工管理 - 加班记录管理系统{% endblock %}
+{% block page_title %}员工管理{% endblock %}
+
+{% from "components/forms.html" import form_input, form_select, form_actions with context %}
+{% from "components/modal.html" import modal_trigger, confirm_modal with context %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">查看和管理员工信息</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Add Employee Form -->
+        <div class="lg:col-span-1">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">person_add</span>
+                        添加员工
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <form method="POST" action="{{ url_for('employees.create_employee') }}">
+                        {{ form_input('employee_id', '员工ID', required=true,
+                            placeholder='例如: E001',
+                            helper='唯一标识，创建后不可修改') }}
+
+                        {{ form_input('name', '姓名', required=true,
+                            placeholder='例如: 张三') }}
+
+                        {{ form_input('department', '部门',
+                            placeholder='例如: 技术部') }}
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <span class="material-symbols-outlined">add_circle</span>
+                                创建员工
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee List -->
+        <div class="lg:col-span-2">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">groups</span>
+                        员工列表
+                    </h5>
+                    <span class="badge badge-primary">{{ employees|length }} 人</span>
+                </div>
+                <div class="content-card-body p-0">
+                    {% if employees %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>员工ID</th>
+                                    <th>姓名</th>
+                                    <th>部门</th>
+                                    <th>创建时间</th>
+                                    <th class="text-right">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in employees %}
+                                <tr>
+                                    <td><code class="font-mono">{{ emp.employee_id }}</code></td>
+                                    <td class="font-medium">{{ emp.name }}</td>
+                                    <td>
+                                        {% if emp.department %}
+                                            <span class="badge badge-outline">{{ emp.department }}</span>
+                                        {% else %}
+                                            <span class="text-on-surface-variant">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-on-surface-variant">{{ emp.created_at }}</td>
+                                    <td class="text-right">
+                                        <a href="{{ url_for('employees.employee_detail', employee_id=emp.employee_id) }}"
+                                           class="btn btn-secondary btn-sm">
+                                            <span class="material-symbols-outlined icon-sm">visibility</span>
+                                            详情
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined empty-state-icon">inbox</span>
+                        <h3 class="empty-state-title">暂无员工数据</h3>
+                        <p class="empty-state-description">请在左侧添加员工信息</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

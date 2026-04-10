@@ -8,7 +8,6 @@
 
 import pytest
 import sqlite3
-from datetime import date, datetime
 
 
 @pytest.fixture
@@ -63,7 +62,7 @@ class TestOvertimeRecordsSchema:
         columns = {row['name'] for row in cursor.fetchall()}
 
         expected_columns = {
-            'id', 'employee_id', 'date', 'overtime_type',
+            'id', 'employee_id', 'work_date', 'overtime_type',
             'duration_hours', 'duration_minutes', 'total_minutes',
             'description', 'raw_text', 'created_at', 'updated_at'
         }
@@ -77,7 +76,7 @@ class TestOvertimeRecordsSchema:
         with pytest.raises(sqlite3.IntegrityError):
             cursor.execute("""
                 INSERT INTO overtime_records
-                (employee_id, date, overtime_type, duration_hours, duration_minutes, total_minutes)
+                (employee_id, work_date, overtime_type, duration_hours, duration_minutes, total_minutes)
                 VALUES ('E001', '2025-10-24', 'weekday_evening', -1, 30, 90)
             """)
 
@@ -88,7 +87,7 @@ class TestOvertimeRecordsSchema:
         with pytest.raises(sqlite3.IntegrityError):
             cursor.execute("""
                 INSERT INTO overtime_records
-                (employee_id, date, overtime_type, duration_hours, duration_minutes, total_minutes)
+                (employee_id, work_date, overtime_type, duration_hours, duration_minutes, total_minutes)
                 VALUES ('E001', '2025-10-24', 'weekday_evening', 0, 0, 0)
             """)
 
@@ -99,7 +98,7 @@ class TestOvertimeRecordsSchema:
         # 有效类型应成功
         cursor.execute("""
             INSERT INTO overtime_records
-            (employee_id, date, overtime_type, duration_hours, duration_minutes, total_minutes)
+            (employee_id, work_date, overtime_type, duration_hours, duration_minutes, total_minutes)
             VALUES ('E001', '2025-10-24', 'weekday_evening', 3, 30, 210)
         """)
         initialized_db.commit()
@@ -108,7 +107,7 @@ class TestOvertimeRecordsSchema:
         with pytest.raises(sqlite3.IntegrityError):
             cursor.execute("""
                 INSERT INTO overtime_records
-                (employee_id, date, overtime_type, duration_hours, duration_minutes, total_minutes)
+                (employee_id, work_date, overtime_type, duration_hours, duration_minutes, total_minutes)
                 VALUES ('E001', '2025-10-25', 'invalid_type', 3, 30, 210)
             """)
 
@@ -123,9 +122,9 @@ class TestLeaveRecordsSchema:
         columns = {row['name'] for row in cursor.fetchall()}
 
         expected_columns = {
-            'id', 'employee_id', 'date_start', 'date_end', 'leave_type',
+            'id', 'employee_id', 'leave_date', 'leave_type',
             'duration_hours', 'duration_minutes', 'total_minutes',
-            'description', 'raw_text', 'created_at', 'updated_at'
+            'description', 'raw_text', 'source_import_id', 'created_at', 'updated_at'
         }
         assert expected_columns.issubset(columns)
 
@@ -137,8 +136,8 @@ class TestLeaveRecordsSchema:
         for leave_type in valid_types:
             cursor.execute("""
                 INSERT INTO leave_records
-                (employee_id, date_start, date_end, leave_type, duration_hours, duration_minutes, total_minutes)
-                VALUES (?, '2025-10-24', '2025-10-24', ?, 8, 0, 480)
+                (employee_id, leave_date, leave_type, duration_hours, duration_minutes, total_minutes)
+                VALUES (?, '2025-10-24', ?, 8, 0, 480)
             """, (f'E_{leave_type}', leave_type))
 
         initialized_db.commit()

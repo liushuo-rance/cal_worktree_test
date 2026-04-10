@@ -242,7 +242,7 @@ sequenceDiagram
 
     U->>S: 计算某月工资(employee_id, month)
     S->>DB: 查询该月加班记录
-    DB-->>S: 返回ot_records列表
+    DB-->>S: 返回overtime_records列表
     
     loop 每条加班记录
         S->>R: 判定加班类型(record)
@@ -395,13 +395,13 @@ GROUP BY employee_id;
 ```sql
 -- 检查1：周末加班的comp_eligible_hours应等于hours
 SELECT *
-FROM ot_records
+FROM overtime_records
 WHERE overtime_type = 'weekend'
   AND comp_eligible_hours != hours;
 
 -- 检查2：工作日和法定节假日不应有可调休时长
 SELECT *
-FROM ot_records
+FROM overtime_records
 WHERE overtime_type IN ('weekday', 'holiday')
   AND comp_eligible_hours > 0;
 
@@ -545,7 +545,7 @@ SELECT
         WHEN 'weekend' THEN '可调休'
         ELSE '不可调休，应支付工资'
     END as compliance_note
-FROM ot_records r
+FROM overtime_records r
 JOIN employees e ON r.employee_id = e.id
 LEFT JOIN employee_salary_config s ON e.id = s.employee_id
 WHERE e.employee_code = 'E001'

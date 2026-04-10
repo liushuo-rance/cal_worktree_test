@@ -23,7 +23,7 @@ TYPE_RULES = {
     'leave': {
         'keywords': ['请假', '休假', '事假', '病假', '年假'],
         'patterns': [
-            (r'请假\s*[半天一天]' , 'personal', 0.95),
+            (r'请假\s*[半天一天]', 'personal', 0.95),
             (r'请假\s*\d+\s*天', 'personal', 0.95),
             (r'病假', 'sick', 0.95),
             (r'年假', 'annual', 0.95),

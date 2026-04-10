@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}导入节假日 - 加班记录管理系统{% endblock %}
+{% block page_title %}导入节假日{% endblock %}
+
+{% from "components/forms.html" import form_actions with context %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">从国务院通知文本自动解析节假日安排</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Import Form -->
+        <div class="lg:col-span-2">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">upload_file</span>
+                        导入节假日
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <form method="POST" id="import-form">
+                        <div class="form-group">
+                            <label class="form-label" for="holiday_text">
+                                节假日通知文本 <span class="required">*</span>
+                            </label>
+                            <textarea
+                                id="holiday_text"
+                                name="holiday_text"
+                                class="form-textarea"
+                                rows="12"
+                                placeholder="粘贴国务院节假日通知文本..."
+                                required
+                            ></textarea>
+                            <span class="form-helper">支持从国务院通知自动解析日期和节假日名称</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">格式示例</label>
+                            <div class="code-preview">
+                                <pre><code>2024年节假日安排：
+
+元旦：2024年1月1日放假，与周末连休。
+春节：2月10日至17日放假调休，共8天。2月4日（星期日）、2月18日（星期日）上班。
+清明节：4月4日至6日放假调休，共3天。4月7日（星期日）上班。
+劳动节：5月1日至5日放假调休，共5天。4月28日（星期日）、5月11日（星期六）上班。
+端午节：6月10日放假，与周末连休。
+中秋节：9月15日至17日放假调休，共3天。9月14日（星期六）上班。
+国庆节：10月1日至7日放假调休，共7天。9月29日（星期日）、10月12日（星期六）上班。</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="submit-btn">
+                                <span class="material-symbols-outlined">auto_fix_high</span>
+                                智能解析
+                            </button>
+                            <a href="{{ url_for('holidays.list_holidays') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+
+                    <!-- Loading State -->
+                    <div id="loading-state" style="display: none;">
+                        <div class="text-center py-12">
+                            <div class="inline-block">
+                                <span class="material-symbols-outlined spinning text-4xl text-primary">sync</span>
+                            </div>
+                            <h3 class="text-headline-sm font-headline font-bold mt-4">正在解析文本...</h3>
+                            <p class="text-on-surface-variant mt-2">请稍候，系统正在识别日期和节假日</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="lg:col-span-1">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">info</span>
+                        功能说明
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold text-on-surface">自动识别</h6>
+                                <p class="text-body-sm text-on-surface-variant mt-1">智能识别日期范围和节假日名称</p>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-surface-container"></div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold text-on-surface">调休处理</h6>
+                                <p class="text-body-sm text-on-surface-variant mt-1">自动识别调休上班日和连休安排</p>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-surface-container"></div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold text-on-surface">农历支持</h6>
+                                <p class="text-body-sm text-on-surface-variant mt-1">支持春节等农历节日的日期识别</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="content-card mt-6">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">tips_and_updates</span>
+                        提示
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <ul class="space-y-3 text-body-sm text-on-surface-variant">
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-primary text-sm">arrow_right</span>
+                            <span>请使用国务院官方发布的通知文本</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-primary text-sm">arrow_right</span>
+                            <span>支持直接复制粘贴，无需调整格式</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-primary text-sm">arrow_right</span>
+                            <span>解析后请确认数据准确性</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.code-preview {
+    background: var(--color-surface-container-low);
+    border-radius: var(--radius-sm);
+    padding: var(--space-4);
+    overflow-x: auto;
+}
+
+.code-preview pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-body-sm);
+    line-height: 1.6;
+    color: var(--color-on-surface);
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+// Form submission handling
+const importForm = document.getElementById('import-form');
+const loadingState = document.getElementById('loading-state');
+const submitBtn = document.getElementById('submit-btn');
+
+importForm.addEventListener('submit', () => {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="material-symbols-outlined spinning">sync</span> 解析中...';
+});
+</script>
+{% endblock %}

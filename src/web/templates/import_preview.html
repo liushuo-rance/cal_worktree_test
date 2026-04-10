@@ -1,0 +1,729 @@
+{% extends "base.html" %}
+
+{% block title %}导入预览 - 加班记录管理系统{% endblock %}
+{% block page_title %}导入预览{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">
+            请检查解析结果，如有问题可点击"编辑"修改，确认无误后点击"确认导入"
+        </p>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="content-card mb-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">analytics</span>
+                解析概览
+            </h5>
+        </div>
+        <div class="content-card-body">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center p-4 bg-surface-container-low rounded-lg">
+                    <p class="text-display-sm font-headline font-bold text-on-surface" id="total-count">{{ preview.total_count }}</p>
+                    <p class="text-label-md text-on-surface-variant mt-1">总记录数</p>
+                </div>
+                <div class="text-center p-4 bg-secondary-container rounded-lg">
+                    <p class="text-display-sm font-headline font-bold text-on-secondary" id="high-count">{{ preview.high_confidence }}</p>
+                    <p class="text-label-md text-on-surface-variant mt-1">高置信度</p>
+                </div>
+                <div class="text-center p-4 bg-primary-fixed rounded-lg">
+                    <p class="text-display-sm font-headline font-bold text-on-primary-fixed" id="medium-count">{{ preview.medium_confidence }}</p>
+                    <p class="text-label-md text-on-surface-variant mt-1">中置信度</p>
+                </div>
+                <div class="text-center p-4 {% if preview.low_confidence > 0 %}bg-error-container{% else %}bg-surface-container-low{% endif %} rounded-lg">
+                    <p class="text-display-sm font-headline font-bold {% if preview.low_confidence > 0 %}text-error{% else %}text-on-surface{% endif %}" id="low-count">{{ preview.low_confidence }}</p>
+                    <p class="text-label-md text-on-surface-variant mt-1">低置信度/需检查</p>
+                </div>
+            </div>
+
+            {% if preview.has_anomalies %}
+            <div class="alert alert-warning mt-6">
+                <span class="material-symbols-outlined">warning</span>
+                <span>检测到有异常记录，请仔细检查标记为"警告"的行，点击"编辑"进行修改</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- AI Parse Details -->
+    {% if ai_details %}
+    <div class="content-card mb-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">smart_toy</span>
+                🤖 AI大模型解析详情
+            </h5>
+        </div>
+        <div class="content-card-body">
+            {% if ai_details.error %}
+            <div class="alert alert-error mb-4">
+                <span class="material-symbols-outlined">error</span>
+                <span>AI解析错误: {{ ai_details.error }}</span>
+            </div>
+            {% endif %}
+
+            <div class="mb-4">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleAIDetails()">
+                    <span class="material-symbols-outlined">code</span>
+                    查看完整Prompt和Response
+                </button>
+            </div>
+
+            <div id="ai-details-content" style="display: none;">
+                <div class="mb-4">
+                    <h6 class="text-label-lg font-semibold mb-2">📤 发送给AI的Prompt:</h6>
+                    {% if ai_details.prompt %}
+                    <pre class="code-preview" style="max-height: 400px; overflow: auto;"><code>{{ ai_details.prompt }}</code></pre>
+                    {% else %}
+                    <p class="text-on-surface-variant italic">没有生成Prompt</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <h6 class="text-label-lg font-semibold mb-2">📥 AI返回的Response:</h6>
+                    {% if ai_details.response %}
+                    <pre class="code-preview" style="max-height: 400px; overflow: auto;"><code>{{ ai_details.response }}</code></pre>
+                    {% else %}
+                    <p class="text-on-surface-variant italic">没有收到Response</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function toggleAIDetails() {
+        const content = document.getElementById('ai-details-content');
+        content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    }
+    </script>
+    {% endif %}
+
+    <!-- Records Edit Form -->
+    <form method="POST" action="{{ url_for('records.import_confirm') }}" id="import-form">
+        <div class="content-card">
+            <div class="content-card-header">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4">
+                        <h5 class="content-card-title">
+                            <span class="material-symbols-outlined inline-icon">list</span>
+                            待导入记录
+                        </h5>
+                        <label class="flex items-center gap-2 text-body-sm cursor-pointer">
+                            <input type="checkbox" id="select-all" checked class="form-checkbox">
+                            <span>全选</span>
+                        </label>
+                    </div>
+                    <span class="badge badge-primary" id="selected-count">{{ preview.total_count }} 条</span>
+                </div>
+            </div>
+
+            <div class="content-card-body p-0">
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="records-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" id="select-all-header" checked>
+                                </th>
+                                <th>行号</th>
+                                <th>日期</th>
+                                <th>星期</th>
+                                <th>类型</th>
+                                <th>子类型</th>
+                                <th>时长</th>
+                                <th>原始内容（MD）</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in preview.records %}
+                            <tr class="record-row {% if record.confidence_level == 'LOW' %}bg-error-container/20{% elif record.has_anomaly %}bg-warning/10{% endif %}"
+                                data-index="{{ loop.index0 }}">
+                                <td>
+                                    <input type="checkbox" name="selected_records" value="{{ loop.index0 }}"
+                                           checked class="record-checkbox">
+                                </td>
+                                <td class="text-on-surface-variant">{{ record.line_num }}</td>
+
+                                <!-- Display Mode -->
+                                <td class="display-mode">
+                                    {% if record.parsed_date %}
+                                    <code class="font-mono text-label-md">{{ record.parsed_date }}</code>
+                                    {% else %}
+                                    <span class="text-error">{{ record.date_str or '未识别' }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="display-mode text-on-surface-variant">
+                                    {{ record.weekday or '-' }}
+                                </td>
+                                <td class="display-mode">
+                                    {% if record.type == 'overtime' %}
+                                    <span class="chip chip-success">加班</span>
+                                    {% elif record.type == 'leave' %}
+                                    <span class="chip chip-warning">请假</span>
+                                    {% elif record.type == 'comp_off' %}
+                                    <span class="chip chip-info">调休</span>
+                                    {% else %}
+                                    <span class="chip">未知</span>
+                                    {% endif %}
+                                </td>
+                                <td class="display-mode">
+                                    {% if record.overtime_type %}
+                                    <span class="badge badge-outline">
+                                        {% if record.overtime_type == 'weekday_morning' %}工作日-早上
+                                        {% elif record.overtime_type == 'weekday_lunch' %}工作日-午休
+                                        {% elif record.overtime_type == 'weekday_evening' %}工作日-晚上
+                                        {% elif record.overtime_type == 'weekday_mixed' %}工作日-全天
+                                        {% elif record.overtime_type == 'weekend' %}周末
+                                        {% elif record.overtime_type == 'holiday' %}法定节假日
+                                        {% else %}{{ record.overtime_type }}
+                                        {% endif %}
+                                    </span>
+                                    {% elif record.leave_type %}
+                                    <span class="badge badge-outline">
+                                        {% if record.leave_type == 'personal' %}事假
+                                        {% elif record.leave_type == 'sick' %}病假
+                                        {% elif record.leave_type == 'annual' %}年假
+                                        {% elif record.leave_type == 'marriage' %}婚假
+                                        {% elif record.leave_type == 'maternity' %}产假
+                                        {% elif record.leave_type == 'bereavement' %}丧假
+                                        {% else %}{{ record.leave_type }}
+                                        {% endif %}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-error text-body-xs">未设置</span>
+                                    {% endif %}
+                                </td>
+                                <td class="display-mode">
+                                    {% if record.parsed_hours is defined and record.parsed_hours is not none %}
+                                    <span class="tabular-nums">{{ "%.1f"|format(record.parsed_hours) }}h</span>
+                                    {% else %}
+                                    <span class="text-on-surface-variant">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="display-mode">
+                                    <div class="flex flex-col gap-1">
+                                        <code class="text-body-sm font-mono bg-surface-container px-2 py-1 rounded truncate max-w-md inline-block" title="{{ record.raw_line }}">
+                                            {{ record.raw_line[:50] }}{% if record.raw_line|length > 50 %}...{% endif %}
+                                        </code>
+                                        {% if record.ai_parsed and record.reasoning %}
+                                        <span class="text-body-xs text-on-surface-variant" title="AI解析推理：{{ record.reasoning }}">
+                                            <span class="material-symbols-outlined text-primary" style="font-size: 12px; vertical-align: middle;">psychology</span>
+                                            {{ record.reasoning[:40] }}{% if record.reasoning|length > 40 %}...{% endif %}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="display-mode">
+                                    <div class="flex items-center gap-2">
+                                        {% if record.confidence_level == 'HIGH' %}
+                                        <span class="badge badge-secondary">高</span>
+                                        {% elif record.confidence_level == 'MEDIUM' %}
+                                        <span class="badge badge-primary">中</span>
+                                        {% else %}
+                                        <span class="badge badge-outline text-error">低</span>
+                                        {% endif %}
+
+                                        {% if record.ai_parsed %}
+                                        <span class="badge badge-outline text-primary" title="由Claude AI大模型解析">🤖 AI</span>
+                                        {% endif %}
+
+                                        {% if record.validation_errors %}
+                                        <span class="material-symbols-outlined text-error" title="{{ record.validation_errors|join(', ') }}">error</span>
+                                        {% endif %}
+                                        {% if record.has_anomaly %}
+                                        <span class="material-symbols-outlined text-warning" title="{{ record.anomalies|join(', ') }}">warning</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="display-mode">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" class="action-btn text-primary" onclick="editRow({{ loop.index0 }})" title="编辑">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button type="button" class="action-btn text-error" onclick="deleteRow({{ loop.index0 }})" title="删除">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+
+                                <!-- Edit Mode (Hidden by default) -->
+                                <td class="edit-mode hidden" colspan="7">
+                                    <div class="p-4 bg-surface-container-low rounded-lg">
+                                        <!-- AI解析标识 -->
+                                        {% if record.ai_parsed %}
+                                        <div class="flex items-center gap-2 mb-3 pb-3 border-b border-outline-variant">
+                                            <span class="material-symbols-outlined text-primary">smart_toy</span>
+                                            <span class="text-body-sm font-medium text-primary">🤖 AI大模型解析结果</span>
+                                            {% if record.reasoning %}
+                                            <span class="text-body-xs text-on-surface-variant ml-2">推理：{{ record.reasoning }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                            <!-- Date -->
+                                            <div>
+                                                <label class="form-label text-label-sm">日期 <span class="required">*</span></label>
+                                                {# 处理多种日期格式：date对象、ISO字符串、HTTP日期字符串 #}
+                                                {% if record.parsed_date %}
+                                                    {% if record.parsed_date is string %}
+                                                        {# 检查是否是HTTP日期格式 (Thu, 11 Sep 2025 00:00:00 GMT) #}
+                                                        {% if 'GMT' in record.parsed_date %}
+                                                            {% set date_parts = record.parsed_date.split() %}
+                                                            {% set day = date_parts[1] %}
+                                                            {% set month_map = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'} %}
+                                                            {% set month = month_map.get(date_parts[2], '01') %}
+                                                            {% set year = date_parts[3] %}
+                                                            {% set date_str = year + '-' + month + '-' + day %}
+                                                        {% else %}
+                                                            {% set date_str = record.parsed_date %}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {% set date_str = record.parsed_date.strftime('%Y-%m-%d') %}
+                                                    {% endif %}
+                                                {% else %}
+                                                    {% set date_str = '' %}
+                                                {% endif %}
+                                                <input type="date" class="form-input edit-date" value="{{ date_str }}">
+                                                {% if not record.parsed_date %}
+                                                <p class="form-error text-body-xs mt-1">原日期未识别，请选择正确日期</p>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Type -->
+                                            <div>
+                                                <label class="form-label text-label-sm">类型 <span class="required">*</span></label>
+                                                <select class="form-select edit-type" onchange="updateSubtypeOptions({{ loop.index0 }})" data-index="{{ loop.index0 }}">
+                                                    <option value="overtime" {% if record.type == 'overtime' %}selected{% endif %}>加班</option>
+                                                    <option value="leave" {% if record.type == 'leave' %}selected{% endif %}>请假</option>
+                                                    <option value="comp_off" {% if record.type == 'comp_off' %}selected{% endif %}>调休</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Subtype -->
+                                            <div>
+                                                <label class="form-label text-label-sm">子类型 <span class="required">*</span></label>
+                                                <select class="form-select edit-subtype" data-index="{{ loop.index0 }}">
+                                                    <!-- Options populated by JS based on type -->
+                                                </select>
+                                                {% if record.type == 'overtime' and not record.overtime_type %}
+                                                <p class="form-error text-body-xs mt-1">原解析缺少子类型，请选择</p>
+                                                {% elif record.type == 'leave' and not record.leave_type %}
+                                                <p class="form-error text-body-xs mt-1">原解析缺少子类型，请选择</p>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Hours -->
+                                            <div>
+                                                <label class="form-label text-label-sm">时长（小时）</label>
+                                                <input type="number" class="form-input edit-hours" step="0.5" min="0" max="24"
+                                                       value="{{ record.parsed_hours if record.parsed_hours is defined and record.parsed_hours is not none else '0' }}">
+                                            </div>
+                                        </div>
+
+                                        <!-- Description -->
+                                        <div class="mb-4">
+                                            <label class="form-label text-label-sm">描述</label>
+                                            <input type="text" class="form-input edit-content"
+                                                   value="{{ record.content }}"
+                                                   placeholder="请输入记录描述">
+                                        </div>
+
+                                        <!-- Hidden fields for original values -->
+                                        {# 统一日期格式处理 #}
+                                        {% if record.parsed_date %}
+                                            {% if record.parsed_date is string %}
+                                                {% if 'GMT' in record.parsed_date %}
+                                                    {% set dp = record.parsed_date.split() %}
+                                                    {% set mm = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'} %}
+                                                    {% set date_val = dp[3] + '-' + mm.get(dp[2], '01') + '-' + dp[1] %}
+                                                {% else %}
+                                                    {% set date_val = record.parsed_date %}
+                                                {% endif %}
+                                            {% else %}
+                                                {% set date_val = record.parsed_date.strftime('%Y-%m-%d') %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% set date_val = '' %}
+                                        {% endif %}
+                                        <input type="hidden" class="orig-date" value="{{ date_val }}">
+                                        <input type="hidden" class="orig-type" value="{{ record.type }}">
+                                        <input type="hidden" class="orig-subtype" value="{{ record.overtime_type or record.leave_type or '' }}">
+                                        <input type="hidden" class="orig-hours" value="{{ record.parsed_hours if record.parsed_hours is defined else '' }}">
+                                        <input type="hidden" class="orig-content" value="{{ record.content }}">
+
+                                        <!-- Actions -->
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" class="btn btn-sm btn-ghost" onclick="cancelEdit({{ loop.index0 }})">
+                                                <span class="material-symbols-outlined">undo</span>
+                                                取消
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="saveEdit({{ loop.index0 }})">
+                                                <span class="material-symbols-outlined">save</span>
+                                                保存
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Hidden input fields for form submission -->
+                            <tr class="hidden-inputs" data-index="{{ loop.index0 }}">
+                                <td colspan="9">
+                                    {# 统一日期格式处理，支持ISO字符串和HTTP日期格式 #}
+                                    {% if record.parsed_date %}
+                                        {% if record.parsed_date is string %}
+                                            {% if 'GMT' in record.parsed_date %}
+                                                {% set dp = record.parsed_date.split() %}
+                                                {% set mm = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'} %}
+                                                {% set date_val = dp[3] + '-' + mm.get(dp[2], '01') + '-' + dp[1] %}
+                                            {% else %}
+                                                {% set date_val = record.parsed_date %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% set date_val = record.parsed_date.strftime('%Y-%m-%d') %}
+                                        {% endif %}
+                                    {% else %}
+                                        {% set date_val = '' %}
+                                    {% endif %}
+                                    <input type="hidden" name="records[{{ loop.index0 }}][date]" class="input-date" value="{{ date_val }}">
+                                    <input type="hidden" name="records[{{ loop.index0 }}][type]" class="input-type" value="{{ record.type }}">
+                                    <input type="hidden" name="records[{{ loop.index0 }}][subtype]" class="input-subtype" value="{{ record.overtime_type or record.leave_type or '' }}">
+                                    <input type="hidden" name="records[{{ loop.index0 }}][hours]" class="input-hours" value="{{ record.parsed_hours if record.parsed_hours is defined else '0' }}">
+                                    <input type="hidden" name="records[{{ loop.index0 }}][content]" class="input-content" value="{{ record.content }}">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between mt-8">
+            <a href="{{ url_for('records.import_cancel') }}" class="btn btn-secondary">
+                <span class="material-symbols-outlined">cancel</span>
+                取消导入
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg" id="confirm-btn">
+                <span class="material-symbols-outlined">check_circle</span>
+                确认导入
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Subtype options for each type
+const subtypeOptions = {
+    overtime: [
+        { value: 'weekday_morning', label: '工作日-早上' },
+        { value: 'weekday_lunch', label: '工作日-午休' },
+        { value: 'weekday_evening', label: '工作日-晚上' },
+        { value: 'weekday_mixed', label: '工作日-全天' },
+        { value: 'weekend', label: '周末加班' },
+        { value: 'holiday', label: '法定节假日' }
+    ],
+    leave: [
+        { value: 'personal', label: '事假' },
+        { value: 'sick', label: '病假' },
+        { value: 'annual', label: '年假' },
+        { value: 'marriage', label: '婚假' },
+        { value: 'maternity', label: '产假' },
+        { value: 'bereavement', label: '丧假' }
+    ],
+    comp_off: [
+        { value: 'half_day', label: '半天' },
+        { value: 'full_day', label: '全天' }
+    ]
+};
+
+// Initialize all subtype dropdowns on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.record-row').forEach(row => {
+        const index = row.dataset.index;
+        updateSubtypeOptions(index);
+    });
+});
+
+function updateSubtypeOptions(index) {
+    const row = document.querySelector(`.record-row[data-index="${index}"]`);
+    const typeSelect = row.querySelector('.edit-type');
+    const subtypeSelect = row.querySelector('.edit-subtype');
+    const origSubtype = row.querySelector('.orig-subtype').value;
+
+    const type = typeSelect.value;
+    const options = subtypeOptions[type] || [];
+
+    subtypeSelect.innerHTML = options.map(opt =>
+        `<option value="${opt.value}" ${opt.value === origSubtype ? 'selected' : ''}>${opt.label}</option>`
+    ).join('');
+}
+
+function editRow(index) {
+    const row = document.querySelector(`.record-row[data-index="${index}"]`);
+    row.querySelectorAll('.display-mode').forEach(el => el.classList.add('hidden'));
+    row.querySelector('.edit-mode').classList.remove('hidden');
+
+    // Initialize subtype options
+    updateSubtypeOptions(index);
+}
+
+function deleteRow(index) {
+    if (confirm('确定要删除这一行吗？')) {
+        const row = document.querySelector(`.record-row[data-index="${index}"]`);
+        const hiddenInputs = document.querySelector(`.hidden-inputs[data-index="${index}"]`);
+
+        // 移除行和对应的hidden inputs
+        if (row) {
+            row.remove();
+        }
+        if (hiddenInputs) {
+            hiddenInputs.remove();
+        }
+
+        // 更新计数
+        const totalCount = document.querySelectorAll('.record-row').length;
+        document.getElementById('total-count').textContent = totalCount;
+
+        // 更新选中计数
+        updateSelectedCount();
+
+        // 如果没有行了，禁用确认按钮
+        if (totalCount === 0) {
+            const confirmBtn = document.getElementById('confirm-btn');
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            confirmBtn.innerHTML = '<span class="material-symbols-outlined">block</span> 无记录可导入';
+        }
+    }
+}
+
+function cancelEdit(index) {
+    const row = document.querySelector(`.record-row[data-index="${index}"]`);
+
+    // Restore original values
+    const origDate = row.querySelector('.orig-date').value;
+    const origType = row.querySelector('.orig-type').value;
+    const origSubtype = row.querySelector('.orig-subtype').value;
+    const origHours = row.querySelector('.orig-hours').value;
+    const origContent = row.querySelector('.orig-content').value;
+
+    row.querySelector('.edit-date').value = origDate;
+    row.querySelector('.edit-type').value = origType;
+    row.querySelector('.edit-hours').value = origHours || '0';
+    row.querySelector('.edit-content').value = origContent;
+
+    // Switch back to display mode
+    row.querySelectorAll('.display-mode').forEach(el => el.classList.remove('hidden'));
+    row.querySelector('.edit-mode').classList.add('hidden');
+}
+
+function saveEdit(index) {
+    const row = document.querySelector(`.record-row[data-index="${index}"]`);
+    const hiddenInputs = document.querySelector(`.hidden-inputs[data-index="${index}"]`);
+
+    // Get edited values
+    const date = row.querySelector('.edit-date').value;
+    const type = row.querySelector('.edit-type').value;
+    const subtype = row.querySelector('.edit-subtype').value;
+    const hours = row.querySelector('.edit-hours').value;
+    const content = row.querySelector('.edit-content').value;
+
+    // Validate required fields
+    if (!date) {
+        alert('请选择日期');
+        return;
+    }
+    if (!subtype) {
+        alert('请选择子类型');
+        return;
+    }
+
+    // Update hidden inputs for form submission
+    hiddenInputs.querySelector('.input-date').value = date;
+    hiddenInputs.querySelector('.input-type').value = type;
+    hiddenInputs.querySelector('.input-subtype').value = subtype;
+    hiddenInputs.querySelector('.input-hours').value = hours;
+    hiddenInputs.querySelector('.input-content').value = content;
+
+    // Update original values so cancel restores to last saved state
+    row.querySelector('.orig-date').value = date;
+    row.querySelector('.orig-type').value = type;
+    row.querySelector('.orig-subtype').value = subtype;
+    row.querySelector('.orig-hours').value = hours;
+    row.querySelector('.orig-content').value = content;
+
+    // Update display
+    const displayDate = row.querySelector('.display-mode:nth-child(3)');
+    displayDate.innerHTML = `<code class="font-mono text-label-md">${date}</code>`;
+
+    const typeLabels = { overtime: '加班', leave: '请假', comp_off: '调休' };
+    const typeChips = {
+        overtime: 'chip-success',
+        leave: 'chip-warning',
+        comp_off: 'chip-info'
+    };
+    const displayType = row.querySelector('.display-mode:nth-child(4)');
+    displayType.innerHTML = `<span class="chip ${typeChips[type]}">${typeLabels[type]}</span>`;
+
+    const displaySubtype = row.querySelector('.display-mode:nth-child(5)');
+    const subtypeLabel = subtypeOptions[type].find(o => o.value === subtype)?.label || subtype;
+    displaySubtype.innerHTML = `<span class="badge badge-outline">${subtypeLabel}</span>`;
+
+    const displayHours = row.querySelector('.display-mode:nth-child(6)');
+    displayHours.innerHTML = `<span class="tabular-nums">${parseFloat(hours).toFixed(1)}h</span>`;
+
+    const displayContent = row.querySelector('.display-mode:nth-child(7)');
+    displayContent.innerHTML = `<span class="truncate max-w-xs inline-block" title="${content}">${content.substring(0, 40)}${content.length > 40 ? '...' : ''}</span>`;
+
+    // Update status to show it's been edited
+    const displayStatus = row.querySelector('.display-mode:nth-child(8)');
+    displayStatus.innerHTML = '<span class="badge badge-secondary">已编辑</span>';
+
+    // Remove error styling
+    row.classList.remove('bg-error-container/20');
+
+    // Switch back to display mode
+    row.querySelectorAll('.display-mode').forEach(el => el.classList.remove('hidden'));
+    row.querySelector('.edit-mode').classList.add('hidden');
+}
+
+// Select all functionality
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.record-checkbox:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateSelectedCount();
+});
+
+document.getElementById('select-all-header').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.record-checkbox:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    document.getElementById('select-all').checked = this.checked;
+    updateSelectedCount();
+});
+
+// Individual checkbox change
+document.querySelectorAll('.record-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateSelectedCount);
+});
+
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.record-checkbox:checked').length;
+    document.getElementById('selected-count').textContent = checked + ' 条';
+
+    const confirmBtn = document.getElementById('confirm-btn');
+    if (checked === 0) {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Form submission
+document.getElementById('import-form').addEventListener('submit', function(e) {
+    // 获取所有存在的记录行中被选中的checkbox（删除的行会从DOM中完全移除）
+    const checkedBoxes = document.querySelectorAll('.record-row .record-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+        e.preventDefault();
+        alert('请至少选择一条记录');
+        return false;
+    }
+
+    // 对于每一条被选中的记录，确保对应的hidden inputs存在
+    let validCount = 0;
+    checkedBoxes.forEach(cb => {
+        const index = cb.value;
+        const hiddenInputs = document.querySelector(`.hidden-inputs[data-index="${index}"]`);
+        if (hiddenInputs) {
+            const dateInput = hiddenInputs.querySelector('.input-date');
+            const typeInput = hiddenInputs.querySelector('.input-type');
+            // 验证必填字段
+            if (dateInput && dateInput.value && typeInput && typeInput.value && typeInput.value !== 'unknown') {
+                validCount++;
+            }
+        }
+    });
+
+    if (validCount === 0) {
+        e.preventDefault();
+        alert('没有有效的记录可导入，请检查记录是否有日期和类型');
+        return false;
+    }
+
+    const btn = document.getElementById('confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spinning">sync</span> 导入中...';
+});
+
+// Initialize
+updateSelectedCount();
+</script>
+
+<style>
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.form-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.edit-mode {
+    padding: 0 !important;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: var(--radius-sm);
+    background: white;
+    font-size: var(--text-body-sm);
+}
+
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.text-body-xs {
+    font-size: 12px;
+}
+
+.required {
+    color: var(--color-error);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: var(--text-label-md);
+}
+</style>
+{% endblock %}

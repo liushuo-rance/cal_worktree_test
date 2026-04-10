@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑' if mode == 'edit' else '新增' }}记录 - {{ employee.name }} - 加班记录管理系统{% endblock %}
+{% block page_title %}{{ '编辑' if mode == 'edit' else '新增' }}记录 - {{ employee.name }}{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb mb-6">
+        <a href="{{ url_for('employees.list_employees') }}">员工管理</a>
+        <span class="breadcrumb-separator material-symbols-outlined">chevron_right</span>
+        <a href="{{ url_for('employees.employee_detail', employee_id=employee.employee_id) }}">{{ employee.name }}</a>
+        <span class="breadcrumb-separator material-symbols-outlined">chevron_right</span>
+        <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id, tab=record_type) }}">记录管理</a>
+        <span class="breadcrumb-separator material-symbols-outlined">chevron_right</span>
+        <span class="breadcrumb-current">{{ '编辑' if mode == 'edit' else '新增' }}</span>
+    </nav>
+
+    <div class="max-w-2xl">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">{{ 'edit' if mode == 'edit' else 'add' }}</span>
+                    {{ '编辑' if mode == 'edit' else '新增' }}{% if record_type == 'overtime' %}加班{% elif record_type == 'leave' %}请假{% else %}调休{% endif %}记录
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <form method="POST" class="space-y-6">
+
+                    <!-- Date -->
+                    <div>
+                        <label class="form-label">日期 <span class="text-error">*</span></label>
+                        <input type="date" name="record_date" class="form-input" required
+                               value="{% if record %}{{ record.work_date or record.leave_date or record.usage_date }}{% endif %}">
+                    </div>
+
+                    <!-- Subtype (for overtime/leave) -->
+                    {% if record_type == 'overtime' %}
+                    <div>
+                        <label class="form-label">加班类型 <span class="text-error">*</span></label>
+                        <select name="subtype" class="form-input" required>
+                            <option value="weekday_morning" {% if record and record.overtime_type == 'weekday_morning' %}selected{% endif %}>工作日-早上</option>
+                            <option value="weekday_lunch" {% if record and record.overtime_type == 'weekday_lunch' %}selected{% endif %}>工作日-午休</option>
+                            <option value="weekday_evening" {% if record and record.overtime_type == 'weekday_evening' %}selected{% endif %}>工作日-晚上</option>
+                            <option value="weekday_mixed" {% if record and record.overtime_type == 'weekday_mixed' %}selected{% endif %}>工作日-全天</option>
+                            <option value="weekend" {% if record and record.overtime_type == 'weekend' %}selected{% endif %}>周末</option>
+                            <option value="holiday" {% if record and record.overtime_type == 'holiday' %}selected{% endif %}>法定节假日</option>
+                        </select>
+                    </div>
+                    {% elif record_type == 'leave' %}
+                    <div>
+                        <label class="form-label">请假类型 <span class="text-error">*</span></label>
+                        <select name="subtype" class="form-input" required>
+                            <option value="personal" {% if record and record.leave_type == 'personal' %}selected{% endif %}>事假</option>
+                            <option value="sick" {% if record and record.leave_type == 'sick' %}selected{% endif %}>病假</option>
+                            <option value="annual" {% if record and record.leave_type == 'annual' %}selected{% endif %}>年假</option>
+                            <option value="other" {% if record and record.leave_type == 'other' %}selected{% endif %}>其他</option>
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <!-- Duration -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="form-label">小时</label>
+                            <input type="number" name="duration_hours" class="form-input" min="0" max="24" required
+                                   value="{{ record.duration_hours if record else 0 }}">
+                        </div>
+                        <div>
+                            <label class="form-label">分钟</label>
+                            <input type="number" name="duration_minutes" class="form-input" min="0" max="59" required
+                                   value="{{ record.duration_minutes if record else 0 }}">
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="form-label">描述</label>
+                        <textarea name="description" class="form-input" rows="3"
+                                  placeholder="可选，填写记录备注">{{ record.description or '' }}</textarea>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant">
+                        <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id, tab=record_type) }}" class="btn btn-secondary">
+                            取消
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="material-symbols-outlined">save</span>
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: var(--radius-sm);
+    background: white;
+    font-size: var(--text-body-sm);
+}
+.form-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+.form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 6px;
+    font-size: var(--text-body-sm);
+}
+</style>
+{% endblock %}

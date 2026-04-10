@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.name if employee else '员工详情' }} - 加班记录管理系统{% endblock %}
+{% block page_title %}{{ employee.name if employee else '未知员工' }}{% endblock %}
+
+{% from "components/modal.html" import confirm_modal with context %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Breadcrumb & Back -->
+    <nav class="breadcrumb mb-6">
+        <a href="{{ url_for('employees.list_employees') }}">员工管理</a>
+        <span class="breadcrumb-separator material-symbols-outlined">chevron_right</span>
+        <span class="breadcrumb-current">{{ employee.name if employee else '未知' }}</span>
+    </nav>
+
+    {% if employee %}
+    <!-- Employee Info Card -->
+    <div class="content-card mb-8">
+        <div class="content-card-header">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-white text-2xl font-bold">
+                    {{ employee.name[0] if employee.name else '?' }}
+                </div>
+                <div>
+                    <h2 class="text-headline-sm font-headline font-bold text-on-surface">{{ employee.name }}</h2>
+                    <div class="flex items-center gap-3 mt-1">
+                        <code class="font-mono text-label-md bg-surface-container px-2 py-1 rounded">{{ employee.employee_id }}</code>
+                        {% if employee.department %}
+                        <span class="badge badge-outline">
+                            <span class="material-symbols-outlined icon-sm">business</span>
+                            {{ employee.department }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <a href="{{ url_for('records.import_for_employee', employee_id=employee.employee_id) }}"
+                   class="btn btn-secondary">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    导入记录
+                </a>
+                <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id) }}"
+                   class="btn btn-primary">
+                    <span class="material-symbols-outlined">edit_note</span>
+                    管理记录
+                </a>
+                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                   class="btn btn-secondary">
+                    <span class="material-symbols-outlined">description</span>
+                    查看报表
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Records Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <!-- Overtime Records -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">schedule</span>
+                    最近加班记录
+                </h5>
+                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                   class="btn btn-ghost btn-sm">
+                    查看全部
+                </a>
+            </div>
+            <div class="content-card-body p-0">
+                {% if overtime_records %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>类型</th>
+                                <th class="text-right">时长</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in overtime_records %}
+                            <tr>
+                                <td>{{ record.work_date }}</td>
+                                <td>
+                                    {% if record.overtime_type == 'holiday' %}
+                                    <span class="chip chip-error">法定节假日</span>
+                                    {% elif record.overtime_type == 'weekend' %}
+                                    <span class="chip chip-warning">周末</span>
+                                    {% else %}
+                                    <span class="chip chip-info">工作日延时</span>
+                                    {% endif %}
+                                </td>
+                                <td class="numeric font-mono">
+                                    {{ record.duration_hours }}h {{ record.duration_minutes }}m
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-12">
+                    <span class="material-symbols-outlined empty-state-icon">schedule</span>
+                    <h3 class="empty-state-title">暂无加班记录</h3>
+                    <p class="empty-state-description">该员工还没有导入加班记录</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Leave Records -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">event_busy</span>
+                    最近请假记录
+                </h5>
+            </div>
+            <div class="content-card-body p-0">
+                {% if leave_records %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>类型</th>
+                                <th class="text-right">时长</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in leave_records %}
+                            <tr>
+                                <td>{{ record.leave_date }}</td>
+                                <td>
+                                    <span class="badge badge-outline">{{ record.leave_type }}</span>
+                                </td>
+                                <td class="numeric font-mono">
+                                    {{ record.duration_hours }}h {{ record.duration_minutes }}m
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-12">
+                    <span class="material-symbols-outlined empty-state-icon">event_busy</span>
+                    <h3 class="empty-state-title">暂无请假记录</h3>
+                    <p class="empty-state-description">该员工还没有导入请假记录</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Comp-Off Records -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">savings</span>
+                    最近调休记录
+                </h5>
+            </div>
+            <div class="content-card-body p-0">
+                {% if comp_off_records %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th class="text-right">时长</th>
+                                <th>描述</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in comp_off_records %}
+                            <tr>
+                                <td>{{ record.usage_date }}</td>
+                                <td class="numeric font-mono">
+                                    {{ record.duration_hours }}h {{ record.duration_minutes }}m
+                                </td>
+                                <td class="truncate max-w-xs">{{ record.description or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-12">
+                    <span class="material-symbols-outlined empty-state-icon">savings</span>
+                    <h3 class="empty-state-title">暂无调休记录</h3>
+                    <p class="empty-state-description">该员工还没有调休使用记录</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Reports -->
+    <div class="content-card">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">assessment</span>
+                快捷报表
+            </h5>
+        </div>
+        <div class="content-card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                   class="group bg-surface-container p-6 rounded-md text-center transition-all hover:bg-primary-container hover:text-white">
+                    <div class="w-14 h-14 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary group-hover:text-white text-2xl">calendar_month</span>
+                    </div>
+                    <h4 class="font-headline font-bold mb-1">月度报表</h4>
+                    <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">查看每月加班统计</p>
+                </a>
+
+                <a href="{{ url_for('reports.comp_off_report', employee_id=employee.employee_id) }}"
+                   class="group bg-surface-container p-6 rounded-md text-center transition-all hover:bg-primary-container hover:text-white">
+                    <div class="w-14 h-14 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary group-hover:text-white text-2xl">savings</span>
+                    </div>
+                    <h4 class="font-headline font-bold mb-1">调休余额</h4>
+                    <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">查看可用调休时长</p>
+                </a>
+
+                <a href="{{ url_for('reports.salary_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                   class="group bg-surface-container p-6 rounded-md text-center transition-all hover:bg-primary-container hover:text-white">
+                    <div class="w-14 h-14 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-primary group-hover:text-white text-2xl">payments</span>
+                    </div>
+                    <h4 class="font-headline font-bold mb-1">工资计算</h4>
+                    <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">计算应发加班工资</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Not Found State -->
+    <div class="content-card">
+        <div class="empty-state py-16">
+            <span class="material-symbols-outlined empty-state-icon text-warning">person_off</span>
+            <h3 class="empty-state-title">未找到该员工信息</h3>
+            <p class="empty-state-description">员工ID可能不正确或已被删除</p>
+            <a href="{{ url_for('employees.list_employees') }}" class="btn btn-primary mt-6">
+                <span class="material-symbols-outlined">arrow_back</span>
+                返回员工列表
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

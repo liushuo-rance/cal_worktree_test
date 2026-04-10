@@ -62,7 +62,7 @@ class AIParserService:
 1. 日期范围展开：如果一行文本包含日期范围（如"2025.10.27-29"）且描述对应多天（如"请假三天"），请为范围内的每一天返回一条独立记录，日期依次递增。例如"2025.10.27-29，请假三天"应返回3条记录，日期分别为2025-10-27、2025-10-28、2025-10-29。
 
 2. type字段：
-   - "overtime": 加班（包括"晚上xx小时"、"下午xx小时"、"加班"等）
+   - "overtime": 加班（包括"晚上xx小时"、"下午xx小时"、"加班"、"到岗"、"学习奖励xx小时"等）
    - "leave": 请假（包括"请假"、"病假"、"事假"等）
    - "comp_off": 调休（包括"调休"、"补休"等）
    - "unknown": 无法识别类型
@@ -73,6 +73,8 @@ class AIParserService:
    调休类型：half_day(半天)、full_day(全天)
 
 4. 特殊处理：
+   - "到岗"视为加班，subtype为weekday_morning，hours为3.5（如未明确时长）
+   - "学习奖励xx小时"视为加班，提取"xx"作为hours，subtype为weekday_mixed
    - "下午xx小时"、"晚上xx小时"默认为加班，subtype为weekday_evening
    - "请假半天"默认为leave，subtype为personal，hours为4
    - "请假一天"默认为leave，subtype为personal，hours为8

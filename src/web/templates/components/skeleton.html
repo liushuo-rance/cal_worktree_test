@@ -1,0 +1,76 @@
+{#
+  Skeleton Loading Component
+  Usage:
+    {% from "components/skeleton.html" import skeleton_card, skeleton_table, skeleton_text with context %}
+    {{ skeleton_card() }}
+#}
+
+{% macro skeleton_text(lines=3, width='100%') %}
+<div class="skeleton-text">
+  {% for i in range(lines) %}
+  <div class="skeleton-line" style="width: {% if i == lines - 1 %}75{% else %}100{% endif %}%"></div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro skeleton_card() %}
+<div class="skeleton-card">
+  <div class="skeleton-header">
+    <div class="skeleton-avatar"></div>
+    <div class="skeleton-title"></div>
+  </div>
+  <div class="skeleton-body">
+    {{ skeleton_text(3) }}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro skeleton_stat_card() %}
+<div class="skeleton-stat-card">
+  <div class="skeleton-stat-header">
+    <div class="skeleton-stat-label"></div>
+    <div class="skeleton-stat-icon"></div>
+  </div>
+  <div class="skeleton-stat-value"></div>
+  <div class="skeleton-stat-footer"></div>
+</div>
+{% endmacro %}
+
+{% macro skeleton_table(rows=5, cols=4) %}
+<div class="skeleton-table">
+  <div class="skeleton-table-header">
+    {% for c in range(cols) %}
+    <div class="skeleton-table-cell"></div>
+    {% endfor %}
+  </div>
+  {% for r in range(rows) %}
+  <div class="skeleton-table-row">
+    {% for c in range(cols) %}
+    <div class="skeleton-table-cell"></div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro skeleton_dashboard() %}
+<div class="skeleton-dashboard">
+  <!-- Stat cards -->
+  <div class="skeleton-stat-grid">
+    {% for i in range(4) %}
+    {{ skeleton_stat_card() }}
+    {% endfor %}
+  </div>
+
+  <!-- Content sections -->
+  <div class="skeleton-content-grid">
+    <div class="skeleton-content-main">
+      {{ skeleton_card() }}
+      {{ skeleton_card() }}
+    </div>
+    <div class="skeleton-content-side">
+      {{ skeleton_card() }}
+    </div>
+  </div>
+</div>
+{% endmacro %}

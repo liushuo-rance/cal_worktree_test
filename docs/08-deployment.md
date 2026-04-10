@@ -264,8 +264,8 @@ otcalc stats yearly --year 2025
 otcalc stats employee --employee E001
 
 # 导出数据
-otcalc export --format csv --output ./reports/ot_records.csv
-otcalc export --format json --output ./reports/ot_records.json
+otcalc export --format csv --output ./reports/overtime_records.csv
+otcalc export --format json --output ./reports/overtime_records.json
 
 # 数据库维护
 otcalc db vacuum
@@ -329,7 +329,7 @@ if __name__ == "__main__":
 | 问题 | 症状 | 解决方案 |
 |------|------|----------|
 | 数据库锁定 | `database is locked` 错误 | 1. 检查是否有其他进程占用<br>2. 重启应用<br>3. 使用 `sqlite3 db.db ".backup backup.db"` 修复 |
-| 导入失败 | 解析错误 | 1. 检查文件编码<br>2. 查看 parse_logs 表<br>3. 手动修正数据格式 |
+| 导入失败 | 解析错误 | 1. 检查文件编码<br>2. 查看 import_records 表<br>3. 手动修正数据格式 |
 | 性能下降 | 操作变慢 | 1. 执行 `VACUUM`<br>2. 检查索引<br>3. 优化查询条件 |
 | 数据丢失 | 记录缺失 | 1. 检查导入日志<br>2. 从备份恢复<br>3. 重新导入数据 |
 
@@ -562,7 +562,7 @@ SELECT
     success_count,
     error_count,
     imported_at
-FROM file_imports
+FROM import_sessions
 ORDER BY imported_at DESC;
 
 -- 查看解析错误
@@ -571,8 +571,8 @@ SELECT
     pl.line_number,
     pl.raw_text,
     pl.error_message
-FROM parse_logs pl
-JOIN file_imports fi ON pl.file_import_id = fi.id
+FROM import_records pl
+JOIN import_sessions fi ON pl.file_import_id = fi.id
 WHERE pl.parse_status = 'error'
 ORDER BY pl.created_at DESC;
 
@@ -584,7 +584,7 @@ SELECT
     SUM(CASE WHEN r.record_type = 'overtime' THEN r.hours ELSE 0 END) as total_overtime,
     SUM(CASE WHEN r.record_type = 'leave' THEN ABS(r.hours) ELSE 0 END) as total_leave
 FROM employees e
-LEFT JOIN ot_records r ON e.id = r.employee_id
+LEFT JOIN overtime_records r ON e.id = r.employee_id
 GROUP BY e.id, e.employee_code, e.name;
 ```
 

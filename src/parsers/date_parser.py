@@ -4,7 +4,7 @@
 """
 
 import re
-from datetime import date, datetime
+from datetime import date
 from typing import Optional, Tuple
 
 
@@ -76,7 +76,9 @@ def parse_date_range(date_str: str) -> Tuple[date, date]:
 
     # 先尝试跨月范围匹配（必须优先，避免被同月模式错误匹配）
     # 格式: 2025.10.27-11.3 或 2025.10.27至11.3
-    cross_month_pattern = r'(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})[.\-/](\d{1,2})'
+    cross_month_pattern = (
+        r'(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})[.\-/](\d{1,2})'
+    )
     match = re.match(cross_month_pattern, date_str)
     if match:
         year, start_month, start_day, end_month, end_day = map(int, match.groups())
@@ -105,7 +107,9 @@ def parse_date_range(date_str: str) -> Tuple[date, date]:
             raise DateParseError(f"Invalid date range: {date_str} ({e})")
 
     # 尝试跨月范围匹配
-    cross_month_pattern = r'(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})[.\-/](\d{1,2})'
+    cross_month_pattern = (
+        r'(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})[.\-/](\d{1,2})'
+    )
     match = re.match(cross_month_pattern, date_str)
     if match:
         year, start_month, start_day, end_month, end_day = map(int, match.groups())
@@ -187,7 +191,10 @@ def extract_date_from_line(line: str) -> Optional[Tuple[str, str]]:
     line = line.strip()
 
     # 尝试匹配日期范围
-    range_pattern = r'^(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}\s*[-~至]\s*(?:\d{1,2}[.\-/])?\d{1,2})[,，\s]+(.*)$'
+    range_pattern = (
+        r'^(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}\s*[-~至]\s*(?:\d{1,2}[.\-/])?\d{1,2})'
+        r'[,，\s]+(.*)$'
+    )
     match = re.match(range_pattern, line)
     if match:
         return (match.group(1), match.group(2))

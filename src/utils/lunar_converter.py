@@ -35,13 +35,18 @@ KNOWN_FESTIVALS = {
 # 农历月份天数（2025-2027）
 # 格式: [正月, 二月, 三月, 四月, 五月, 六月, 七月, 八月, 九月, 十月, 冬月, 腊月, 闰月]
 LUNAR_MONTH_DAYS = {
-    2025: [29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30],  # 闰六月
-    2026: [30, 29, 30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 0],   # 无闰月,修正八月为29天
-    2027: [29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 0],   # 无闰月
+    # 2025: 闰六月
+    2025: [29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30],
+    # 2026: 无闰月,修正八月为29天
+    2026: [30, 29, 30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 0],
+    # 2027: 无闰月
+    2027: [29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 0],
 }
 
 
-def lunar_to_solar(lunar_year: int, lunar_month: int, lunar_day: int, is_leap: bool = False) -> date:
+def lunar_to_solar(
+    lunar_year: int, lunar_month: int, lunar_day: int, is_leap: bool = False
+) -> date:
     """农历转公历（简化版）"""
     if not (1 <= lunar_month <= 12):
         raise LunarConversionError(f"Invalid lunar month: {lunar_month}")
@@ -50,7 +55,8 @@ def lunar_to_solar(lunar_year: int, lunar_month: int, lunar_day: int, is_leap: b
         raise LunarConversionError(f"Year {lunar_year} not supported")
 
     spring_festival = KNOWN_FESTIVALS[lunar_year]['春节']
-    month_days = LUNAR_MONTH_DAYS.get(lunar_year, [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 0])
+    default_month_days = [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 0]
+    month_days = LUNAR_MONTH_DAYS.get(lunar_year, default_month_days)
     leap_month = 6 if lunar_year == 2025 else 0
 
     days_diff = 0
@@ -92,7 +98,8 @@ def solar_to_lunar(solar_date: date) -> Tuple[int, int, int, bool]:
         spring_festival = KNOWN_FESTIVALS[year]['春节']
 
     days_diff = (solar_date - spring_festival).days
-    month_days = LUNAR_MONTH_DAYS.get(year, [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 0])
+    default_month_days = [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 0]
+    month_days = LUNAR_MONTH_DAYS.get(year, default_month_days)
     leap_month = 6 if year == 2025 else 0
 
     month = 1

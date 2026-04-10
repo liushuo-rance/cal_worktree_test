@@ -7,7 +7,7 @@
 """
 
 import pytest
-from datetime import time, datetime
+from datetime import time
 
 
 class TestTimeConversion:
@@ -52,6 +52,20 @@ class TestTimeConversion:
 
         with pytest.raises(ValueError, match="total_minutes cannot be negative"):
             total_minutes_to_hours_minutes(-1)
+
+    def test_hours_minutes_negative_hours_rejected(self):
+        """负小时数应该被拒绝"""
+        from src.utils.time_utils import hours_minutes_to_total_minutes
+
+        with pytest.raises(ValueError, match="hours cannot be negative"):
+            hours_minutes_to_total_minutes(-1, 30)
+
+    def test_hours_minutes_negative_minutes_rejected(self):
+        """负分钟数应该被拒绝"""
+        from src.utils.time_utils import hours_minutes_to_total_minutes
+
+        with pytest.raises(ValueError, match="minutes cannot be negative"):
+            hours_minutes_to_total_minutes(1, -30)
 
 
 class TestWorkHoursCheck:
@@ -127,6 +141,14 @@ class TestWorkHoursCheck:
         assert get_time_period(time(12, 0)) == TimePeriod.LUNCH  # 上午结束(边界算午休)
         assert get_time_period(time(13, 0)) == TimePeriod.LUNCH  # 下午开始(边界算午休)
         assert get_time_period(time(17, 30)) == TimePeriod.WORK_TIME  # 工作结束
+
+    def test_lunch_boundary_points(self):
+        """午休边界点测试"""
+        from src.utils.time_utils import get_time_period, TimePeriod
+
+        # 12:00 和 13:00 应该返回 LUNCH
+        assert get_time_period(time(12, 0)) == TimePeriod.LUNCH
+        assert get_time_period(time(13, 0)) == TimePeriod.LUNCH
 
 
 class TestOvertimeCalculation:

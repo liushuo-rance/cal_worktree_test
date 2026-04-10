@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}调休审批 - 加班记录管理系统{% endblock %}
+{% block page_title %}调休审批{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">审核和批准员工的调休申请</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 border-b border-outline-variant pb-0">
+        <a href="{{ url_for('review.review_queue') }}"
+           class="px-4 py-2 text-body-md font-medium text-on-surface-variant hover:text-primary transition-colors">
+            导入审批
+        </a>
+        <a href="{{ url_for('review.comp_off_review_queue') }}"
+           class="px-4 py-2 text-body-md font-medium text-primary border-b-2 border-primary">
+            调休审批
+        </a>
+    </div>
+
+    <div class="content-card">
+        <div class="content-card-header">
+            <div class="flex items-center gap-4">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">event_busy</span>
+                    待审批调休申请
+                </h5>
+                {% if pending_requests %}
+                <span class="chip chip-warning">
+                    <span class="material-symbols-outlined text-sm">hourglass_empty</span>
+                    {{ pending_requests|length }} 条待处理
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="content-card-body p-0">
+            {% if pending_requests %}
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>员工</th>
+                            <th>使用日期</th>
+                            <th>时长</th>
+                            <th>说明</th>
+                            <th>创建时间</th>
+                            <th class="text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending_requests %}
+                        <tr>
+                            <td><code class="font-mono text-label-md">#{{ req.id }}</code></td>
+                            <td>
+                                <span class="font-medium text-body-sm">{{ req.employee_name or req.employee_id }}</span>
+                            </td>
+                            <td class="text-body-sm">{{ req.usage_date }}</td>
+                            <td class="text-body-sm">
+                                {{ req.duration_hours }}小时
+                                {% if req.duration_minutes %}{{ req.duration_minutes }}分{% endif %}
+                            </td>
+                            <td>
+                                <span class="text-on-surface-variant text-body-sm truncate" style="max-width: 200px; display: block;" title="{{ req.description or '' }}">
+                                    {{ req.description or '-' }}
+                                </span>
+                            </td>
+                            <td class="text-on-surface-variant text-body-sm">{{ req.created_at }}</td>
+                            <td class="text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <form action="{{ url_for('review.comp_off_approve', request_id=req.id) }}" method="POST" class="inline">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <span class="material-symbols-outlined icon-sm">check</span>
+                                            批准
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('review.comp_off_reject', request_id=req.id) }}" method="POST" class="inline">
+                                        <button type="submit" class="btn btn-ghost btn-sm text-error hover:bg-error-container">
+                                            <span class="material-symbols-outlined icon-sm">close</span>
+                                            拒绝
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-16">
+                <span class="material-symbols-outlined empty-state-icon">inbox</span>
+                <h3 class="empty-state-title">暂无待审批调休申请</h3>
+                <p class="empty-state-description">所有调休申请已处理完毕</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if pending_requests %}
+    <div class="content-card mt-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">tips_and_updates</span>
+                审批提示
+            </h5>
+        </div>
+        <div class="content-card-body">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-primary">check_circle</span>
+                    </div>
+                    <div>
+                        <h6 class="font-semibold text-on-surface">批准</h6>
+                        <p class="text-body-sm text-on-surface-variant mt-1">按 FIFO 规则从该员工的调休余额中扣除时长</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-error">delete</span>
+                    </div>
+                    <div>
+                        <h6 class="font-semibold text-on-surface">拒绝</h6>
+                        <p class="text-body-sm text-on-surface-variant mt-1">不扣除余额，仅标记申请为拒绝</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

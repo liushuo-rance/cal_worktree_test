@@ -73,13 +73,15 @@ def init_database(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS overtime_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id TEXT NOT NULL,
-            date DATE NOT NULL,
+            work_date DATE NOT NULL,
             overtime_type TEXT CHECK(overtime_type IN ({overtime_type_values})),
             duration_hours INTEGER NOT NULL CHECK(duration_hours >= 0),
-            duration_minutes INTEGER NOT NULL CHECK(duration_minutes >= 0 AND duration_minutes < 60),
+            duration_minutes INTEGER NOT NULL
+                CHECK(duration_minutes >= 0 AND duration_minutes < 60),
             total_minutes INTEGER NOT NULL CHECK(total_minutes > 0),
             description TEXT,
             raw_text TEXT,
+            source_import_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
@@ -92,14 +94,15 @@ def init_database(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS leave_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id TEXT NOT NULL,
-            date_start DATE NOT NULL,
-            date_end DATE NOT NULL,
+            leave_date DATE NOT NULL,
             leave_type TEXT CHECK(leave_type IN ({leave_type_values})),
             duration_hours INTEGER NOT NULL CHECK(duration_hours >= 0),
-            duration_minutes INTEGER NOT NULL CHECK(duration_minutes >= 0 AND duration_minutes < 60),
+            duration_minutes INTEGER NOT NULL
+                CHECK(duration_minutes >= 0 AND duration_minutes < 60),
             total_minutes INTEGER NOT NULL CHECK(total_minutes > 0),
             description TEXT,
             raw_text TEXT,
+            source_import_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
@@ -115,10 +118,13 @@ def init_database(conn: sqlite3.Connection) -> None:
             acquired_date DATE NOT NULL,
             expiry_date DATE,
             total_hours INTEGER NOT NULL CHECK(total_hours >= 0),
-            total_minutes INTEGER NOT NULL CHECK(total_minutes >= 0 AND total_minutes < 60),
+            total_minutes INTEGER NOT NULL
+                CHECK(total_minutes >= 0 AND total_minutes < 60),
             used_hours INTEGER NOT NULL DEFAULT 0 CHECK(used_hours >= 0),
-            used_minutes INTEGER NOT NULL DEFAULT 0 CHECK(used_minutes >= 0 AND used_minutes < 60),
-            status TEXT DEFAULT 'active' CHECK(status IN ({comp_off_status_values})),
+            used_minutes INTEGER NOT NULL DEFAULT 0
+                CHECK(used_minutes >= 0 AND used_minutes < 60),
+            status TEXT DEFAULT 'active'
+                CHECK(status IN ({comp_off_status_values})),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
@@ -133,14 +139,26 @@ def init_database(conn: sqlite3.Connection) -> None:
             usage_date DATE NOT NULL,
             leave_record_id INTEGER,
             duration_hours INTEGER NOT NULL CHECK(duration_hours >= 0),
-            duration_minutes INTEGER NOT NULL CHECK(duration_minutes >= 0 AND duration_minutes < 60),
+            duration_minutes INTEGER NOT NULL
+                CHECK(duration_minutes >= 0 AND duration_minutes < 60),
             total_minutes INTEGER NOT NULL CHECK(total_minutes > 0),
             description TEXT,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
             FOREIGN KEY (leave_record_id) REFERENCES leave_records(id)
         )
     """)
+
+    # 迁移：为已存在的数据库添加 status 列
+    try:
+        cursor.execute("""
+            ALTER TABLE comp_off_usage_records
+            ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'
+                CHECK(status IN ('pending', 'approved', 'rejected'))
+        """)
+    except sqlite3.OperationalError:
+        pass
 
     # 节假日配置表
     holiday_type_values = ', '.join([f"'{t}'" for t in HOLIDAY_TYPES])
@@ -191,12 +209,12 @@ def init_database(conn: sqlite3.Connection) -> None:
     # 创建索引
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_overtime_employee_date
-        ON overtime_records(employee_id, date)
+        ON overtime_records(employee_id, work_date)
     """)
 
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_leave_employee_date
-        ON leave_records(employee_id, date_start)
+        ON leave_records(employee_id, leave_date)
     """)
 
     cursor.execute("""
@@ -226,14 +244,14 @@ def create_views(conn: sqlite3.Connection) -> None:
         CREATE VIEW IF NOT EXISTS v_employee_overtime_summary AS
         SELECT
             employee_id,
-            strftime('%Y-%m', date) as month,
+            strftime('%Y-%m', work_date) as month,
             overtime_type,
             COUNT(*) as record_count,
             SUM(duration_hours) as total_hours,
             SUM(duration_minutes) as total_minutes,
             SUM(total_minutes) as total_minutes_calculated
         FROM overtime_records
-        GROUP BY employee_id, strftime('%Y-%m', date), overtime_type
+        GROUP BY employee_id, strftime('%Y-%m', work_date), overtime_type
     """)
 
     # 员工调休余额视图
@@ -245,7 +263,8 @@ def create_views(conn: sqlite3.Connection) -> None:
             SUM(total_minutes) as total_acquired_minutes,
             SUM(used_hours) as total_used_hours,
             SUM(used_minutes) as total_used_minutes,
-            SUM(total_hours * 60 + total_minutes - used_hours * 60 - used_minutes) as remaining_minutes
+            SUM(total_hours * 60 + total_minutes -
+                used_hours * 60 - used_minutes) as remaining_minutes
         FROM comp_off_balances
         WHERE status = 'active'
         GROUP BY employee_id

@@ -5,7 +5,7 @@
 
 import re
 from datetime import date, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 
 class ParseError(Exception):
@@ -41,6 +41,70 @@ STATUTORY_DAYS = {
 }
 
 
+def _extract_holiday_name(text: str) -> str:
+    """从文本中提取节假日名称"""
+    name_match = re.match(r'([一二三四五六七八九、]+)?\s*([^：:]+)[：:]', text)
+    if not name_match:
+        raise ParseError(f"Cannot extract holiday name from: {text}")
+    return name_match.group(2).strip()
+
+
+def _normalize_holiday_name(holiday_name: str) -> str:
+    """标准化节假日名称"""
+    base_name = holiday_name.replace('节', '')
+    if base_name + '节' in STATUTORY_DAYS:
+        return base_name + '节'
+    if base_name in STATUTORY_DAYS:
+        return base_name
+    # 尝试匹配
+    for known in STATUTORY_DAYS.keys():
+        if base_name in known or known in base_name:
+            return known
+    return holiday_name
+
+
+def _extract_year(text: str, default_year: int = None) -> int:
+    """从文本中提取年份"""
+    if default_year is not None:
+        return default_year
+    year_match = re.search(r'(\d{4})年', text)
+    if year_match:
+        return int(year_match.group(1))
+    return date.today().year
+
+
+def _extract_date_range(text: str, year: int) -> tuple[date, date]:
+    """从文本中提取日期范围"""
+    # 跨月范围: X月Y日至M月N日
+    cross_month_match = re.search(
+        r'(\d{1,2})月(\d{1,2})日[^至]*至(\d{1,2})月(\d{1,2})日', text
+    )
+    if cross_month_match:
+        start_month = int(cross_month_match.group(1))
+        start_day = int(cross_month_match.group(2))
+        end_month = int(cross_month_match.group(3))
+        end_day = int(cross_month_match.group(4))
+        return (
+            date(year, start_month, start_day),
+            date(year, end_month, end_day)
+        )
+
+    # 同月范围: X月Y日至Z日
+    same_month_match = re.search(
+        r'(\d{1,2})月(\d{1,2})日[^至]*至[^\d]*(\d{1,2})日', text
+    )
+    if same_month_match:
+        month = int(same_month_match.group(1))
+        start_day = int(same_month_match.group(2))
+        end_day = int(same_month_match.group(3))
+        return (
+            date(year, month, start_day),
+            date(year, month, end_day)
+        )
+
+    raise ParseError(f"Cannot extract date range from: {text}")
+
+
 def parse_holiday_item(text: str, year: int = None) -> Dict[str, Any]:
     """
     解析单条节假日条目
@@ -54,60 +118,11 @@ def parse_holiday_item(text: str, year: int = None) -> Dict[str, Any]:
     """
     text = text.strip()
 
-    # 提取节假日名称
-    name_match = re.match(r'([一二三四五六七八九、]+)?\s*([^：:]+)[：:]', text)
-    if not name_match:
-        raise ParseError(f"Cannot extract holiday name from: {text}")
-
-    holiday_name = name_match.group(2).strip()
-
-    # 清理名称（去除"节"字等变体）
-    base_name = holiday_name.replace('节', '')
-    if base_name + '节' in STATUTORY_DAYS:
-        holiday_name = base_name + '节'
-    elif base_name not in STATUTORY_DAYS:
-        # 尝试匹配
-        for known in STATUTORY_DAYS.keys():
-            if base_name in known or known in base_name:
-                holiday_name = known
-                break
-
-    # 提取年份
-    if year is None:
-        year_match = re.search(r'(\d{4})年', text)
-        if year_match:
-            year = int(year_match.group(1))
-        else:
-            year = date.today().year
-
-    # 提取日期范围
-    date_range_pattern = r'(\d{1,2})月(\d{1,2})日[^至]*至[^\d]*(\d{1,2})月)?(\d{1,2})日'
-
-    # 同月范围: X月Y日至Z日
-    same_month_match = re.search(r'(\d{1,2})月(\d{1,2})日[^至]*至[^\d]*(\d{1,2})日', text)
-    # 跨月范围: X月Y日至M月N日
-    cross_month_match = re.search(r'(\d{1,2})月(\d{1,2})日[^至]*至(\d{1,2})月(\d{1,2})日', text)
-
-    if cross_month_match:
-        start_month = int(cross_month_match.group(1))
-        start_day = int(cross_month_match.group(2))
-        end_month = int(cross_month_match.group(3))
-        end_day = int(cross_month_match.group(4))
-        start_date = date(year, start_month, start_day)
-        end_date = date(year, end_month, end_day)
-    elif same_month_match:
-        month = int(same_month_match.group(1))
-        start_day = int(same_month_match.group(2))
-        end_day = int(same_month_match.group(3))
-        start_date = date(year, month, start_day)
-        end_date = date(year, month, end_day)
-    else:
-        raise ParseError(f"Cannot extract date range from: {text}")
-
-    # 提取调休上班日
+    holiday_name = _extract_holiday_name(text)
+    holiday_name = _normalize_holiday_name(holiday_name)
+    year = _extract_year(text, year)
+    start_date, end_date = _extract_date_range(text, year)
     adjusted_workdays = extract_adjusted_workdays(text, year)
-
-    # 确定法定假日
     statutory_days = get_statutory_holidays(holiday_name, start_date, end_date)
 
     return {
@@ -190,7 +205,6 @@ def get_statutory_holidays(name: str, start_date: date, end_date: date) -> List[
 
     # 生成法定假日列表（从假期开始日起算）
     statutory_days = []
-    current = start_date
 
     # 对于春节，法定是除夕、初一、初二
     # 春节假期通常从腊月二十八/二十九/三十开始，法定从除夕开始
@@ -272,10 +286,10 @@ def extract_all_holiday_dates(text: str, year: int = None) -> List[date]:
 
     for h in holidays:
         # 添加整个假期范围
-        current = h['start_date']
-        while current <= h['end_date']:
-            all_dates.add(current)
-            current += timedelta(days=1)
+        d = h['start_date']
+        while d <= h['end_date']:
+            all_dates.add(d)
+            d += timedelta(days=1)
 
         # 添加法定假日
         for d in h.get('statutory_days', []):

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}调休余额 - {{ report.employee_id if report else '加载中' }} - 加班记录管理系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>调休余额</h1>
+            {% if report %}
+            <p class="text-muted mb-0">
+                员工: <code>{{ report.employee_id }}</code>
+            </p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('reports.reports_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回报表首页
+        </a>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+{% if report %}
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="bi bi-piggy-bank"></i>
+            </div>
+            <h3 class="stat-value">{{ "%.1f"|format(report.total_hours) }}</h3>
+            <p class="stat-label">总调休余额(小时)</p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <h3 class="stat-value">{{ "%.1f"|format(report.expiring_soon_hours) }}</h3>
+            <p class="stat-label">{{ report.warning_days }}天内到期(小时)</p>
+        </div>
+    </div>
+</div>
+
+{% if report.expiring_items %}
+<div class="alert alert-warning mb-4">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>到期提醒：</strong>有 {{ report.expiring_items|length }} 条调休余额将在 {{ report.warning_days }} 天内到期，请及时使用。
+</div>
+{% endif %}
+
+<div class="content-card">
+    <div class="content-card-header">
+        <h5><i class="bi bi-list"></i> 调休余额明细</h5>
+    </div>
+    <div class="content-card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>获得日期</th>
+                        <th>余额(小时)</th>
+                        <th>到期日期</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report.balance_items %}
+                    <tr>
+                        <td>{{ item.acquired_date }}</td>
+                        <td>{{ "%.1f"|format(item.hours) }}</td>
+                        <td>{{ item.expiry_date or '-' }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if item.status == 'active' else 'secondary' }}">
+                                {{ item.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                            暂无调休余额
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

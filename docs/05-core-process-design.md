@@ -20,6 +20,12 @@
 
 ---
 
+
+> **重要更新**：本文档描述的流程图中包含的关键词匹配、正则表达式解析等逻辑为原始设计。
+>
+> **实际实现已改为AI大模型解析**：系统完全依赖火山方舟API进行智能文本解析，不再使用本地关键词/正则规则。
+> 实际代码实现请参见 `docs/03-data-parsing-strategy.md` 和 `src/services/ai_parser_service.py`
+
 ## 3. 批量导入时序图
 
 ### 3.1 批量导入完整流程
@@ -36,7 +42,7 @@ sequenceDiagram
     participant FR as FileImportRepository
     participant DB as SQLite Database
 
-    User->>CLI: import --dir /data/ot_records
+    User->>CLI: import --dir /data/overtime_records
     CLI->>IS: import_directory(path)
     
     IS->>FP: scan_directory(path)
@@ -44,7 +50,7 @@ sequenceDiagram
     
     loop For each file
         IS->>FR: create_import_record(filename, path)
-        FR->>DB: INSERT file_imports
+        FR->>DB: INSERT import_sessions
         DB-->>FR: import_id
         FR-->>IS: import_record
         
@@ -53,7 +59,7 @@ sequenceDiagram
         FP->>FP: read_file_content()
         FP->>FP: split_lines()
         FP->>FR: update_total_lines(import_id, count)
-        FR->>DB: UPDATE file_imports
+        FR->>DB: UPDATE import_sessions
         
         loop For each line
             FP->>PP: parse_line(line_text)
@@ -67,26 +73,26 @@ sequenceDiagram
             alt Parse Success
                 PP-->>FP: ParsedRecord
                 FP->>RR: save(record)
-                RR->>DB: INSERT ot_records
+                RR->>DB: INSERT overtime_records
                 DB-->>RR: record_id
                 RR-->>FP: saved_record
                 FP->>FR: increment_success(import_id)
             else Parse Warning
                 PP-->>FP: ParsedRecord(with warnings)
                 FP->>RR: save(record)
-                RR->>DB: INSERT ot_records
+                RR->>DB: INSERT overtime_records
                 FP->>FR: log_warning(import_id, line, warning)
             else Parse Error
                 PP-->>FP: ParseError
                 FP->>FR: log_error(import_id, line, error)
-                FR->>DB: INSERT parse_logs
+                FR->>DB: INSERT import_records
                 FP->>FR: increment_error(import_id)
             end
         end
         
         FP-->>IS: processing_result
         IS->>FR: update_status(import_id, status)
-        FR->>DB: UPDATE file_imports
+        FR->>DB: UPDATE import_sessions
     end
     
     IS->>IS: generate_summary_report()
@@ -171,7 +177,7 @@ sequenceDiagram
     LP-->>IS: lines[]
     
     IS->>IS: create_import_record()
-    IS->>DB: INSERT file_imports
+    IS->>DB: INSERT import_sessions
     DB-->>IS: import_id
     
     loop For each line
@@ -210,18 +216,18 @@ sequenceDiagram
         alt Validation Passed
             IS->>IS: build_record()
             IS->>RR: save(record)
-            RR->>DB: INSERT ot_records
+            RR->>DB: INSERT overtime_records
             DB-->>RR: record_id
             RR-->>IS: saved_record
             IS->>IS: increment_success()
         else Validation Failed
             IS->>PR: log_parse_error()
-            PR->>DB: INSERT parse_logs
+            PR->>DB: INSERT import_records
             IS->>IS: increment_error()
         end
     end
     
-    IS->>DB: UPDATE file_imports (final status)
+    IS->>DB: UPDATE import_sessions (final status)
     IS->>IS: generate_report()
     IS-->>CLI: ImportResult
     CLI-->>User: Display summary
@@ -499,7 +505,7 @@ flowchart TD
     
     H --> I[记录行号]
     I --> J[记录错误信息]
-    J --> K[写入parse_logs表]
+    J --> K[写入import_records表]
     
     K --> L{错误级别?}
     
@@ -629,7 +635,7 @@ sequenceDiagram
         QS->>RR: find_by_criteria(criteria)
     end
     
-    RR->>DB: SELECT * FROM ot_records
+    RR->>DB: SELECT * FROM overtime_records
     DB-->>RR: records[]
     RR-->>QS: records[]
     
@@ -751,8 +757,8 @@ sequenceDiagram
         
         Note over RS,DB: 类型分离存储逻辑
         alt 记录类型为 加班(OVERTIME)
-            RS->>RR: determine_storage_target('ot_records')
-            RR-->>RS: target_table = 'ot_records'
+            RS->>RR: determine_storage_target('overtime_records')
+            RR-->>RS: target_table = 'overtime_records'
             RS->>RS: calculate_overtime_balance()  // 按加班类型分别累计
         else 记录类型为 调休(COMP_OFF)
             RS->>RR: determine_storage_target('comp_off_balances')
@@ -789,11 +795,11 @@ sequenceDiagram
         
         alt 用户通过
             RS->>RR: save(record)
-            RR->>DB: INSERT ot_records
+            RR->>DB: INSERT overtime_records
             RS->>RS: update_system_calculated_balance()  // 按《劳动法》规则独立计算，不参考文件累计值
         else 用户修订
             RS->>RR: save(revised_record)
-            RR->>DB: INSERT ot_records
+            RR->>DB: INSERT overtime_records
             RS->>RS: update_system_calculated_balance()  // 按《劳动法》规则独立计算，不参考文件累计值
         else 用户驳回
             RS->>DB: log_rejection(line, reason)
@@ -934,7 +940,7 @@ sequenceDiagram
 │     合计加班时长: 1.5 + 5.5 = 7.0小时                                       │
 │                                                                             │
 │  💾 存储目标                                                                 │
-│     • 加班记录表 (ot_records): 存储2条记录                                   │
+│     • 加班记录表 (overtime_records): 存储2条记录                                   │
 │       - 记录1: weekday_morning, 1.5小时                                     │
 │       - 记录2: weekday_evening, 5.5小时                                     │
 │     • 调休余额表 (comp_off_balances): 无变化（工作日加班不产生调休）        │

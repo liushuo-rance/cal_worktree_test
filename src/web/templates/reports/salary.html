@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}工资计算 - {{ report.employee_name if report else '加载中' }} - 加班记录管理系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>工资计算表</h1>
+            {% if report %}
+            <p class="text-muted mb-0">
+                {{ report.employee_name }} ({{ report.employee_id }})
+                <span class="mx-2">|</span>
+                {{ report.year }}年{{ report.month }}月
+            </p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('reports.reports_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回报表首页
+        </a>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+{% if report %}
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon secondary">
+                <i class="bi bi-cash"></i>
+            </div>
+            <h3 class="stat-value">{{ "%.2f"|format(report.hourly_rate) }}</h3>
+            <p class="stat-label">时薪(元)</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="bi bi-clock"></i>
+            </div>
+            <h3 class="stat-value">{{ "%.1f"|format(report.weekday_overtime.hours + report.weekend_overtime.hours + report.holiday_overtime.hours) }}</h3>
+            <p class="stat-label">总加班时长(小时)</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+            <h3 class="stat-value">{{ "%.2f"|format(report.total_amount) }}</h3>
+            <p class="stat-label">加班工资总计(元)</p>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="content-card-header">
+        <h5><i class="bi bi-calculator"></i> 加班工资明细</h5>
+    </div>
+    <div class="content-card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>加班类型</th>
+                        <th>时长(小时)</th>
+                        <th>倍数</th>
+                        <th>金额(元)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="badge bg-info">工作日加班</span>
+                        </td>
+                        <td>{{ "%.1f"|format(report.weekday_overtime.hours) }}</td>
+                        <td>x{{ report.weekday_overtime.multiplier }}</td>
+                        <td>{{ "%.2f"|format(report.weekday_overtime.amount) }}</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="badge bg-warning">周末加班</span>
+                        </td>
+                        <td>{{ "%.1f"|format(report.weekend_overtime.hours) }}</td>
+                        <td>x{{ report.weekend_overtime.multiplier }}</td>
+                        <td>{{ "%.2f"|format(report.weekend_overtime.amount) }}</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="badge bg-danger">节假日加班</span>
+                        </td>
+                        <td>{{ "%.1f"|format(report.holiday_overtime.hours) }}</td>
+                        <td>x{{ report.holiday_overtime.multiplier }}</td>
+                        <td>{{ "%.2f"|format(report.holiday_overtime.amount) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot class="table-group-divider">
+                    <tr class="table-primary">
+                        <th colspan="3">合计</th>
+                        <th>{{ "%.2f"|format(report.total_amount) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle"></i>
+    <strong>计算说明：</strong>
+    <ul class="mb-0 mt-2">
+        <li>工作日加班：时薪 x 1.5倍</li>
+        <li>周末加班：时薪 x 2.0倍</li>
+        <li>节假日加班：时薪 x 3.0倍</li>
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
