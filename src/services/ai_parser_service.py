@@ -90,12 +90,13 @@ class AIParserService:
 
 请只返回JSON数组，不要返回其他内容。"""
 
-    def parse_lines(self, text_lines: List[str]) -> Dict[str, Any]:
+    def parse_lines(self, text_lines: List[str], progress_callback=None) -> Dict[str, Any]:
         """
         使用AI解析文本行，分批处理避免超时
 
         Args:
             text_lines: 文本行列表
+            progress_callback: 可选的进度回调函数，签名 progress_callback(current: int, total: int)
 
         Returns:
             包含解析结果、prompt、response的字典
@@ -108,18 +109,22 @@ class AIParserService:
                 'error': '没有要解析的文本行'
             }
 
-        # 每批处理20行（平衡性能和API限制）
-        BATCH_SIZE = 20
+        # 每批处理5行，保证进度条更新频率
+        BATCH_SIZE = 5
         all_results = []
         all_responses = []
+        total_batches = (len(text_lines) + BATCH_SIZE - 1) // BATCH_SIZE
 
         full_prompt = self._build_prompt(text_lines)
 
-        for batch_start in range(0, len(text_lines), BATCH_SIZE):
+        for batch_idx, batch_start in enumerate(range(0, len(text_lines), BATCH_SIZE)):
             batch_end = min(batch_start + BATCH_SIZE, len(text_lines))
             batch_lines = text_lines[batch_start:batch_end]
 
-            print(f"[AI Parser] 处理批次 {batch_start//BATCH_SIZE + 1}/{(len(text_lines)-1)//BATCH_SIZE + 1}, 行 {batch_start+1}-{batch_end}")
+            print(f"[AI Parser] 处理批次 {batch_idx + 1}/{total_batches}, 行 {batch_start+1}-{batch_end}")
+
+            if progress_callback:
+                progress_callback(batch_idx + 1, total_batches)
 
             batch_result = self._parse_batch(batch_lines, batch_start)
 
@@ -311,12 +316,13 @@ def get_ai_parser() -> AIParserService:
     return _ai_parser
 
 
-def parse_with_ai(text_lines: List[str]) -> Dict[str, Any]:
+def parse_with_ai(text_lines: List[str], progress_callback=None) -> Dict[str, Any]:
     """
     使用AI解析文本行的便捷函数
 
     Args:
         text_lines: 文本行列表
+        progress_callback: 可选的进度回调函数，签名 progress_callback(current: int, total: int)
 
     Returns:
         包含解析结果、prompt、response的字典
@@ -332,7 +338,7 @@ def parse_with_ai(text_lines: List[str]) -> Dict[str, Any]:
 
     try:
         parser = get_ai_parser()
-        return parser.parse_lines(text_lines)
+        return parser.parse_lines(text_lines, progress_callback=progress_callback)
     except Exception as e:
         error_msg = f"AI解析服务初始化失败: {e}"
         print(error_msg)

@@ -184,7 +184,16 @@ def parse_file_content(content: str, session_key: str = None) -> Dict[str, Any]:
             update_parse_progress(session_key, 'ai_start', f'🤖 AI大模型正在解析 {len(valid_lines)} 行记录...', 25)
 
         print(f"使用AI解析 {len(valid_lines)} 行记录...")
-        ai_result = parse_with_ai(valid_lines)
+
+        def _ai_progress(current_batch, total_batches):
+            if session_key and total_batches > 0:
+                progress = 30 + int((current_batch / total_batches) * 30)
+                update_parse_progress(
+                    session_key, 'ai_progress',
+                    f'🤖 AI解析中... 批次 {current_batch}/{total_batches}', progress
+                )
+
+        ai_result = parse_with_ai(valid_lines, progress_callback=_ai_progress)
 
         # 保存完整的prompt和response到session
         if session_key:
@@ -228,16 +237,6 @@ def parse_file_content(content: str, session_key: str = None) -> Dict[str, Any]:
             }
 
         if session_key:
-            # 显示分批处理信息
-            update_parse_progress(session_key, 'ai_batches',
-                f'📦 共{len(valid_lines)}行，分批解析中...', 35)
-
-            # 显示AI解析的详细信息
-            for i, record in enumerate(records[:3]):  # 显示前3行作为示例
-                line_preview = valid_lines[i][:30] if i < len(valid_lines) else ''
-                update_parse_progress(session_key, 'ai_progress',
-                    f'✓ 第{i+1}行: {line_preview}... → {record.get("type", "unknown")}', 40 + i*10)
-
             update_parse_progress(session_key, 'ai_done',
                 f'✓ AI大模型解析完成！识别 {len(records)} 条记录', 60)
 
