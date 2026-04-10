@@ -18,10 +18,15 @@
         <div class="lg:col-span-2">
             <div class="content-card">
                 <div class="content-card-header">
-                    <h5 class="content-card-title">
-                        <span class="material-symbols-outlined inline-icon">upload_file</span>
-                        上传文件
-                    </h5>
+                    <div class="flex items-center justify-between">
+                        <h5 class="content-card-title">
+                            <span class="material-symbols-outlined inline-icon">upload_file</span>
+                            上传文件
+                        </h5>
+                        <a href="{{ url_for('records.import_sessions') }}" class="text-sm text-primary hover:underline">
+                            导入历史 &rarr;
+                        </a>
+                    </div>
                 </div>
                 <div class="content-card-body">
                     <form method="POST" enctype="multipart/form-data" id="import-form">

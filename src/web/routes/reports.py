@@ -111,13 +111,11 @@ def overtime_ranking():
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
 
-    # 默认显示当前年月
+    # 默认显示全年排名
     from datetime import datetime
     now = datetime.now()
     if year is None:
         year = now.year
-    if month is None:
-        month = now.month
 
     conn = get_db()
     try:
@@ -133,5 +131,5 @@ def overtime_ranking():
         report=report,
         error=error if not report else None,
         year=year,
-        month=month
+        month=month if month is not None else ''
     )

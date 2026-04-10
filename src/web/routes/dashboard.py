@@ -4,10 +4,15 @@ Dashboard路由
 """
 
 import sqlite3
+import sys
+import os
 
 from flask import Blueprint, render_template
 
 from web.utils import get_db
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from services.report_service import generate_overtime_ranking
 
 bp = Blueprint('dashboard', __name__)
 
@@ -38,9 +43,14 @@ def index():
 
         cursor.execute("SELECT COUNT(*) as count FROM import_records WHERE status = 'pending'")
         stats['pending_reviews'] = cursor.fetchone()['count']
+
+        # 默认显示当年排名（全年，不按月）
+        from datetime import datetime
+        current_year = datetime.now().year
+        ranking_report = generate_overtime_ranking(conn, year=current_year, month=None)
     except sqlite3.Error:
-        pass
+        ranking_report = None
     finally:
         conn.close()
 
-    return render_template('dashboard.html', stats=stats)
+    return render_template('dashboard.html', stats=stats, ranking_report=ranking_report)

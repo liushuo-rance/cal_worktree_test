@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}导入历史 - 加班记录管理系统{% endblock %}
+{% block page_title %}导入历史{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-6 flex items-center justify-between">
+        <p class="text-on-surface-variant text-body-md">查看和管理历史导入批次，支持批量撤回</p>
+        <a href="{{ url_for('records.import_records') }}" class="btn btn-secondary">
+            <span class="material-symbols-outlined">arrow_back</span>
+            返回导入
+        </a>
+    </div>
+
+    {% if sessions %}
+    <div class="content-card">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">history</span>
+                导入批次列表
+            </h5>
+        </div>
+        <div class="content-card-body p-0">
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>文件名</th>
+                            <th>状态</th>
+                            <th class="text-right">总记录</th>
+                            <th class="text-right">成功</th>
+                            <th class="text-right">失败</th>
+                            <th>创建时间</th>
+                            <th class="text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sessions %}
+                        <tr>
+                            <td>#{{ s.id }}</td>
+                            <td class="font-medium">{{ s.file_path }}</td>
+                            <td>
+                                {% if s.status == 'completed' %}
+                                <span class="badge badge-secondary">已完成</span>
+                                {% elif s.status == 'pending' %}
+                                <span class="badge badge-primary">待处理</span>
+                                {% elif s.status == 'processing' %}
+                                <span class="badge badge-outline">处理中</span>
+                                {% else %}
+                                <span class="badge badge-outline text-error">失败</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">{{ s.total_records }}</td>
+                            <td class="text-right">{{ s.processed_records }}</td>
+                            <td class="text-right">{{ s.error_records }}</td>
+                            <td class="text-on-surface-variant">{{ s.created_at }}</td>
+                            <td class="text-right">
+                                <form method="POST" action="{{ url_for('records.delete_import_session', session_id=s.id) }}" class="inline" onsubmit="return confirm('确定要撤回该批次导入的全部记录吗？此操作不可恢复。');">
+                                    <button type="submit" class="action-btn text-error" title="撤回该批次">
+                                        <span class="material-symbols-outlined">undo</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state py-16">
+        <span class="material-symbols-outlined empty-state-icon">history</span>
+        <h3 class="empty-state-title">暂无导入记录</h3>
+        <p class="empty-state-description">您还没有导入过任何数据</p>
+        <a href="{{ url_for('records.import_records') }}" class="btn btn-primary mt-6">
+            <span class="material-symbols-outlined">upload_file</span>
+            去导入
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

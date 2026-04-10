@@ -723,20 +723,20 @@ def import_confirm():
                         cursor.execute("""
                             UPDATE comp_off_usage_records
                             SET duration_hours = ?, duration_minutes = ?,
-                                total_minutes = ?, description = ?,
+                                total_minutes = ?, description = ?, source_import_id = ?,
                                 created_at = CURRENT_TIMESTAMP
                             WHERE id = ?
-                        """, (hours, minutes, total_minutes, description, existing['id']))
+                        """, (hours, minutes, total_minutes, description, session_id, existing['id']))
                         update_count += 1
                     else:
                         cursor.execute("""
                             INSERT INTO comp_off_usage_records
                             (employee_id, usage_date, duration_hours, duration_minutes,
-                             total_minutes, description)
-                            VALUES (?, ?, ?, ?, ?, ?)
+                             total_minutes, description, source_import_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
                         """, (
                             employee_id, record_date, hours, minutes,
-                            total_minutes, description
+                            total_minutes, description, session_id
                         ))
                         insert_count += 1
                     success_count += 1
@@ -1003,3 +1003,64 @@ def search_records():
         record_type=record_type,
         employee_id=employee_id
     )
+
+
+@bp.route('/sessions/')
+def import_sessions():
+    """导入会话列表页"""
+    conn = get_db()
+    cursor = conn.cursor()
+    sessions = []
+    try:
+        cursor.execute(
+            "SELECT * FROM import_sessions ORDER BY created_at DESC"
+        )
+        sessions = [dict(row) for row in cursor.fetchall()]
+    except sqlite3.Error:
+        pass
+    finally:
+        conn.close()
+
+    return render_template('import_sessions.html', sessions=sessions)
+
+
+@bp.route('/sessions/<int:session_id>/delete/', methods=['POST'])
+def delete_import_session(session_id: int):
+    """批量删除某导入会话下的所有记录"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        # 删除加班记录
+        cursor.execute(
+            "DELETE FROM overtime_records WHERE source_import_id = ?",
+            (session_id,)
+        )
+        # 删除请假记录
+        cursor.execute(
+            "DELETE FROM leave_records WHERE source_import_id = ?",
+            (session_id,)
+        )
+        # 删除调休使用记录
+        cursor.execute(
+            "DELETE FROM comp_off_usage_records WHERE source_import_id = ?",
+            (session_id,)
+        )
+        # 删除导入记录详情
+        cursor.execute(
+            "DELETE FROM import_records WHERE session_id = ?",
+            (session_id,)
+        )
+        # 删除导入会话
+        cursor.execute(
+            "DELETE FROM import_sessions WHERE id = ?",
+            (session_id,)
+        )
+        conn.commit()
+        flash(f'批次 #{session_id} 已成功撤回', 'success')
+    except sqlite3.Error as e:
+        conn.rollback()
+        flash(f'撤回失败: {e}', 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('records.import_sessions'))
