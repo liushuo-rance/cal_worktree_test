@@ -20,10 +20,18 @@ from parsers.hours_parser import parse_hours
 from parsers.type_parser import classify_record_type
 from services.parse_result_processor import process_parse_results
 from services.ai_parser_service import parse_with_ai
-from services.storage_service import store_batch_records_with_session, StorageError
 from services.holiday_service import get_date_type
 
 bp = Blueprint('records', __name__, url_prefix='/records')
+
+
+def _hours_to_duration(hours_float: float) -> tuple:
+    """
+    将浮点小时拆分为整数小时和分钟
+    例如 2.5 -> (2, 30), 4.0 -> (4, 0)
+    """
+    total_minutes = int(round(hours_float * 60))
+    return total_minutes // 60, total_minutes % 60
 
 
 def parse_record_line(line: str, line_num: int = 0) -> Optional[Dict[str, Any]]:
@@ -542,29 +550,89 @@ def import_confirm():
         return redirect(url_for('records.import_preview'))
 
     conn = get_db()
+    cursor = conn.cursor()
+    success_count = 0
+    error_count = 0
+
     try:
-        session_id = store_batch_records_with_session(
-            conn,
-            employee_id=employee_id,
-            records=records_to_store,
-            file_name=preview_data.get('filename', 'unknown')
-        )
+        # 创建导入会话
+        cursor.execute("""
+            INSERT INTO import_sessions
+            (file_path, status, total_records, processed_records, error_records)
+            VALUES (?, 'pending', ?, 0, 0)
+        """, (preview_data.get('filename', 'unknown'), len(records_to_store)))
+        session_id = cursor.lastrowid
+
+        for record in records_to_store:
+            try:
+                record_type = record['type']
+                record_date = record['date']
+                hours, minutes = _hours_to_duration(record.get('hours', 0))
+                total_minutes = hours * 60 + minutes
+                description = record.get('description', '')
+
+                if record_type == 'overtime':
+                    cursor.execute("""
+                        INSERT INTO overtime_records
+                        (employee_id, work_date, duration_hours, duration_minutes,
+                         total_minutes, overtime_type, description, source_import_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        employee_id, record_date, hours, minutes,
+                        total_minutes, record.get('overtime_type', 'weekday_evening'),
+                        description, session_id
+                    ))
+                    success_count += 1
+                elif record_type == 'leave':
+                    cursor.execute("""
+                        INSERT INTO leave_records
+                        (employee_id, leave_date, duration_hours, duration_minutes,
+                         total_minutes, leave_type, description, source_import_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        employee_id, record_date, hours, minutes,
+                        total_minutes, record.get('leave_type', 'personal'),
+                        description, session_id
+                    ))
+                    success_count += 1
+                elif record_type == 'comp_off':
+                    cursor.execute("""
+                        INSERT INTO comp_off_usage_records
+                        (employee_id, usage_date, duration_hours, duration_minutes,
+                         total_minutes, description)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        employee_id, record_date, hours, minutes,
+                        total_minutes, description
+                    ))
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                error_count += 1
+                errors.append(str(e))
+
+        # 更新导入会话统计
+        cursor.execute("""
+            UPDATE import_sessions
+            SET processed_records = ?, error_records = ?,
+                status = 'completed', completed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (success_count, error_count, session_id))
+
+        conn.commit()
 
         # 清除 session
         session.pop('import_preview', None)
         session.pop('ai_parse_details', None)
 
-        success_count = len(records_to_store)
-        error_count = len(errors)
-
-        flash(f'导入完成: 成功 {success_count} 条, 表单校验失败 {error_count} 条', 'success')
+        flash(f'导入完成: 成功 {success_count} 条, 失败 {error_count} 条', 'success')
         if errors:
             for error in errors[:5]:
                 flash(error, 'warning')
 
-    except StorageError as e:
-        flash(f'导入失败: {str(e)}', 'error')
     except Exception as e:
+        conn.rollback()
         flash(f'导入失败: {str(e)}', 'error')
     finally:
         conn.close()

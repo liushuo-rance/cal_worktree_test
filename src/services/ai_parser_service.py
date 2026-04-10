@@ -109,8 +109,8 @@ class AIParserService:
                 'error': '没有要解析的文本行'
             }
 
-        # 每批处理5行，保证进度条更新频率
-        BATCH_SIZE = 5
+        # 每批处理15行，平衡API响应速度和进度条更新频率
+        BATCH_SIZE = 15
         all_results = []
         all_responses = []
         total_batches = (len(text_lines) + BATCH_SIZE - 1) // BATCH_SIZE
