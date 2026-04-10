@@ -42,12 +42,12 @@
                     <span class="material-symbols-outlined">upload_file</span>
                     导入记录
                 </a>
-                <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id) }}"
+                <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="btn btn-primary">
                     <span class="material-symbols-outlined">edit_note</span>
                     管理记录
                 </a>
-                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="btn btn-secondary">
                     <span class="material-symbols-outlined">description</span>
                     查看报表
@@ -65,7 +65,7 @@
                     <span class="material-symbols-outlined inline-icon">schedule</span>
                     最近加班记录
                 </h5>
-                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="btn btn-ghost btn-sm">
                     查看全部
                 </a>
@@ -209,7 +209,7 @@
         </div>
         <div class="content-card-body">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                <a href="{{ url_for('reports.monthly_report', employee_id=employee.employee_id, year=2024, month=1) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="group bg-surface-container p-6 rounded-md text-center transition-all hover:bg-primary-container hover:text-white">
                     <div class="w-14 h-14 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary group-hover:text-white text-2xl">calendar_month</span>
@@ -218,7 +218,7 @@
                     <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">查看每月加班统计</p>
                 </a>
 
-                <a href="{{ url_for('reports.comp_off_report', employee_id=employee.employee_id) }}"
+                <a href="{{ url_for('reports.comp_off_report', employee_id=employee.employee_id) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="group bg-surface-container p-6 rounded-md text-center transition-all hover:bg-primary-container hover:text-white">
                     <div class="w-14 h-14 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary group-hover:text-white text-2xl">savings</span>
@@ -227,7 +227,7 @@
                     <p class="text-body-sm text-on-surface-variant group-hover:text-blue-100/70">查看可用调休时长</p>
                 </a>
 
-                <a href="{{ url_for('reports.salary_report', employee_id=employee.employee_id, year=2024, month=1) }}"
+                <a href="{{ url_for('reports.salary_report', employee_id=employee.employee_id, year=2024, month=1) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="group bg-surface-container p-6 rounded-md text-center transition-all hover:bg-primary-container hover:text-white">
                     <div class="w-14 h-14 rounded-full bg-primary/10 group-hover:bg-white/20 flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary group-hover:text-white text-2xl">payments</span>
@@ -246,7 +246,8 @@
             <span class="material-symbols-outlined empty-state-icon text-warning">person_off</span>
             <h3 class="empty-state-title">未找到该员工信息</h3>
             <p class="empty-state-description">员工ID可能不正确或已被删除</p>
-            <a href="{{ url_for('employees.list_employees') }}" class="btn btn-primary mt-6">
+            {% set back_url = request.args.get('next') or url_for('employees.list_employees') %}
+            <a href="{{ back_url }}" class="btn btn-primary mt-6">
                 <span class="material-symbols-outlined">arrow_back</span>
                 返回员工列表
             </a>

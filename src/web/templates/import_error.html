@@ -38,7 +38,8 @@
 
     <!-- Action Buttons -->
     <div class="flex justify-between mb-8">
-        <a href="{{ url_for('records.import_records') }}" class="btn btn-secondary">
+        {% set back_url = request.args.get('next') or url_for('records.import_records') %}
+        <a href="{{ back_url }}" class="btn btn-secondary">
             <span class="material-symbols-outlined">arrow_back</span>
             返回重新导入
         </a>

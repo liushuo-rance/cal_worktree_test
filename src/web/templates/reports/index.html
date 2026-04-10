@@ -123,7 +123,7 @@ function goToMonthlyReport() {
     const date = document.getElementById('monthly-date').value;
     if (employee && date) {
         const [year, month] = date.split('-');
-        window.location.href = `/reports/monthly/${employee}/${year}/${month}/`;
+        window.location.href = `/reports/monthly/${employee}/${year}/${month}/?next=${encodeURIComponent('/reports/')}`;
     }
     return false;
 }
@@ -131,7 +131,7 @@ function goToMonthlyReport() {
 function goToCompOffReport() {
     const employee = document.getElementById('compoff-employee').value;
     if (employee) {
-        window.location.href = `/reports/comp-off/${employee}/`;
+        window.location.href = `/reports/comp-off/${employee}/?next=${encodeURIComponent('/reports/')}`;
     }
     return false;
 }
@@ -141,7 +141,7 @@ function goToSalaryReport() {
     const date = document.getElementById('salary-date').value;
     if (employee && date) {
         const [year, month] = date.split('-');
-        window.location.href = `/reports/salary/${employee}/${year}/${month}/`;
+        window.location.href = `/reports/salary/${employee}/${year}/${month}/?next=${encodeURIComponent('/reports/')}`;
     }
     return false;
 }

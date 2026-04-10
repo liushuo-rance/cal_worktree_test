@@ -102,7 +102,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}" class="font-medium hover:text-primary hover:underline">
+                                <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}?next={{ url_for('reports.overtime_ranking') | urlencode }}" class="font-medium hover:text-primary hover:underline">
                                     {{ r.employee_name }}
                                 </a>
                             </td>

@@ -9,7 +9,8 @@
             <h1>审批记录</h1>
             <p class="text-muted mb-0">ID: #{{ item.id if item else '-' }}</p>
         </div>
-        <a href="{{ url_for('review.review_queue') }}" class="btn btn-outline-secondary">
+        {% set back_url = request.args.get('next') or url_for('review.review_queue') %}
+        <a href="{{ back_url }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回队列
         </a>
     </div>

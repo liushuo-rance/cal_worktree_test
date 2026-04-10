@@ -13,7 +13,8 @@
             </p>
             {% endif %}
         </div>
-        <a href="{{ url_for('reports.reports_index') }}" class="btn btn-outline-secondary">
+        {% set back_url = request.args.get('next') or url_for('reports.reports_index') %}
+        <a href="{{ back_url }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回报表首页
         </a>
     </div>

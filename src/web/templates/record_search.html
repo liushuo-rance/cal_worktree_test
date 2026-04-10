@@ -94,7 +94,7 @@
                                 {% for r in results %}
                                 <tr>
                                     <td>
-                                        <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}" class="font-medium text-primary hover:underline">
+                                        <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}?next={{ url_for('records.search_records') | urlencode }}" class="font-medium text-primary hover:underline">
                                             {{ r.employee_name }}
                                         </a>
                                     </td>

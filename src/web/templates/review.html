@@ -84,7 +84,7 @@
                             </td>
                             <td class="text-on-surface-variant text-body-sm">{{ item.created_at }}</td>
                             <td class="text-right">
-                                <a href="{{ url_for('review.review_item', item_id=item.id) }}" class="btn btn-primary btn-sm">
+                                <a href="{{ url_for('review.review_item', item_id=item.id) }}?next={{ url_for('review.review_queue') | urlencode }}" class="btn btn-primary btn-sm">
                                     <span class="material-symbols-outlined icon-sm">visibility</span>
                                     审批
                                 </a>

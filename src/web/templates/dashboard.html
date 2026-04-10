@@ -189,7 +189,7 @@
                         <p class="text-label-sm text-on-surface-variant">15条记录已导入</p>
                         <div class="flex items-center justify-between mt-1">
                             <p class="text-label-sm text-on-surface-variant">10分钟前</p>
-                            <a href="{{ url_for('records.import_sessions') }}" class="text-label-sm text-primary hover:underline">查看历史</a>
+                            <a href="{{ url_for('records.import_sessions') }}?next={{ url_for('dashboard.index') | urlencode }}" class="text-label-sm text-primary hover:underline">查看历史</a>
                         </div>
                     </div>
                 </div>
@@ -261,7 +261,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}" class="font-medium hover:text-primary hover:underline">
+                                <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}?next={{ url_for('dashboard.index') | urlencode }}" class="font-medium hover:text-primary hover:underline">
                                     {{ r.employee_name }}
                                 </a>
                             </td>

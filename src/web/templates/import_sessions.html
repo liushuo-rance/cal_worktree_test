@@ -8,7 +8,8 @@
 
     <div class="mb-6 flex items-center justify-between">
         <p class="text-on-surface-variant text-body-md">查看和管理历史导入批次，支持批量撤回</p>
-        <a href="{{ url_for('records.import_records') }}" class="btn btn-secondary">
+        {% set back_url = request.args.get('next') or url_for('records.import_records') %}
+        <a href="{{ back_url }}" class="btn btn-secondary">
             <span class="material-symbols-outlined">arrow_back</span>
             返回导入
         </a>
@@ -76,7 +77,8 @@
         <span class="material-symbols-outlined empty-state-icon">history</span>
         <h3 class="empty-state-title">暂无导入记录</h3>
         <p class="empty-state-description">您还没有导入过任何数据</p>
-        <a href="{{ url_for('records.import_records') }}" class="btn btn-primary mt-6">
+        {% set back_url = request.args.get('next') or url_for('records.import_records') %}
+        <a href="{{ back_url }}" class="btn btn-primary mt-6">
             <span class="material-symbols-outlined">upload_file</span>
             去导入
         </a>

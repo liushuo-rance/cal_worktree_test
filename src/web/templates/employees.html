@@ -84,7 +84,7 @@
                                     </td>
                                     <td class="text-on-surface-variant">{{ emp.created_at }}</td>
                                     <td class="text-right">
-                                        <a href="{{ url_for('employees.employee_detail', employee_id=emp.employee_id) }}"
+                                        <a href="{{ url_for('employees.employee_detail', employee_id=emp.employee_id) }}?next={{ url_for('employees.list_employees') | urlencode }}"
                                            class="btn btn-secondary btn-sm">
                                             <span class="material-symbols-outlined icon-sm">visibility</span>
                                             详情

@@ -23,7 +23,7 @@
                             <span class="material-symbols-outlined inline-icon">upload_file</span>
                             上传文件
                         </h5>
-                        <a href="{{ url_for('records.import_sessions') }}" class="text-sm text-primary hover:underline">
+                        <a href="{{ url_for('records.import_sessions') }}?next={{ url_for('records.import_records') | urlencode }}" class="text-sm text-primary hover:underline">
                             导入历史 &rarr;
                         </a>
                     </div>

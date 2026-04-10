@@ -151,22 +151,28 @@ def init_database(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # 迁移：为已存在的数据库添加 status 列
+    # 迁移：为已存在的数据库添加 status 列（兼容不支持 IF NOT EXISTS 的 SQLite 版本）
     try:
-        cursor.execute("""
-            ALTER TABLE comp_off_usage_records
-            ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'
-                CHECK(status IN ('pending', 'approved', 'rejected'))
-        """)
+        cursor.execute("PRAGMA table_info(comp_off_usage_records)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'status' not in columns:
+            cursor.execute("""
+                ALTER TABLE comp_off_usage_records
+                ADD COLUMN status TEXT DEFAULT 'pending'
+                    CHECK(status IN ('pending', 'approved', 'rejected'))
+            """)
     except sqlite3.OperationalError:
         pass
 
     # 迁移：为已存在的数据库添加 source_import_id 列
     try:
-        cursor.execute("""
-            ALTER TABLE comp_off_usage_records
-            ADD COLUMN IF NOT EXISTS source_import_id INTEGER
-        """)
+        cursor.execute("PRAGMA table_info(comp_off_usage_records)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'source_import_id' not in columns:
+            cursor.execute("""
+                ALTER TABLE comp_off_usage_records
+                ADD COLUMN source_import_id INTEGER
+            """)
     except sqlite3.OperationalError:
         pass
 
