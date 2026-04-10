@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design System Demo - The Digital Jurist</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+    <style>
+        @import 'tokens.css';
+        @import 'base.css';
+        @import 'components.css';
+    </style>
+</head>
+<body style="background: #fbf8ff; font-family: 'Inter', sans-serif; padding: 40px;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <h1 style="font-family: 'Manrope', sans-serif; font-size: 2.5rem; font-weight: 800; color: #000666; margin-bottom: 40px;">
+            The Digital Jurist - 设计系统
+        </h1>
+
+        <!-- Color Palette -->
+        <section style="margin-bottom: 60px;">
+            <h2 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">色彩系统</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                <div style="padding: 20px; background: #000666; color: white; border-radius: 8px;">
+                    <strong>Primary</strong><br>#000666
+                </div>
+                <div style="padding: 20px; background: #1a237e; color: white; border-radius: 8px;">
+                    <strong>Primary Container</strong><br>#1a237e
+                </div>
+                <div style="padding: 20px; background: #1b6d24; color: white; border-radius: 8px;">
+                    <strong>Secondary</strong><br>#1b6d24
+                </div>
+                <div style="padding: 20px; background: #a0f399; color: #217128; border-radius: 8px;">
+                    <strong>Secondary Container</strong><br>#a0f399
+                </div>
+                <div style="padding: 20px; background: #ba1a1a; color: white; border-radius: 8px;">
+                    <strong>Error</strong><br>#ba1a1a
+                </div>
+                <div style="padding: 20px; background: #fbf8ff; color: #1a1b23; border: 1px solid #c6c5d4; border-radius: 8px;">
+                    <strong>Surface</strong><br>#fbf8ff
+                </div>
+                <div style="padding: 20px; background: #eeedf8; color: #1a1b23; border-radius: 8px;">
+                    <strong>Surface Container</strong><br>#eeedf8
+                </div>
+                <div style="padding: 20px; background: #ffffff; color: #1a1b23; border: 1px solid #c6c5d4; border-radius: 8px;">
+                    <strong>Surface Lowest</strong><br>#ffffff
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography -->
+        <section style="margin-bottom: 60px;">
+            <h2 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">字体系统</h2>
+            <div style="background: white; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h1 style="font-family: 'Manrope', sans-serif; font-size: 3.5rem; font-weight: 800; margin-bottom: 16px;">Display LG - 56px</h1>
+                <h2 style="font-family: 'Manrope', sans-serif; font-size: 2rem; font-weight: 700; margin-bottom: 16px;">Headline LG - 32px</h2>
+                <h3 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 16px;">Headline MD - 24px</h3>
+                <p style="font-family: 'Inter', sans-serif; font-size: 0.875rem; line-height: 1.6; color: #454652;">
+                    Body MD - 14px. Inter 是用于正文和数据的"工作马"无衬线字体，专为复杂的法律数据和小字体设计。
+                </p>
+            </div>
+        </section>
+
+        <!-- Buttons -->
+        <section style="margin-bottom: 60px;">
+            <h2 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">按钮样式</h2>
+            <div style="background: white; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 16px; flex-wrap: wrap;">
+                <button style="padding: 12px 24px; background: linear-gradient(135deg, #000666 0%, #1a237e 100%); color: white; border: none; border-radius: 4px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">
+                    Primary Button
+                </button>
+                <button style="padding: 12px 24px; background: transparent; color: #000666; border: 1px solid #767683; border-radius: 4px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">
+                    Secondary Button
+                </button>
+                <button style="padding: 12px 24px; background: #1b6d24; color: white; border: none; border-radius: 4px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">
+                    Success Button
+                </button>
+                <button style="padding: 12px 24px; background: #ba1a1a; color: white; border: none; border-radius: 4px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">
+                    Error Button
+                </button>
+            </div>
+        </section>
+
+        <!-- Stat Cards -->
+        <section style="margin-bottom: 60px;">
+            <h2 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">统计卡片</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;">
+                <div style="background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom: 4px solid #1a237e;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #1a237e;">员工总数</span>
+                        <span class="material-symbols-outlined" style="color: #1a237e; opacity: 0.4;">groups</span>
+                    </div>
+                    <div style="font-family: 'Manrope', sans-serif; font-size: 3.5rem; font-weight: 800; color: #1a1b23; line-height: 1;">1,248</div>
+                </div>
+                <div style="background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom: 4px solid #1b6d24;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #1b6d24;">加班记录</span>
+                        <span class="material-symbols-outlined" style="color: #1b6d24; opacity: 0.4;">history_edu</span>
+                    </div>
+                    <div style="font-family: 'Manrope', sans-serif; font-size: 3.5rem; font-weight: 800; color: #1a1b23; line-height: 1;">842</div>
+                </div>
+                <div style="background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom: 4px solid #fbc02d;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #b4891b;">请假记录</span>
+                        <span class="material-symbols-outlined" style="color: #fbc02d; opacity: 0.4;">event_busy</span>
+                    </div>
+                    <div style="font-family: 'Manrope', sans-serif; font-size: 3.5rem; font-weight: 800; color: #1a1b23; line-height: 1;">56</div>
+                </div>
+                <div style="background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom: 4px solid #ba1a1a;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #ba1a1a;">待审批</span>
+                        <span class="material-symbols-outlined" style="color: #ba1a1a; opacity: 0.4;">gavel</span>
+                    </div>
+                    <div style="font-family: 'Manrope', sans-serif; font-size: 3.5rem; font-weight: 800; color: #ba1a1a; line-height: 1;">19</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Chips -->
+        <section style="margin-bottom: 60px;">
+            <h2 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">状态标签</h2>
+            <div style="background: white; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 12px; flex-wrap: wrap;">
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; background: #a0f399; color: #217128; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+                    已批准
+                </span>
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; background: #fff3e0; color: #e65100; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">schedule</span>
+                    待审批
+                </span>
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; background: #ffdad6; color: #93000a; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">error</span>
+                    异常
+                </span>
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; background: #e0e0ff; color: #000767; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">info</span>
+                    信息
+                </span>
+            </div>
+        </section>
+
+        <!-- Glass Effect -->
+        <section style="margin-bottom: 60px;">
+            <h2 style="font-family: 'Manrope', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">毛玻璃效果</h2>
+            <div style="background: linear-gradient(135deg, #000666 0%, #1a237e 100%); padding: 60px; border-radius: 8px; position: relative; overflow: hidden;">
+                <div style="background: rgba(243, 242, 254, 0.8); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); padding: 32px; border-radius: 8px; max-width: 400px;">
+                    <h3 style="font-family: 'Manrope', sans-serif; font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: #000666;">Glassmorphism Panel</h3>
+                    <p style="font-size: 0.875rem; color: #454652; line-height: 1.6;">
+                        这是毛玻璃效果的示例面板，用于浮动元素如合规警告或活动计算。
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

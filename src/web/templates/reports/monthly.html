@@ -3,86 +3,183 @@
 {% block title %}月度报表 - {{ report.employee_name if report else '加载中' }} - 加班记录管理系统{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="d-flex justify-content-between align-items-center">
+<div class="mb-8">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-            <h1>月度报表</h1>
+            <h1 class="text-headline-sm font-headline font-bold text-on-surface">月度报表</h1>
             {% if report %}
-            <p class="text-muted mb-0">
+            <p class="text-body-md text-on-surface-variant mt-1">
                 {{ report.employee_name }} ({{ report.employee_id }})
-                <span class="mx-2">|</span>
+                <span class="mx-2 text-outline">|</span>
                 {{ report.year }}年{{ report.month }}月
             </p>
             {% endif %}
         </div>
-        {% set back_url = request.args.get('next') or url_for('reports.reports_index') %}
-        <a href="{{ back_url }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> 返回报表首页
-        </a>
+        <div class="flex items-center gap-3">
+            <form id="monthly-nav-form" class="flex items-center gap-2">
+                <select id="nav-employee" class="form-select" style="width: auto; min-width: 120px;">
+                    {% for emp in employees %}
+                    <option value="{{ emp.employee_id }}" {% if emp.employee_id == employee_id %}selected{% endif %}>
+                        {{ emp.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select id="nav-year" class="form-select" style="width: auto;">
+                    {% for y in range(2020, 2031) %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}年</option>
+                    {% endfor %}
+                </select>
+                <select id="nav-month" class="form-select" style="width: auto;">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}月</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    查看
+                </button>
+            </form>
+            <a href="{{ url_for('reports.reports_index') }}" class="btn btn-secondary btn-sm">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                返回
+            </a>
+        </div>
     </div>
 </div>
 
 {% if error %}
-<div class="alert alert-danger">
-    <i class="bi bi-exclamation-circle"></i> {{ error }}
+<div class="alert alert-error mb-6" role="alert">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
 </div>
 {% endif %}
 
 {% if report %}
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon primary">
-                <i class="bi bi-clock"></i>
-            </div>
-            <h3 class="stat-value">{{ "%.1f"|format(report.summary.total_overtime_hours) }}</h3>
-            <p class="stat-label">总加班时长(小时)</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="stat-card primary">
+        <div class="stat-card-header">
+            <span class="stat-card-label">总加班时长</span>
+            <span class="material-symbols-outlined stat-card-icon">schedule</span>
         </div>
+        <div class="stat-card-value">{{ "%.1f"|format(report.summary.total_overtime_hours) }}</div>
+        <div class="stat-card-footer text-on-surface-variant">小时</div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon info">
-                <i class="bi bi-sun"></i>
-            </div>
-            <h3 class="stat-value">{{ "%.1f"|format(report.summary.weekday_hours) }}</h3>
-            <p class="stat-label">工作日加班(小时)</p>
+    <div class="stat-card" style="border-bottom-color: #1a237e;">
+        <div class="stat-card-header">
+            <span class="stat-card-label">工作日加班</span>
+            <span class="material-symbols-outlined stat-card-icon">wb_twilight</span>
         </div>
+        <div class="stat-card-value">{{ "%.1f"|format(report.summary.weekday_hours) }}</div>
+        <div class="stat-card-footer text-on-surface-variant">小时</div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon warning">
-                <i class="bi bi-calendar-week"></i>
-            </div>
-            <h3 class="stat-value">{{ "%.1f"|format(report.summary.weekend_hours) }}</h3>
-            <p class="stat-label">周末加班(小时)</p>
+    <div class="stat-card" style="border-bottom-color: #b4891b;">
+        <div class="stat-card-header">
+            <span class="stat-card-label">周末加班</span>
+            <span class="material-symbols-outlined stat-card-icon">calendar_today</span>
         </div>
+        <div class="stat-card-value">{{ "%.1f"|format(report.summary.weekend_hours) }}</div>
+        <div class="stat-card-footer text-on-surface-variant">小时</div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon danger">
-                <i class="bi bi-calendar-x"></i>
-            </div>
-            <h3 class="stat-value">{{ report.summary.leave_days }}</h3>
-            <p class="stat-label">请假天数</p>
+    <div class="stat-card error">
+        <div class="stat-card-header">
+            <span class="stat-card-label">请假天数</span>
+            <span class="material-symbols-outlined stat-card-icon">event_busy</span>
         </div>
+        <div class="stat-card-value">{{ report.summary.leave_days }}</div>
+        <div class="stat-card-footer text-on-surface-variant">天</div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left: Donut Chart -->
+    <div class="content-card" id="donut-chart">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon" style="font-size: 20px; vertical-align: middle; margin-right: 4px;">donut_large</span>
+                加班类型分布
+            </h5>
+        </div>
+        <div class="content-card-body">
+            {% set total_chart_hours = report.summary.weekday_hours + report.summary.weekend_hours + report.summary.holiday_hours %}
+            {% if total_chart_hours > 0 %}
+            <div class="donut-chart" style="position: relative; display: flex; align-items: center; justify-content: center;"
+                 data-weekday="{{ report.summary.weekday_hours }}"
+                 data-weekend="{{ report.summary.weekend_hours }}"
+                 data-holiday="{{ report.summary.holiday_hours }}">
+                <svg viewBox="0 0 120 120" style="width: 180px; height: 180px; transform: rotate(-90deg);">
+                    {% set radius = 50 %}
+                    {% set circumference = 314.159 %}
+                    {% set weekday_pct = report.summary.weekday_hours / total_chart_hours %}
+                    {% set weekend_pct = report.summary.weekend_hours / total_chart_hours %}
+                    {% set holiday_pct = report.summary.holiday_hours / total_chart_hours %}
+                    {% set weekday_dash = weekday_pct * circumference %}
+                    {% set weekend_dash = weekend_pct * circumference %}
+                    {% set holiday_dash = holiday_pct * circumference %}
+
+                    <!-- Background ring -->
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="var(--color-surface-container)" stroke-width="14" />
+
+                    <!-- Holiday segment -->
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#ba1a1a" stroke-width="14"
+                            stroke-dasharray="{{ holiday_dash }} {{ circumference }}"
+                            stroke-dashoffset="0" />
+
+                    <!-- Weekend segment -->
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#b4891b" stroke-width="14"
+                            stroke-dasharray="{{ weekend_dash }} {{ circumference }}"
+                            stroke-dashoffset="-{{ holiday_dash }}" />
+
+                    <!-- Weekday segment -->
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#1a237e" stroke-width="14"
+                            stroke-dasharray="{{ weekday_dash }} {{ circumference }}"
+                            stroke-dashoffset="-{{ holiday_dash + weekend_dash }}" />
+                </svg>
+                <div style="position: absolute; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: var(--color-on-surface);">{{ "%.1f"|format(total_chart_hours) }}</div>
+                    <div style="font-size: 12px; color: var(--color-on-surface-variant);">小时</div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: center; gap: 16px; margin-top: 16px; font-size: 13px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #1a237e;"></span>
+                    <span>工作日 {{ "%.0f"|format(weekday_pct * 100) }}%</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #b4891b;"></span>
+                    <span>周末 {{ "%.0f"|format(weekend_pct * 100) }}%</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #ba1a1a;"></span>
+                    <span>法定 {{ "%.0f"|format(holiday_pct * 100) }}%</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state py-8">
+                <span class="material-symbols-outlined empty-state-icon">donut_large</span>
+                <h3 class="empty-state-title">本月无加班记录</h3>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right: Tables (spans 2 columns) -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+        <!-- Overtime Details -->
         <div class="content-card">
             <div class="content-card-header">
-                <h5><i class="bi bi-clock-history"></i> 加班明细</h5>
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon" style="font-size: 20px; vertical-align: middle; margin-right: 4px;">schedule</span>
+                    加班明细
+                </h5>
             </div>
             <div class="content-card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
+                <div class="data-table-wrapper">
+                    <table class="data-table">
                         <thead>
                             <tr>
                                 <th>日期</th>
                                 <th>星期</th>
                                 <th>类型</th>
-                                <th>时长</th>
+                                <th class="numeric">时长</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,15 +188,19 @@
                                 <td>{{ record.date }}</td>
                                 <td>{{ record.weekday }}</td>
                                 <td>
-                                    <span class="badge bg-{{ 'danger' if record.type == 'holiday' else 'warning' if record.type == 'weekend' else 'info' }}">
-                                        {{ record.type }}
-                                    </span>
+                                    {% if record.type == 'holiday' %}
+                                    <span class="chip chip-error">法定节假日</span>
+                                    {% elif record.type == 'weekend' %}
+                                    <span class="chip chip-warning">周末</span>
+                                    {% else %}
+                                    <span class="chip chip-info">工作日延时</span>
+                                    {% endif %}
                                 </td>
-                                <td>{{ "%.1f"|format(record.hours) }}h</td>
+                                <td class="numeric font-mono">{{ "%.1f"|format(record.hours) }}h</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">暂无加班记录</td>
+                                <td colspan="4" class="text-center py-6 text-on-surface-variant">暂无加班记录</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -107,22 +208,24 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-6">
+        <!-- Leave Details -->
         <div class="content-card">
             <div class="content-card-header">
-                <h5><i class="bi bi-calendar-check"></i> 请假明细</h5>
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon" style="font-size: 20px; vertical-align: middle; margin-right: 4px;">event_busy</span>
+                    请假明细
+                </h5>
             </div>
             <div class="content-card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
+                <div class="data-table-wrapper">
+                    <table class="data-table">
                         <thead>
                             <tr>
                                 <th>日期</th>
                                 <th>星期</th>
                                 <th>类型</th>
-                                <th>时长</th>
+                                <th class="numeric">时长</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,13 +234,13 @@
                                 <td>{{ record.date }}</td>
                                 <td>{{ record.weekday }}</td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ record.type }}</span>
+                                    <span class="badge badge-outline">{{ record.type }}</span>
                                 </td>
-                                <td>{{ "%.1f"|format(record.hours) }}h</td>
+                                <td class="numeric font-mono">{{ "%.1f"|format(record.hours) }}h</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">暂无请假记录</td>
+                                <td colspan="4" class="text-center py-6 text-on-surface-variant">暂无请假记录</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -148,4 +251,17 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+document.getElementById('monthly-nav-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const employee = document.getElementById('nav-employee').value;
+    const year = document.getElementById('nav-year').value;
+    const month = document.getElementById('nav-month').value;
+    if (employee && year && month) {
+        window.location.href = `/reports/monthly/${employee}/${year}/${parseInt(month, 10)}/`;
+    }
+    return false;
+});
+</script>
 {% endblock %}

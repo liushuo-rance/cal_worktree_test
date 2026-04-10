@@ -1,0 +1,569 @@
+/**
+ * Interactions & Animations: The Digital Jurist
+ * Form validation, loading states, transitions, and animations
+ */
+
+@import 'tokens.css';
+
+/* ========================================
+   FORM VALIDATION STYLES
+   ======================================== */
+
+.form-group.has-error .form-input,
+.form-group.has-error .form-select,
+.form-group.has-error .form-textarea {
+  border-bottom-color: var(--color-error);
+  animation: shake 0.5s ease;
+}
+
+.form-group.has-error .form-label {
+  color: var(--color-error);
+}
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-label-md);
+  color: var(--color-error);
+  margin-top: var(--space-1);
+  animation: slideDown 0.2s ease;
+}
+
+.form-error::before {
+  content: 'error';
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+}
+
+.form-group.has-success .form-input,
+.form-group.has-success .form-select,
+.form-group.has-success .form-textarea {
+  border-bottom-color: var(--color-secondary);
+}
+
+.form-group.has-success .form-label {
+  color: var(--color-secondary);
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   PAGE LOADER
+   ======================================== */
+
+.page-loader {
+  position: fixed;
+  inset: 0;
+  background: var(--color-surface);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.page-loader-hiding {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.page-loader-content {
+  text-align: center;
+}
+
+.page-loader-content .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--color-primary);
+  margin-bottom: var(--space-4);
+}
+
+.page-loader-message {
+  font-family: var(--font-headline);
+  font-size: var(--text-body-lg);
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ========================================
+   SKELETON LOADING ENHANCED
+   ======================================== */
+
+.skeleton-loading {
+  pointer-events: none;
+}
+
+.skeleton-loading * {
+  visibility: hidden;
+}
+
+.skeleton-loading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container) 25%,
+    var(--color-surface-container-high) 50%,
+    var(--color-surface-container) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  visibility: visible;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ========================================
+   SCROLL ANIMATIONS
+   ======================================== */
+
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s var(--ease-out-expo),
+              transform 0.6s var(--ease-out-expo);
+}
+
+.animate-on-scroll.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children animations */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.stagger-children.animate-in > * {
+  animation: slideUpFade 0.5s var(--ease-out-expo) forwards;
+}
+
+.stagger-children.animate-in > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children.animate-in > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children.animate-in > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children.animate-in > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children.animate-in > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children.animate-in > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   HOVER EFFECTS
+   ======================================== */
+
+.hover-lift {
+  transition: transform 0.2s var(--ease-out-expo),
+              box-shadow 0.2s var(--ease-out-expo);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-scale {
+  transition: transform 0.2s var(--ease-out-expo);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 0 4px rgba(0, 6, 102, 0.1);
+}
+
+/* ========================================
+   BUTTON STATES
+   ======================================== */
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ========================================
+   FOCUS STATES (Accessibility)
+   ======================================== */
+
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 6, 102, 0.3);
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-sm);
+  z-index: 10000;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+/* ========================================
+   SMOOTH TRANSITIONS
+   ======================================== */
+
+.smooth-transition {
+  transition: all 0.3s var(--ease-out-expo);
+}
+
+/* Page transition */
+.page-transition {
+  animation: pageEnter 0.4s var(--ease-out-expo);
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   PULSE ANIMATION (Notifications)
+   ======================================== */
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(186, 26, 26, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(186, 26, 26, 0);
+  }
+}
+
+/* ========================================
+   SPINNERS
+   ======================================== */
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   RIPPLE EFFECT
+   ======================================== */
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.3) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.5s;
+}
+
+.ripple:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* ========================================
+   EMPTY STATE ENHANCED
+   ======================================== */
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-8);
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  color: var(--color-outline-variant);
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-family: var(--font-headline);
+  font-size: var(--text-headline-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state-description {
+  font-size: var(--text-body-md);
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-6);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ========================================
+   ERROR STATE
+   ======================================== */
+
+.error-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-8);
+}
+
+.error-state-icon {
+  font-size: 64px;
+  color: var(--color-error);
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.error-state-title {
+  font-family: var(--font-headline);
+  font-size: var(--text-headline-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-error);
+  margin-bottom: var(--space-2);
+}
+
+.error-state-description {
+  font-size: var(--text-body-md);
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-6);
+}
+
+/* ========================================
+   SUCCESS STATE
+   ======================================== */
+
+.success-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-8);
+}
+
+.success-state-icon {
+  font-size: 64px;
+  color: var(--color-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.success-checkmark {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--color-secondary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-6);
+  animation: scaleIn 0.5s var(--ease-spring);
+}
+
+.success-checkmark .material-symbols-outlined {
+  font-size: 40px;
+  color: var(--color-on-secondary-container);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--color-surface-container);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+  border-radius: var(--radius-full);
+  transition: width 0.3s var(--ease-out-expo);
+}
+
+.progress-bar-indeterminate .progress-bar-fill {
+  width: 50%;
+  animation: indeterminate 1.5s infinite;
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+/* ========================================
+   BADGE ANIMATIONS
+   ======================================== */
+
+.badge {
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.badge:hover {
+  transform: scale(1.05);
+}
+
+/* ========================================
+   CARD HOVER EFFECTS
+   ======================================== */
+
+.content-card {
+  transition: box-shadow 0.2s var(--ease-out-expo);
+}
+
+.content-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   LINK UNDERLINE ANIMATION
+   ======================================== */
+
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.3s var(--ease-out-expo);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  .sidebar,
+  .top-app-bar,
+  .no-print,
+  .toast-container,
+  .page-loader {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .content-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+  }
+}

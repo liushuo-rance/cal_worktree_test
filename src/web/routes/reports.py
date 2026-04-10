@@ -5,8 +5,9 @@
 import sqlite3
 import sys
 import os
+from datetime import datetime
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, redirect, url_for, request
 
 from web.utils import get_db
 
@@ -41,6 +42,13 @@ def reports_index():
     return render_template('reports/index.html', employees=employees)
 
 
+@bp.route('/monthly/<employee_id>/')
+def monthly_report_default(employee_id):
+    """月度报表 - 默认当前年月"""
+    now = datetime.now()
+    return redirect(url_for('reports.monthly_report', employee_id=employee_id, year=now.year, month=now.month))
+
+
 @bp.route('/monthly/<employee_id>/<int:year>/<int:month>/')
 def monthly_report(employee_id, year, month):
     """月度报表"""
@@ -50,6 +58,15 @@ def monthly_report(employee_id, year, month):
     except ReportError as e:
         report = None
         error = str(e)
+
+    # 获取员工列表用于下拉选择
+    cursor = conn.cursor()
+    employees = []
+    try:
+        cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
+        employees = [dict(row) for row in cursor.fetchall()]
+    except sqlite3.Error:
+        pass
     finally:
         conn.close()
 
@@ -59,7 +76,8 @@ def monthly_report(employee_id, year, month):
         error=error if not report else None,
         year=year,
         month=month,
-        employee_id=employee_id
+        employee_id=employee_id,
+        employees=employees
     )
 
 

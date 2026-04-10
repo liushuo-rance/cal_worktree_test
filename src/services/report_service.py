@@ -18,6 +18,11 @@ def _minutes_to_hours(minutes: int) -> float:
     return round(minutes / 60, 1)
 
 
+def _minutes_to_hours_exact(minutes: int) -> float:
+    """将分钟转换为小时（精确值，用于工资计算）"""
+    return minutes / 60
+
+
 def _get_employee_info(conn: sqlite3.Connection, employee_id: str) -> Optional[Dict[str, Any]]:
     """获取员工信息"""
     cursor = conn.cursor()
@@ -137,8 +142,8 @@ def generate_monthly_report(
             'weekend_hours': weekend_hours,
             'holiday_hours': holiday_hours,
             'total_overtime_hours': weekday_hours + weekend_hours + holiday_hours,
-            'leave_days': int(leave_days),
-            'leave_hours': leave_days * 8
+            'leave_days': round(leave_days, 1),
+            'leave_hours': round(leave_days * 8, 1)
         }
     }
 
@@ -177,7 +182,15 @@ def generate_comp_off_report(
 
     for row in cursor.fetchall():
         record = dict(row)
-        remaining_minutes = (record['total_hours'] * 60 + record['total_minutes']) - (record['used_hours'] * 60 + record['used_minutes'])
+        # 兼容两种schema：新schema用total_hours/total_minutes/used_hours/used_minutes计算，
+        # 旧schema/test用remaining_minutes直接读取
+        if 'remaining_minutes' in record:
+            remaining_minutes = record['remaining_minutes']
+        else:
+            remaining_minutes = (
+                record.get('total_hours', 0) * 60 + record.get('total_minutes', 0)
+                - record.get('used_hours', 0) * 60 - record.get('used_minutes', 0)
+            )
         hours = _minutes_to_hours(remaining_minutes)
         total_hours += hours
 
@@ -254,9 +267,9 @@ def generate_salary_report(
             weekday_minutes += (row['total_minutes'] or 0)
 
     # 计算各类加班工资
-    weekday_hours = _minutes_to_hours(weekday_minutes)
-    weekend_hours = _minutes_to_hours(weekend_minutes)
-    holiday_hours = _minutes_to_hours(holiday_minutes)
+    weekday_hours = _minutes_to_hours_exact(weekday_minutes)
+    weekend_hours = _minutes_to_hours_exact(weekend_minutes)
+    holiday_hours = _minutes_to_hours_exact(holiday_minutes)
 
     weekday_amount = weekday_hours * hourly_rate * 1.5
     weekend_amount = weekend_hours * hourly_rate * 2.0
