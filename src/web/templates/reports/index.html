@@ -49,7 +49,27 @@
 
                     <div class="form-group">
                         <label class="form-label">选择年月</label>
-                        <input type="month" id="monthly-date" class="form-input" value="2024-01" required>
+                        <div style="display: flex; gap: 12px;">
+                            <div class="select-wrapper" style="flex: 1;">
+                                <select id="monthly-year" class="form-select" required>
+                                    <option value="">年份</option>
+                                    {% for y in range(2020, 2031) %}
+                                    <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}年</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="material-symbols-outlined select-icon">expand_more</span>
+                            </div>
+                            <div class="select-wrapper" style="flex: 1;">
+                                <select id="monthly-month" class="form-select" required>
+                                    <option value="">月份</option>
+                                    {% for m in range(1, 13) %}
+                                    {% set m_str = '%02d' % m %}
+                                    <option value="{{ m_str }}" {% if m == 1 %}selected{% endif %}>{{ m }}月</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="material-symbols-outlined select-icon">expand_more</span>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-full">
@@ -104,7 +124,27 @@
 
                     <div class="form-group">
                         <label class="form-label">选择年月</label>
-                        <input type="month" id="salary-date" class="form-input" value="2024-01" required>
+                        <div style="display: flex; gap: 12px;">
+                            <div class="select-wrapper" style="flex: 1;">
+                                <select id="salary-year" class="form-select" required>
+                                    <option value="">年份</option>
+                                    {% for y in range(2020, 2031) %}
+                                    <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}年</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="material-symbols-outlined select-icon">expand_more</span>
+                            </div>
+                            <div class="select-wrapper" style="flex: 1;">
+                                <select id="salary-month" class="form-select" required>
+                                    <option value="">月份</option>
+                                    {% for m in range(1, 13) %}
+                                    {% set m_str = '%02d' % m %}
+                                    <option value="{{ m_str }}" {% if m == 1 %}selected{% endif %}>{{ m }}月</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="material-symbols-outlined select-icon">expand_more</span>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-full" style="background: linear-gradient(135deg, #b4891b 0%, #fbc02d 100%);">
@@ -120,9 +160,9 @@
 <script>
 function goToMonthlyReport() {
     const employee = document.getElementById('monthly-employee').value;
-    const date = document.getElementById('monthly-date').value;
-    if (employee && date) {
-        const [year, month] = date.split('-');
+    const year = document.getElementById('monthly-year').value;
+    const month = document.getElementById('monthly-month').value;
+    if (employee && year && month) {
         window.location.href = `/reports/monthly/${employee}/${year}/${month}/?next=${encodeURIComponent('/reports/')}`;
     }
     return false;
@@ -138,9 +178,9 @@ function goToCompOffReport() {
 
 function goToSalaryReport() {
     const employee = document.getElementById('salary-employee').value;
-    const date = document.getElementById('salary-date').value;
-    if (employee && date) {
-        const [year, month] = date.split('-');
+    const year = document.getElementById('salary-year').value;
+    const month = document.getElementById('salary-month').value;
+    if (employee && year && month) {
         window.location.href = `/reports/salary/${employee}/${year}/${month}/?next=${encodeURIComponent('/reports/')}`;
     }
     return false;
