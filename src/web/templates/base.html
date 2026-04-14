@@ -185,9 +185,9 @@
 
             <div class="top-app-bar-actions">
                 <!-- Search trigger (icon-only, compact) -->
-                <button type="button" class="top-app-bar-btn" aria-label="搜索" title="搜索">
+                <a href="{{ url_for('records.search_records') }}?next={{ request.path | urlencode }}" class="top-app-bar-btn" aria-label="搜索" title="搜索">
                     <span class="material-symbols-outlined">search</span>
-                </button>
+                </a>
 
                 <!-- Notifications -->
                 <a href="{{ url_for('notifications.notification_center') }}" class="top-app-bar-btn relative" aria-label="通知" title="通知">

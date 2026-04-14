@@ -7,7 +7,7 @@ import sqlite3
 import re
 import json
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 
 from flask import (
@@ -1127,6 +1127,12 @@ def search_records():
     results = []
     employees = []
 
+    # 默认查询当前月份
+    today = date.today()
+    if not start_date and not end_date:
+        start_date = today.replace(day=1).isoformat()
+        end_date = today.isoformat()
+
     conn = get_db()
     cursor = conn.cursor()
 
@@ -1134,87 +1140,106 @@ def search_records():
         cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
         employees = [dict(row) for row in cursor.fetchall()]
 
-        has_filter = start_date and end_date
+        types_to_query = []
+        if record_type == 'all':
+            types_to_query = ['overtime', 'leave', 'comp_off']
+        elif record_type in ('overtime', 'leave', 'comp_off'):
+            types_to_query = [record_type]
 
-        if has_filter:
-            types_to_query = []
-            if record_type == 'all':
-                types_to_query = ['overtime', 'leave', 'comp_off']
-            elif record_type in ('overtime', 'leave', 'comp_off'):
-                types_to_query = [record_type]
+        for rt in types_to_query:
+            if rt == 'overtime':
+                sql = """
+                    SELECT
+                        o.id,
+                        o.employee_id,
+                        e.name as employee_name,
+                        o.work_date as record_date,
+                        'overtime' as record_type,
+                        o.overtime_type as subtype,
+                        o.duration_hours,
+                        o.duration_minutes,
+                        o.description
+                    FROM overtime_records o
+                    JOIN employees e ON o.employee_id = e.employee_id
+                    WHERE 1=1
+                """
+                params = []
+                if start_date:
+                    sql += " AND o.work_date >= ?"
+                    params.append(start_date)
+                if end_date:
+                    sql += " AND o.work_date <= ?"
+                    params.append(end_date)
+                if employee_id:
+                    sql += " AND o.employee_id = ?"
+                    params.append(employee_id)
+                sql += " ORDER BY o.work_date DESC"
+                cursor.execute(sql, params)
 
-            for rt in types_to_query:
-                if rt == 'overtime':
-                    sql = """
-                        SELECT
-                            o.id,
-                            o.employee_id,
-                            e.name as employee_name,
-                            o.work_date as record_date,
-                            'overtime' as record_type,
-                            o.overtime_type as subtype,
-                            o.duration_hours,
-                            o.duration_minutes,
-                            o.description
-                        FROM overtime_records o
-                        JOIN employees e ON o.employee_id = e.employee_id
-                        WHERE o.work_date BETWEEN ? AND ?
-                    """
-                    params = [start_date, end_date]
-                    if employee_id:
-                        sql += " AND o.employee_id = ?"
-                        params.append(employee_id)
-                    sql += " ORDER BY o.work_date DESC"
-                    cursor.execute(sql, params)
+            elif rt == 'leave':
+                sql = """
+                    SELECT
+                        l.id,
+                        l.employee_id,
+                        e.name as employee_name,
+                        l.leave_date as record_date,
+                        'leave' as record_type,
+                        l.leave_type as subtype,
+                        l.duration_hours,
+                        l.duration_minutes,
+                        l.description
+                    FROM leave_records l
+                    JOIN employees e ON l.employee_id = e.employee_id
+                    WHERE 1=1
+                """
+                params = []
+                if start_date:
+                    sql += " AND l.leave_date >= ?"
+                    params.append(start_date)
+                if end_date:
+                    sql += " AND l.leave_date <= ?"
+                    params.append(end_date)
+                if employee_id:
+                    sql += " AND l.employee_id = ?"
+                    params.append(employee_id)
+                sql += " ORDER BY l.leave_date DESC"
+                cursor.execute(sql, params)
 
-                elif rt == 'leave':
-                    sql = """
-                        SELECT
-                            l.id,
-                            l.employee_id,
-                            e.name as employee_name,
-                            l.leave_date as record_date,
-                            'leave' as record_type,
-                            l.leave_type as subtype,
-                            l.duration_hours,
-                            l.duration_minutes,
-                            l.description
-                        FROM leave_records l
-                        JOIN employees e ON l.employee_id = e.employee_id
-                        WHERE l.leave_date BETWEEN ? AND ?
-                    """
-                    params = [start_date, end_date]
-                    if employee_id:
-                        sql += " AND l.employee_id = ?"
-                        params.append(employee_id)
-                    sql += " ORDER BY l.leave_date DESC"
-                    cursor.execute(sql, params)
+            elif rt == 'comp_off':
+                sql = """
+                    SELECT
+                        c.id,
+                        c.employee_id,
+                        e.name as employee_name,
+                        c.usage_date as record_date,
+                        'comp_off' as record_type,
+                        '' as subtype,
+                        c.duration_hours,
+                        c.duration_minutes,
+                        c.description
+                    FROM comp_off_usage_records c
+                    JOIN employees e ON c.employee_id = e.employee_id
+                    WHERE 1=1
+                """
+                params = []
+                if start_date:
+                    sql += " AND c.usage_date >= ?"
+                    params.append(start_date)
+                if end_date:
+                    sql += " AND c.usage_date <= ?"
+                    params.append(end_date)
+                if employee_id:
+                    sql += " AND c.employee_id = ?"
+                    params.append(employee_id)
+                sql += " ORDER BY c.usage_date DESC"
+                cursor.execute(sql, params)
 
-                elif rt == 'comp_off':
-                    sql = """
-                        SELECT
-                            c.id,
-                            c.employee_id,
-                            e.name as employee_name,
-                            c.usage_date as record_date,
-                            'comp_off' as record_type,
-                            '' as subtype,
-                            c.duration_hours,
-                            c.duration_minutes,
-                            c.description
-                        FROM comp_off_usage_records c
-                        JOIN employees e ON c.employee_id = e.employee_id
-                        WHERE c.usage_date BETWEEN ? AND ?
-                    """
-                    params = [start_date, end_date]
-                    if employee_id:
-                        sql += " AND c.employee_id = ?"
-                        params.append(employee_id)
-                    sql += " ORDER BY c.usage_date DESC"
-                    cursor.execute(sql, params)
+            rows = [dict(row) for row in cursor.fetchall()]
+            results.extend(rows)
 
-                rows = [dict(row) for row in cursor.fetchall()]
-                results.extend(rows)
+        # 多类型混合时按日期统一降序
+        if len(types_to_query) > 1:
+            results.sort(key=lambda x: x.get('record_date') or '', reverse=True)
     except sqlite3.Error as e:
         flash(f'查询失败: {e}', 'error')
     finally:

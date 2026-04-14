@@ -82,24 +82,24 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>员工名</th>
-                                    <th>日期</th>
-                                    <th>类型</th>
-                                    <th>子类型</th>
-                                    <th>时长</th>
+                                    <th class="whitespace-nowrap">员工名</th>
+                                    <th class="whitespace-nowrap">日期</th>
+                                    <th class="whitespace-nowrap" style="width: 72px;">类型</th>
+                                    <th class="whitespace-nowrap" style="width: 100px;">子类型</th>
+                                    <th class="whitespace-nowrap text-right" style="width: 80px;">时长</th>
                                     <th>描述</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for r in results %}
                                 <tr>
-                                    <td>
+                                    <td class="whitespace-nowrap">
                                         <a href="{{ url_for('employees.employee_detail', employee_id=r.employee_id) }}?next={{ url_for('records.search_records') | urlencode }}" class="font-medium text-primary hover:underline">
                                             {{ r.employee_name }}
                                         </a>
                                     </td>
-                                    <td>{{ r.record_date }}</td>
-                                    <td>
+                                    <td class="whitespace-nowrap">{{ r.record_date }}</td>
+                                    <td class="whitespace-nowrap">
                                         {% if r.record_type == 'overtime' %}
                                             <span class="badge badge-primary">加班</span>
                                         {% elif r.record_type == 'leave' %}
@@ -110,21 +110,21 @@
                                             <span class="badge badge-outline">{{ r.record_type }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="whitespace-nowrap">
                                         {% if r.subtype %}
                                             <span class="text-on-surface-variant">{{ r.subtype }}</span>
                                         {% else %}
                                             <span class="text-on-surface-variant">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="whitespace-nowrap text-right">
                                         {% if r.duration_hours or r.duration_minutes %}
-                                            {{ r.duration_hours }}h {% if r.duration_minutes %}{{ r.duration_minutes }}m{% endif %}
+                                            {{ r.duration_hours }}h{% if r.duration_minutes %}{{ r.duration_minutes }}m{% endif %}
                                         {% else %}
                                             -
                                         {% endif %}
                                     </td>
-                                    <td class="text-on-surface-variant max-w-xs truncate" title="{{ r.description or '' }}">
+                                    <td class="text-on-surface-variant max-w-[200px] truncate" title="{{ r.description or '' }}">
                                         {{ r.description or '-' }}
                                     </td>
                                 </tr>
