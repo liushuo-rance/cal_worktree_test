@@ -5,7 +5,7 @@
 
 import sqlite3
 
-from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify, flash
 from werkzeug.security import check_password_hash
 
 from web.utils import get_db
@@ -49,7 +49,8 @@ def login_page():
     password = request.form.get('password', '').strip()
 
     if not username or not password:
-        return render_template('auth/login.html', error='用户名和密码不能为空')
+        flash('用户名和密码不能为空', 'error')
+        return render_template('auth/login.html', username=username)
 
     conn = get_db()
     cursor = conn.cursor()
@@ -63,9 +64,8 @@ def login_page():
         conn.close()
 
     if not user or not check_password_hash(user['password_hash'], password):
-        return render_template(
-            'auth/login.html', error='用户名或密码错误', username=username
-        )
+        flash('用户名或密码错误', 'error')
+        return render_template('auth/login.html', username=username)
 
     session['user_id'] = user['id']
     session['username'] = user['username']
@@ -73,7 +73,17 @@ def login_page():
     session['employee_id'] = user['employee_id']
     session.modified = True
 
-    next_url = request.args.get('next') or url_for('dashboard.index')
+    # 登录后跳转：管理员去首页，普通用户去自己的月度报表页
+    next_url = request.form.get('next') or request.args.get('next')
+    if not next_url:
+        if user['role'] == 'admin':
+            next_url = url_for('dashboard.index')
+        else:
+            employee_id = user['employee_id']
+            if employee_id:
+                next_url = url_for('reports.monthly_report_default', employee_id=employee_id)
+            else:
+                next_url = url_for('reports.reports_index')
     return redirect(next_url)
 
 

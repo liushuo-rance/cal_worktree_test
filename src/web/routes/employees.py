@@ -10,6 +10,7 @@ import calendar
 from datetime import datetime, date, timedelta
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
+from werkzeug.security import generate_password_hash
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -129,11 +130,21 @@ def employee_detail(employee_id):
     heatmap_year = request.args.get('year', type=int) or datetime.now().year
     heatmap_month = request.args.get('month', type=int) or datetime.now().month
 
+    user_account = None
     try:
         cursor.execute("SELECT * FROM employees WHERE employee_id = ?", (employee_id,))
         row = cursor.fetchone()
         if row:
             employee = dict(row)
+
+            # 查询关联的用户账号
+            cursor.execute(
+                "SELECT id, username, role, is_active FROM users WHERE employee_id = ?",
+                (employee_id,)
+            )
+            user_row = cursor.fetchone()
+            if user_row:
+                user_account = dict(user_row)
 
             # 获取加班记录
             cursor.execute("""
@@ -223,6 +234,7 @@ def employee_detail(employee_id):
         heatmap_data=heatmap_data,
         heatmap_year=heatmap_year,
         heatmap_month=heatmap_month,
+        user_account=user_account,
     )
 
 
@@ -594,5 +606,66 @@ def deduplicate_records(employee_id, record_type):
         flash('去重失败', 'error')
     finally:
         conn.close()
+
+    return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
+
+
+@bp.route('/<employee_id>/users/create/', methods=['POST'])
+@admin_required
+def create_user(employee_id):
+    """为员工创建登录账号"""
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+
+    if not username or not password:
+        flash('用户名和密码不能为空', 'error')
+        return redirect(url_for('employees.employee_detail', employee_id=employee_id))
+
+    if password != confirm_password:
+        flash('两次输入的密码不一致', 'error')
+        return redirect(url_for('employees.employee_detail', employee_id=employee_id))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        # 检查员工是否存在
+        cursor.execute("SELECT employee_id, name FROM employees WHERE employee_id = ?", (employee_id,))
+        employee = cursor.fetchone()
+        if not employee:
+            flash('员工不存在', 'error')
+            return redirect(url_for('employees.list_employees'))
+
+        # 检查用户名是否已被占用
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        if cursor.fetchone():
+            flash(f'用户名 {username} 已被占用', 'error')
+            return redirect(url_for('employees.employee_detail', employee_id=employee_id))
+
+        # 检查该员工是否已有账号
+        cursor.execute("SELECT id FROM users WHERE employee_id = ?", (employee_id,))
+        if cursor.fetchone():
+            flash('该员工已有关联账号', 'error')
+            return redirect(url_for('employees.employee_detail', employee_id=employee_id))
+
+        password_hash = generate_password_hash(password)
+        cursor.execute(
+            """
+            INSERT INTO users (username, password_hash, role, employee_id, is_active)
+            VALUES (?, ?, 'user', ?, 1)
+            """,
+            (username, password_hash, employee_id),
+        )
+        conn.commit()
+        flash(f'账号 {username} 创建成功', 'success')
+        logger.info(f"为员工 {employee_id} 创建账号: {username}")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logger.error(f"创建账号失败: {e}")
+        flash('创建账号失败', 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('employees.employee_detail', employee_id=employee_id))
 
     return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
