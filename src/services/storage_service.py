@@ -468,3 +468,85 @@ def delete_employee_service(conn: sqlite3.Connection, employee_id: str) -> Dict[
         'employee_id': employee_id,
         'affected_records': cursor.rowcount
     }
+
+
+def hard_delete_employee_service(conn: sqlite3.Connection, employee_id: str) -> Dict[str, Any]:
+    """
+    硬删除员工：彻底抹去与该员工相关的所有记录
+
+    删除范围：
+    - notification_history
+    - import_records / review_queue / import_sessions
+    - comp_off_usage_records
+    - comp_off_balances
+    - leave_records
+    - overtime_records
+    - employees
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+
+    Returns:
+        操作结果
+
+    Raises:
+        StorageError: 员工不存在或删除失败
+    """
+    cursor = conn.cursor()
+
+    # 检查员工是否存在
+    cursor.execute("SELECT 1 FROM employees WHERE employee_id = ?", (employee_id,))
+    if cursor.fetchone() is None:
+        raise StorageError(f"员工不存在: {employee_id}")
+
+    try:
+        # 1. 通知历史
+        cursor.execute("DELETE FROM notification_history WHERE employee_id = ?", (employee_id,))
+
+        # 2. 获取该员工的所有导入会话 ID
+        cursor.execute("SELECT id FROM import_sessions WHERE employee_id = ?", (employee_id,))
+        session_ids = [row['id'] for row in cursor.fetchall()]
+
+        if session_ids:
+            placeholders = ','.join('?' * len(session_ids))
+            # 删除导入记录详情
+            cursor.execute(
+                f"DELETE FROM import_records WHERE session_id IN ({placeholders})",
+                session_ids
+            )
+            # 删除审批队列
+            cursor.execute(
+                f"DELETE FROM review_queue WHERE import_session_id IN ({placeholders})",
+                session_ids
+            )
+            # 删除导入会话
+            cursor.execute(
+                f"DELETE FROM import_sessions WHERE id IN ({placeholders})",
+                session_ids
+            )
+
+        # 3. 调休使用记录
+        cursor.execute("DELETE FROM comp_off_usage_records WHERE employee_id = ?", (employee_id,))
+
+        # 4. 调休余额
+        cursor.execute("DELETE FROM comp_off_balances WHERE employee_id = ?", (employee_id,))
+
+        # 5. 请假记录
+        cursor.execute("DELETE FROM leave_records WHERE employee_id = ?", (employee_id,))
+
+        # 6. 加班记录
+        cursor.execute("DELETE FROM overtime_records WHERE employee_id = ?", (employee_id,))
+
+        # 7. 员工本身
+        cursor.execute("DELETE FROM employees WHERE employee_id = ?", (employee_id,))
+
+        conn.commit()
+    except sqlite3.Error as e:
+        conn.rollback()
+        raise StorageError(f"硬删除员工失败: {str(e)}")
+
+    return {
+        'success': True,
+        'employee_id': employee_id,
+    }

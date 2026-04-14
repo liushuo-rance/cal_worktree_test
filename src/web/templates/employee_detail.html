@@ -47,12 +47,14 @@
                     </div>
                 </div>
             </div>
-            <div class="flex gap-3">
+            <div class="flex gap-3 flex-wrap">
+                {% if employee.is_active != 0 %}
                 <a href="{{ url_for('records.import_for_employee', employee_id=employee.employee_id) }}"
                    class="btn btn-secondary">
                     <span class="material-symbols-outlined">upload_file</span>
                     导入记录
                 </a>
+                {% endif %}
                 <a href="{{ url_for('employees.employee_records', employee_id=employee.employee_id) }}?next={{ url_for('employees.employee_detail', employee_id=employee.employee_id) | urlencode }}"
                    class="btn btn-primary">
                     <span class="material-symbols-outlined">edit_note</span>
@@ -63,6 +65,14 @@
                     <span class="material-symbols-outlined">description</span>
                     查看报表
                 </a>
+                {% if employee.is_active == 0 %}
+                <form method="POST" action="{{ url_for('employees.delete_employee_permanent', employee_id=employee.employee_id) }}" class="inline-block" onsubmit="return confirm('警告：此操作将彻底删除 {{ employee.name }} 及其所有关联记录，无法恢复。确定继续吗？');">
+                    <button type="submit" class="btn btn-error">
+                        <span class="material-symbols-outlined">delete_forever</span>
+                        彻底删除
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </div>

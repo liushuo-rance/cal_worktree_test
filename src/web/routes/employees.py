@@ -12,7 +12,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from web.utils import get_db
-from services.storage_service import delete_employee_service
+from services.storage_service import delete_employee_service, hard_delete_employee_service
 
 bp = Blueprint('employees', __name__, url_prefix='/employees')
 logger = logging.getLogger(__name__)
@@ -92,6 +92,18 @@ def delete_employee(employee_id):
     except Exception as e:
         logger.error(f"删除员工失败: {e}")
         flash('删除员工失败', 'error')
+    return redirect(url_for('employees.list_employees'))
+
+
+@bp.route('/<employee_id>/delete-permanent/', methods=['POST'])
+def delete_employee_permanent(employee_id):
+    """彻底删除员工（硬删除）"""
+    try:
+        hard_delete_employee_service(get_db(), employee_id)
+        flash('员工及相关记录已彻底删除', 'success')
+    except Exception as e:
+        logger.error(f"彻底删除员工失败: {e}")
+        flash('彻底删除员工失败', 'error')
     return redirect(url_for('employees.list_employees'))
 
 

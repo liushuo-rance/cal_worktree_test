@@ -37,7 +37,7 @@ def index():
     ranking_report = None
     recent_activities = []
     try:
-        cursor.execute("SELECT COUNT(*) as count FROM employees")
+        cursor.execute("SELECT COUNT(*) as count FROM employees WHERE is_active = 1")
         stats['total_employees'] = cursor.fetchone()['count']
 
         cursor.execute("SELECT COUNT(*) as count FROM overtime_records")
