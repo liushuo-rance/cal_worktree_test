@@ -67,6 +67,90 @@
         </div>
     </div>
 
+    <!-- Overtime Heatmap -->
+    <div class="content-card mb-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">local_fire_department</span>
+                加班热力图
+            </h5>
+            <form class="flex items-center gap-2" method="get">
+                <select name="year" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                    {% for y in range(2020, 2031) %}
+                    <option value="{{ y }}" {% if y == heatmap_year %}selected{% endif %}>{{ y }}年</option>
+                    {% endfor %}
+                </select>
+                <select name="month" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == heatmap_month %}selected{% endif %}>{{ m }}月</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div class="content-card-body">
+            {% if heatmap_data %}
+            <div class="flex flex-col items-center">
+                <!-- Weekday Headers -->
+                <div class="grid grid-cols-7 gap-2 mb-2 text-center text-body-sm text-on-surface-variant w-full max-w-md">
+                    <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+                </div>
+                <!-- Calendar Grid -->
+                <div class="grid grid-cols-7 gap-2 w-full max-w-md">
+                    {% set first_weekday = heatmap_data[0].weekday %}
+                    {% for _ in range(first_weekday) %}
+                    <div class="aspect-square"></div>
+                    {% endfor %}
+                    {% for day in heatmap_data %}
+                    {% set hours = day.total_minutes // 60 %}
+                    {% set mins = day.total_minutes % 60 %}
+                    {% if day.total_minutes == 0 %}
+                    <div class="aspect-square rounded-md bg-surface-container border border-outline/20 relative group"
+                         title="{{ day.date }} 无加班">
+                        <span class="absolute inset-0 flex items-center justify-center text-body-sm text-on-surface-variant">{{ day.day }}</span>
+                    </div>
+                    {% elif day.total_minutes <= 180 %}
+                    <div class="aspect-square rounded-md bg-secondary/30 border border-secondary/40 relative group"
+                         title="{{ day.date }} 加班 {{ hours }}h{{ mins }}m">
+                        <span class="absolute inset-0 flex items-center justify-center text-body-sm text-on-surface font-medium">{{ day.day }}</span>
+                    </div>
+                    {% elif day.total_minutes <= 360 %}
+                    <div class="aspect-square rounded-md bg-secondary/60 border border-secondary/70 relative group"
+                         title="{{ day.date }} 加班 {{ hours }}h{{ mins }}m">
+                        <span class="absolute inset-0 flex items-center justify-center text-body-sm text-on-surface font-medium">{{ day.day }}</span>
+                    </div>
+                    {% else %}
+                    <div class="aspect-square rounded-md bg-secondary border border-secondary relative group"
+                         title="{{ day.date }} 加班 {{ hours }}h{{ mins }}m">
+                        <span class="absolute inset-0 flex items-center justify-center text-body-sm text-white font-medium">{{ day.day }}</span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <!-- Legend -->
+                <div class="flex items-center gap-4 mt-4 text-body-sm text-on-surface-variant">
+                    <span>少</span>
+                    <div class="w-5 h-5 rounded bg-surface-container border border-outline/20"></div>
+                    <div class="w-5 h-5 rounded bg-secondary/30 border border-secondary/40"></div>
+                    <div class="w-5 h-5 rounded bg-secondary/60 border border-secondary/70"></div>
+                    <div class="w-5 h-5 rounded bg-secondary border border-secondary"></div>
+                    <span>多</span>
+                </div>
+                <div class="flex items-center gap-6 mt-2 text-body-xs text-on-surface-variant">
+                    <span>0</span>
+                    <span>≤3h</span>
+                    <span>≤6h</span>
+                    <span>>6h</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state py-8">
+                <span class="material-symbols-outlined empty-state-icon">local_fire_department</span>
+                <h3 class="empty-state-title">暂无数据</h3>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Records Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <!-- Overtime Records -->

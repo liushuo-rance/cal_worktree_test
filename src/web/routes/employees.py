@@ -6,6 +6,8 @@ import os
 import sys
 import sqlite3
 import logging
+import calendar
+from datetime import datetime, date, timedelta
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
 
@@ -105,6 +107,9 @@ def employee_detail(employee_id):
     overtime_records = []
     leave_records = []
     comp_off_records = []
+    heatmap_data = []
+    heatmap_year = request.args.get('year', type=int) or datetime.now().year
+    heatmap_month = request.args.get('month', type=int) or datetime.now().month
 
     try:
         cursor.execute("SELECT * FROM employees WHERE employee_id = ?", (employee_id,))
@@ -139,6 +144,48 @@ def employee_detail(employee_id):
             """, (employee_id,))
             comp_off_records = [dict(row) for row in cursor.fetchall()]
 
+            # 获取当月热力图数据
+            start_date = f"{heatmap_year}-{heatmap_month:02d}-01"
+            if heatmap_month == 12:
+                next_month_start = f"{heatmap_year + 1}-01-01"
+            else:
+                next_month_start = f"{heatmap_year}-{heatmap_month + 1:02d}-01"
+
+            cursor.execute("""
+                SELECT work_date,
+                       SUM(duration_hours * 60 + duration_minutes) AS total_minutes,
+                       GROUP_CONCAT(DISTINCT overtime_type) AS types
+                FROM overtime_records
+                WHERE employee_id = ?
+                  AND work_date >= ?
+                  AND work_date < ?
+                GROUP BY work_date
+                ORDER BY work_date
+            """, (employee_id, start_date, next_month_start))
+            overtime_by_date = {row['work_date']: dict(row) for row in cursor.fetchall()}
+
+            # 构建完整月份日历数据
+            _, last_day = calendar.monthrange(heatmap_year, heatmap_month)
+            first_weekday = calendar.monthrange(heatmap_year, heatmap_month)[0]  # 0=周一 在 calendar 中实际上是 0=周一
+            # Python calendar.monthrange 返回 (weekday_of_first_day, number_of_days)
+            # weekday: Monday is 0, Sunday is 6
+
+            heatmap_data = []
+            current = date(heatmap_year, heatmap_month, 1)
+            for day_num in range(1, last_day + 1):
+                day_str = current.strftime('%Y-%m-%d')
+                day_record = overtime_by_date.get(day_str)
+                total_minutes = day_record['total_minutes'] if day_record else 0
+                types = day_record['types'].split(',') if day_record and day_record['types'] else []
+                heatmap_data.append({
+                    'date': day_str,
+                    'day': day_num,
+                    'weekday': current.weekday(),  # 0=周一, 6=周日
+                    'total_minutes': total_minutes,
+                    'types': types,
+                })
+                current += timedelta(days=1)
+
             logger.info(f"查询员工详情: {employee_id}, 加班 {len(overtime_records)} 条, 请假 {len(leave_records)} 条, 调休 {len(comp_off_records)} 条")
         else:
             logger.warning(f"员工不存在: {employee_id}")
@@ -154,7 +201,10 @@ def employee_detail(employee_id):
         employee=employee,
         overtime_records=overtime_records,
         leave_records=leave_records,
-        comp_off_records=comp_off_records
+        comp_off_records=comp_off_records,
+        heatmap_data=heatmap_data,
+        heatmap_year=heatmap_year,
+        heatmap_month=heatmap_month,
     )
 
 
