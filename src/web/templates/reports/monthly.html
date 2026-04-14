@@ -20,7 +20,11 @@
                 <select id="nav-employee" class="form-select" style="width: auto; min-width: 120px;">
                     {% for emp in employees %}
                     <option value="{{ emp.employee_id }}" {% if emp.employee_id == employee_id %}selected{% endif %}>
+                        {% if emp.is_active == 0 %}
+                        {{ emp.name }} [已离职]
+                        {% else %}
                         {{ emp.name }}
+                        {% endif %}
                     </option>
                     {% endfor %}
                 </select>

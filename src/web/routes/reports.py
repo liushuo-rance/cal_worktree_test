@@ -165,7 +165,7 @@ def reports_index():
 
     employees = []
     try:
-        cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
+        cursor.execute("SELECT employee_id, name, is_active FROM employees ORDER BY is_active DESC, name")
         employees = [dict(row) for row in cursor.fetchall()]
     except sqlite3.Error:
         pass
@@ -196,7 +196,7 @@ def monthly_report(employee_id, year, month):
     cursor = conn.cursor()
     employees = []
     try:
-        cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
+        cursor.execute("SELECT employee_id, name, is_active FROM employees ORDER BY is_active DESC, name")
         employees = [dict(row) for row in cursor.fetchall()]
     except sqlite3.Error:
         pass

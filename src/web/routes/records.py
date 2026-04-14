@@ -559,7 +559,7 @@ def import_records():
     cursor = conn.cursor()
     employees = []
     try:
-        cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
+        cursor.execute("SELECT employee_id, name, is_active FROM employees ORDER BY is_active DESC, name")
         employees = [dict(row) for row in cursor.fetchall()]
     except sqlite3.Error:
         pass
@@ -1137,7 +1137,7 @@ def search_records():
     cursor = conn.cursor()
 
     try:
-        cursor.execute("SELECT employee_id, name FROM employees ORDER BY name")
+        cursor.execute("SELECT employee_id, name, is_active FROM employees ORDER BY is_active DESC, name")
         employees = [dict(row) for row in cursor.fetchall()]
 
         types_to_query = []

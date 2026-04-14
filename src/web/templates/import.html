@@ -28,7 +28,11 @@
                     <form method="POST" id="import-form" enctype="multipart/form-data">
                         {% set employee_options = [] %}
                         {% for emp in employees %}
-                            {% set _ = employee_options.append({'value': emp.employee_id, 'label': emp.name + ' (' + emp.employee_id + ')'}) %}
+                            {% set label = emp.name + ' (' + emp.employee_id + ')' %}
+                            {% if emp.is_active == 0 %}
+                                {% set label = label + ' [已离职]' %}
+                            {% endif %}
+                            {% set _ = employee_options.append({'value': emp.employee_id, 'label': label}) %}
                         {% endfor %}
 
                         <div class="form-group">

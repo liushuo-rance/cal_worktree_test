@@ -48,7 +48,13 @@
                             <select name="employee_id" class="form-select">
                                 <option value="">全部员工</option>
                                 {% for emp in employees %}
-                                <option value="{{ emp.employee_id }}" {% if employee_id == emp.employee_id %}selected{% endif %}>{{ emp.name }}</option>
+                                <option value="{{ emp.employee_id }}" {% if employee_id == emp.employee_id %}selected{% endif %}>
+                                    {% if emp.is_active == 0 %}
+                                    {{ emp.name }} [已离职]
+                                    {% else %}
+                                    {{ emp.name }}
+                                    {% endif %}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>

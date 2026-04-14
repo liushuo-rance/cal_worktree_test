@@ -43,7 +43,11 @@
                 <form onsubmit="return goToMonthlyReport()">
                     {% set emp_options = [] %}
                     {% for emp in employees %}
-                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': emp.name}) %}
+                        {% set label = emp.name %}
+                        {% if emp.is_active == 0 %}
+                            {% set label = label + ' [已离职]' %}
+                        {% endif %}
+                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': label}) %}
                     {% endfor %}
                     {{ form_select('monthly-employee', '选择员工', emp_options, attrs={'id': 'monthly-employee', 'required': 'true'}) }}
 
@@ -93,7 +97,11 @@
                 <form onsubmit="return goToCompOffReport()">
                     {% set emp_options = [] %}
                     {% for emp in employees %}
-                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': emp.name}) %}
+                        {% set label = emp.name %}
+                        {% if emp.is_active == 0 %}
+                            {% set label = label + ' [已离职]' %}
+                        {% endif %}
+                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': label}) %}
                     {% endfor %}
                     {{ form_select('compoff-employee', '选择员工', emp_options, attrs={'id': 'compoff-employee', 'required': 'true'}) }}
 
@@ -118,7 +126,11 @@
                 <form onsubmit="return goToSalaryReport()">
                     {% set emp_options = [] %}
                     {% for emp in employees %}
-                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': emp.name}) %}
+                        {% set label = emp.name %}
+                        {% if emp.is_active == 0 %}
+                            {% set label = label + ' [已离职]' %}
+                        {% endif %}
+                        {% set _ = emp_options.append({'value': emp.employee_id, 'label': label}) %}
                     {% endfor %}
                     {{ form_select('salary-employee', '选择员工', emp_options, attrs={'id': 'salary-employee', 'required': 'true'}) }}
 
