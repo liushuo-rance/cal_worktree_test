@@ -8,6 +8,7 @@ import sqlite3
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 
 from web.utils import get_db
+from web.decorators import admin_required
 import sys
 import os
 
@@ -136,6 +137,7 @@ def _store_review_record_to_db(conn: sqlite3.Connection, row: sqlite3.Row) -> No
 
 
 @bp.route('/')
+@admin_required
 def review_queue():
     """审批队列"""
     conn = get_db()
@@ -161,6 +163,7 @@ def review_queue():
 
 
 @bp.route('/item/<int:item_id>/', methods=['GET', 'POST'])
+@admin_required
 def review_item(item_id):
     """单个审批项"""
     conn = get_db()
@@ -228,6 +231,7 @@ def review_item(item_id):
 
 
 @bp.route('/comp-off/')
+@admin_required
 def comp_off_review_queue():
     """调休审批队列"""
     conn = get_db()
@@ -262,6 +266,7 @@ def comp_off_review_queue():
 
 
 @bp.route('/comp-off/<int:request_id>/approve/', methods=['POST'])
+@admin_required
 def comp_off_approve(request_id):
     """批准调休申请"""
     conn = get_db()
@@ -277,6 +282,7 @@ def comp_off_approve(request_id):
 
 
 @bp.route('/comp-off/<int:request_id>/reject/', methods=['POST'])
+@admin_required
 def comp_off_reject(request_id):
     """拒绝调休申请"""
     conn = get_db()

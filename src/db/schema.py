@@ -577,6 +577,21 @@ def init_database(conn: sqlite3.Connection) -> None:
         )
     """)
 
+    # 用户表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin', 'user')),
+            employee_id TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE SET NULL
+        )
+    """)
+
     # 迁移旧版 schema
     _migrate_import_sessions(conn)
     _migrate_comp_off_balances(conn)
@@ -650,6 +665,32 @@ def _migrate_comp_off_usage_if_needed(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (balance_id) REFERENCES comp_off_balances(id)
         )
     """)
+    conn.commit()
+
+
+def seed_default_admin(conn: sqlite3.Connection, password: str = "admin123") -> None:
+    """
+    插入默认管理员账号（如果不存在）。
+
+    Args:
+        conn: SQLite 数据库连接
+        password: 管理员密码，默认 admin123
+    """
+    from werkzeug.security import generate_password_hash
+
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE username = ?", ("admin",))
+    if cursor.fetchone():
+        return
+
+    password_hash = generate_password_hash(password)
+    cursor.execute(
+        """
+        INSERT INTO users (username, password_hash, role, employee_id, is_active)
+        VALUES (?, ?, 'admin', NULL, 1)
+        """,
+        ("admin", password_hash),
+    )
     conn.commit()
 
 

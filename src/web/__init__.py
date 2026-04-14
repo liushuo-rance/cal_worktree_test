@@ -142,7 +142,7 @@ def create_app(test_config=None):
             db.close()
 
     # 注册蓝图
-    from web.routes import dashboard, employees, records, review, reports, holidays, api, notifications, assistant, settings
+    from web.routes import dashboard, employees, records, review, reports, holidays, api, notifications, assistant, settings, auth
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(employees.bp)
     app.register_blueprint(records.bp)
@@ -153,6 +153,7 @@ def create_app(test_config=None):
     app.register_blueprint(notifications.bp)
     app.register_blueprint(assistant.bp)
     app.register_blueprint(settings.bp)
+    app.register_blueprint(auth.bp)
 
     # APScheduler 自动通知
     scheduler_enabled = os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true'

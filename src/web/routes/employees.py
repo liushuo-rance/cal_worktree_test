@@ -14,6 +14,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from web.utils import get_db
+from web.decorators import admin_required, self_or_admin
 from services.storage_service import delete_employee_service, hard_delete_employee_service
 
 bp = Blueprint('employees', __name__, url_prefix='/employees')
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @bp.route('/')
+@admin_required
 def list_employees():
     """员工列表"""
     conn = get_db()
@@ -41,6 +43,7 @@ def list_employees():
 
 
 @bp.route('/create/', methods=['POST'])
+@admin_required
 def create_employee():
     """创建员工"""
     employee_id = request.form.get('employee_id', '').strip()
@@ -86,6 +89,7 @@ def create_employee():
 
 
 @bp.route('/<employee_id>/delete/', methods=['POST'])
+@admin_required
 def delete_employee(employee_id):
     """删除员工（软删除）"""
     try:
@@ -98,6 +102,7 @@ def delete_employee(employee_id):
 
 
 @bp.route('/<employee_id>/delete-permanent/', methods=['POST'])
+@admin_required
 def delete_employee_permanent(employee_id):
     """彻底删除员工（硬删除）"""
     try:
@@ -110,6 +115,7 @@ def delete_employee_permanent(employee_id):
 
 
 @bp.route('/<employee_id>/')
+@self_or_admin
 def employee_detail(employee_id):
     """员工详情"""
     conn = get_db()
@@ -221,6 +227,7 @@ def employee_detail(employee_id):
 
 
 @bp.route('/<employee_id>/records/')
+@self_or_admin
 def employee_records(employee_id):
     """员工记录管理页面"""
     conn = get_db()
@@ -299,6 +306,7 @@ def employee_records(employee_id):
 
 
 @bp.route('/<employee_id>/records/create/', methods=['GET', 'POST'])
+@self_or_admin
 def create_record(employee_id):
     """创建员工记录"""
     record_type = request.args.get('type', 'overtime')
@@ -377,6 +385,7 @@ def create_record(employee_id):
 
 
 @bp.route('/<employee_id>/records/<record_type>/<int:record_id>/edit/', methods=['GET', 'POST'])
+@self_or_admin
 def edit_record(employee_id, record_type, record_id):
     """编辑员工记录"""
     if record_type not in ('overtime', 'leave', 'comp_off'):
@@ -470,6 +479,7 @@ def edit_record(employee_id, record_type, record_id):
 
 
 @bp.route('/<employee_id>/records/<record_type>/<int:record_id>/delete/', methods=['POST'])
+@self_or_admin
 def delete_record(employee_id, record_type, record_id):
     """删除员工记录"""
     if record_type not in ('overtime', 'leave', 'comp_off'):
@@ -498,6 +508,7 @@ def delete_record(employee_id, record_type, record_id):
     return redirect(url_for('employees.employee_records', employee_id=employee_id, tab=record_type))
 
 @bp.route('/<employee_id>/records/merge-duplicates/<record_type>/', methods=['POST'])
+@self_or_admin
 def merge_duplicates(employee_id, record_type):
     """合并重复记录：保留第一条并合并描述，删除其余"""
     if record_type not in ('overtime', 'leave', 'comp_off'):
@@ -547,6 +558,7 @@ def merge_duplicates(employee_id, record_type):
 
 
 @bp.route('/<employee_id>/records/deduplicate/<record_type>/', methods=['POST'])
+@self_or_admin
 def deduplicate_records(employee_id, record_type):
     """去重：只保留第一条，删除其余重复记录"""
     if record_type not in ('overtime', 'leave', 'comp_off'):

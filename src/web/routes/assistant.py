@@ -10,6 +10,7 @@ import os
 from flask import Blueprint, render_template, request, session, jsonify, Response, stream_with_context
 
 from web.utils import get_db
+from web.decorators import admin_required
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from services.assistant_service import get_assistant_service
@@ -18,6 +19,7 @@ bp = Blueprint('assistant', __name__, url_prefix='/assistant')
 
 
 @bp.route('/')
+@admin_required
 def index():
     """AI 助手页面"""
     messages = session.get('assistant_chat', [])
@@ -25,6 +27,7 @@ def index():
 
 
 @bp.route('/stream', methods=['POST'])
+@admin_required
 def stream():
     """SSE 流式对话接口"""
     data = request.get_json(silent=True) or {}
@@ -74,6 +77,7 @@ def stream():
 
 
 @bp.route('/clear', methods=['POST'])
+@admin_required
 def clear():
     """清空对话历史"""
     session.pop('assistant_chat', None)

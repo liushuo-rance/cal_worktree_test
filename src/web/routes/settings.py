@@ -7,6 +7,7 @@ import sqlite3
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from web.utils import get_db
+from web.decorators import admin_required
 
 import sys
 import os
@@ -19,6 +20,7 @@ bp = Blueprint('settings', __name__, url_prefix='/settings')
 
 
 @bp.route('/')
+@admin_required
 def settings_index():
     """系统设置首页"""
     conn = get_db()
@@ -38,6 +40,7 @@ def settings_index():
 
 
 @bp.route('/save', methods=['POST'])
+@admin_required
 def settings_save():
     """保存系统设置"""
     conn = get_db()
