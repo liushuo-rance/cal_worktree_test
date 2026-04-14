@@ -349,6 +349,39 @@ def _migrate_overtime_records_for_employment_status(conn: sqlite3.Connection) ->
     cursor.execute("PRAGMA foreign_keys = ON")
 
 
+def _migrate_notifications_table(conn: sqlite3.Connection) -> None:
+    """
+    迁移 notifications 表：如果表不存在则创建它。
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'"
+    )
+    if cursor.fetchone():
+        return
+
+    notification_type_values = ', '.join([
+        "'compliance_warning'", "'compliance_violation'", "'system'"
+    ])
+    cursor.execute(f"""
+        CREATE TABLE notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id TEXT NOT NULL,
+            type TEXT NOT NULL CHECK(type IN ({notification_type_values})),
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX idx_notifications_employee_read
+        ON notifications(employee_id, is_read, created_at)
+    """)
+    conn.commit()
+
+
 def init_database(conn: sqlite3.Connection) -> None:
     """
     初始化数据库表结构
@@ -577,6 +610,70 @@ def init_database(conn: sqlite3.Connection) -> None:
         )
     """)
 
+    # 站内通知表
+    notification_type_values = ', '.join([
+        "'compliance_warning'", "'compliance_violation'", "'system'"
+    ])
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id TEXT NOT NULL,
+            type TEXT NOT NULL CHECK(type IN ({notification_type_values})),
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
+        )
+    """)
+
+    # 创建索引
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_overtime_employee_date
+        ON overtime_records(employee_id, work_date)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_review_queue_session_status
+        ON review_queue(import_session_id, status)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_leave_employee_date
+        ON leave_records(employee_id, leave_date)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_comp_off_employee_status
+        ON comp_off_balances(employee_id, status)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_holiday_year
+        ON holiday_config(year)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_notifications_employee_read
+        ON notifications(employee_id, is_read, created_at)
+    """)
+
+    # 通知历史表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notification_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            notification_type TEXT NOT NULL,
+            trigger_mode TEXT NOT NULL,
+            recipient_email TEXT NOT NULL,
+            employee_id TEXT,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT NOT NULL,
+            error_message TEXT,
+            content_summary TEXT,
+            days_threshold INTEGER
+        )
+    """)
+
     # 迁移旧版 schema
     _migrate_import_sessions(conn)
     _migrate_comp_off_balances(conn)
@@ -585,6 +682,7 @@ def init_database(conn: sqlite3.Connection) -> None:
     _migrate_comp_off_usage_if_needed(conn)
     _migrate_employees_for_soft_delete(conn)
     _migrate_overtime_records_for_employment_status(conn)
+    _migrate_notifications_table(conn)
 
     conn.commit()
 

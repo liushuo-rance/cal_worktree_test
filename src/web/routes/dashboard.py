@@ -14,6 +14,7 @@ from web.utils import get_db
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from services.report_service import generate_overtime_ranking
 from services.dashboard_service import get_recent_activities, format_relative_time
+from services.alert_service import get_compliance_risk_count
 
 bp = Blueprint('dashboard', __name__)
 
@@ -67,8 +68,10 @@ def index():
         ranking_report = generate_overtime_ranking(conn, year=current_year, month=None)
 
         recent_activities = get_recent_activities(conn, limit=10)
+
+        compliance_risk_count = get_compliance_risk_count(conn)
     except sqlite3.Error:
-        pass
+        compliance_risk_count = 0
     finally:
         conn.close()
 
@@ -79,5 +82,6 @@ def index():
         compliance_rate=compliance_rate,
         pending_anomalies=pending_anomalies,
         recent_activities=recent_activities,
-        format_relative_time=format_relative_time
+        format_relative_time=format_relative_time,
+        compliance_risk_count=compliance_risk_count
     )

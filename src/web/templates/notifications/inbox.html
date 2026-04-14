@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}通知中心 - 加班记录管理系统{% endblock %}
+{% block page_title %}通知中心{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="mb-6 flex items-center justify-between">
+        <p class="text-on-surface-variant text-body-md">查看系统通知与合规预警</p>
+        <button type="button" id="mark-all-read-btn" class="btn btn-secondary btn-sm" onclick="markAllRead()">
+            <span class="material-symbols-outlined icon-sm">done_all</span>
+            一键全部已读
+        </button>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tabs-container mb-6" id="notification-tabs">
+        <div class="tabs">
+            <button type="button" class="tab active" data-filter="all" onclick="setFilter('all')">全部</button>
+            <button type="button" class="tab" data-filter="unread" onclick="setFilter('unread')">未读</button>
+            <button type="button" class="tab" data-filter="read" onclick="setFilter('read')">已读</button>
+        </div>
+    </div>
+
+    <!-- Notification List -->
+    <div id="notification-list" class="space-y-3">
+        <!-- Content loaded dynamically -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="notification-empty" class="empty-state hidden">
+        <span class="material-symbols-outlined empty-state-icon">inbox</span>
+        <h3 class="empty-state-title">暂无通知</h3>
+        <p class="empty-state-description">当前筛选条件下没有通知消息</p>
+    </div>
+</div>
+
+<script>
+(function() {
+    let currentFilter = 'all';
+    const listEl = document.getElementById('notification-list');
+    const emptyEl = document.getElementById('notification-empty');
+    const markAllBtn = document.getElementById('mark-all-read-btn');
+
+    function formatTime(isoString) {
+        if (!isoString) return '-';
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
+    function renderNotifications(notifications) {
+        listEl.innerHTML = '';
+        if (!notifications || notifications.length === 0) {
+            listEl.classList.add('hidden');
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+        listEl.classList.remove('hidden');
+        emptyEl.classList.add('hidden');
+
+        notifications.forEach(function(n) {
+            const item = document.createElement('div');
+            item.className = 'notification-item ' + (n.is_read ? 'notification-read' : 'notification-unread');
+            item.dataset.id = n.id;
+
+            const actions = [];
+            if (!n.is_read) {
+                actions.push(
+                    '<button type="button" class="btn btn-ghost btn-sm" onclick="markRead(' + n.id + ')">标记已读</button>'
+                );
+            }
+            actions.push(
+                '<button type="button" class="btn btn-ghost btn-sm text-error" onclick="deleteNotification(' + n.id + ')">删除</button>'
+            );
+
+            item.innerHTML =
+                '<div class="notification-content">' +
+                    '<div class="notification-header">' +
+                        '<h4 class="notification-title">' + escapeHtml(n.title || '系统通知') + '</h4>' +
+                        '<span class="notification-time">' + formatTime(n.created_at) + '</span>' +
+                    '</div>' +
+                    '<p class="notification-body">' + escapeHtml(n.content || '') + '</p>' +
+                    '<div class="notification-actions">' + actions.join('') + '</div>' +
+                '</div>' +
+                (n.is_read ? '' : '<span class="notification-dot" aria-hidden="true"></span>');
+
+            listEl.appendChild(item);
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    window.setFilter = function(filter) {
+        currentFilter = filter;
+        document.querySelectorAll('#notification-tabs .tab').forEach(function(tab) {
+            tab.classList.toggle('active', tab.dataset.filter === filter);
+        });
+        loadNotifications();
+    };
+
+    window.loadNotifications = async function() {
+        try {
+            const response = await fetch('/notifications/api/list?filter=' + encodeURIComponent(currentFilter));
+            if (!response.ok) throw new Error('加载失败');
+            const data = await response.json();
+            renderNotifications(data.notifications || data);
+        } catch (err) {
+            showToast('加载通知失败: ' + err.message, 'error');
+        }
+    };
+
+    window.markRead = async function(id) {
+        try {
+            const response = await fetch('/notifications/api/mark-read/' + encodeURIComponent(id), {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) throw new Error('请求失败');
+            const data = await response.json();
+            if (data.success !== false) {
+                showToast('已标记为已读', 'success');
+                loadNotifications();
+                updateUnreadBadge();
+            } else {
+                showToast(data.message || '操作失败', 'error');
+            }
+        } catch (err) {
+            showToast('操作失败: ' + err.message, 'error');
+        }
+    };
+
+    window.markAllRead = async function() {
+        try {
+            const response = await fetch('/notifications/api/mark-all-read', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) throw new Error('请求失败');
+            const data = await response.json();
+            if (data.success !== false) {
+                showToast('全部已读', 'success');
+                loadNotifications();
+                updateUnreadBadge();
+            } else {
+                showToast(data.message || '操作失败', 'error');
+            }
+        } catch (err) {
+            showToast('操作失败: ' + err.message, 'error');
+        }
+    };
+
+    window.deleteNotification = async function(id) {
+        confirmAction('确定要删除这条通知吗？', async function() {
+            try {
+                const response = await fetch('/notifications/api/delete/' + encodeURIComponent(id), {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('请求失败');
+                const data = await response.json();
+                if (data.success !== false) {
+                    showToast('已删除', 'success');
+                    loadNotifications();
+                    updateUnreadBadge();
+                } else {
+                    showToast(data.message || '操作失败', 'error');
+                }
+            } catch (err) {
+                showToast('操作失败: ' + err.message, 'error');
+            }
+        });
+    };
+
+    window.updateUnreadBadge = async function() {
+        const badge = document.getElementById('notification-badge');
+        if (!badge) return;
+        try {
+            const response = await fetch('/notifications/api/unread-count');
+            if (!response.ok) return;
+            const data = await response.json();
+            const count = data.unread_count || 0;
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        } catch (err) {
+            // ignore
+        }
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadNotifications();
+    });
+})();
+</script>
+{% endblock %}

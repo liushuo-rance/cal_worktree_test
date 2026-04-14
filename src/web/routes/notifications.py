@@ -3,7 +3,7 @@
 """
 
 import sqlite3
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 
 from web.utils import get_db
 
@@ -42,6 +42,101 @@ def notification_center():
         email_configured=email_config['is_configured'],
         hr_emails=email_config['hr_emails']
     )
+
+
+@bp.route('/inbox')
+def inbox():
+    """站内通知收件箱"""
+    return render_template('notifications/inbox.html')
+
+
+@bp.route('/api/unread-count')
+def api_unread_count():
+    """获取未读通知数量"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) as count FROM notifications WHERE is_read = 0
+    """)
+    row = cursor.fetchone()
+    conn.close()
+    return jsonify({'unread_count': row['count'] if row else 0})
+
+
+@bp.route('/api/list')
+def api_list():
+    """获取通知列表，支持筛选"""
+    filter_param = request.args.get('filter', 'all')
+    conn = get_db()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT id, employee_id, type, title, content, is_read, created_at
+        FROM notifications
+    """
+    params: tuple = ()
+
+    if filter_param == 'unread':
+        query += " WHERE is_read = 0"
+    elif filter_param == 'read':
+        query += " WHERE is_read = 1"
+
+    query += " ORDER BY created_at DESC, id DESC"
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+
+    notifications = [
+        {
+            'id': row['id'],
+            'employee_id': row['employee_id'],
+            'type': row['type'],
+            'title': row['title'],
+            'content': row['content'],
+            'is_read': bool(row['is_read']),
+            'created_at': row['created_at'],
+        }
+        for row in rows
+    ]
+
+    return jsonify(notifications)
+
+
+@bp.route('/api/mark-read/<int:notification_id>', methods=['POST'])
+def api_mark_read(notification_id: int):
+    """标记单条通知为已读"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE notifications SET is_read = 1 WHERE id = ?",
+        (notification_id,)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@bp.route('/api/mark-all-read', methods=['POST'])
+def api_mark_all_read():
+    """标记所有通知为已读"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE notifications SET is_read = 1")
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@bp.route('/api/delete/<int:notification_id>', methods=['POST'])
+def api_delete(notification_id: int):
+    """删除单条通知"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM notifications WHERE id = ?", (notification_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
 
 
 @bp.route('/send/comp-off-expiry', methods=['POST'])

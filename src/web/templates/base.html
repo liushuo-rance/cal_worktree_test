@@ -139,7 +139,7 @@
                 <span class="material-symbols-outlined">calendar_today</span>
                 <span>节假日管理</span>
             </a>
-            <a href="{{ url_for('notifications.notification_center') }}"
+            <a href="{{ url_for('notifications.inbox') }}"
                class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('notifications') %}active{% endif %}">
                 <span class="material-symbols-outlined">notifications</span>
                 <span>通知中心</span>
@@ -190,9 +190,9 @@
                 </a>
 
                 <!-- Notifications -->
-                <a href="{{ url_for('notifications.notification_center') }}" class="top-app-bar-btn relative" aria-label="通知" title="通知">
+                <a href="{{ url_for('notifications.inbox') }}" class="top-app-bar-btn relative" aria-label="通知" title="通知" id="notification-bell">
                     <span class="material-symbols-outlined">notifications</span>
-                    <span class="notification-badge" aria-hidden="true"></span>
+                    <span class="notification-badge hidden" id="notification-badge" aria-hidden="true">0</span>
                 </a>
 
                 <!-- Settings -->
@@ -265,6 +265,32 @@
                 }, 5000);
             });
         });
+
+        // Notification unread count polling
+        (function() {
+            const badge = document.getElementById('notification-badge');
+            if (!badge) return;
+
+            async function updateUnreadCount() {
+                try {
+                    const response = await fetch('/notifications/api/unread-count');
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    const count = data.unread_count || 0;
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                } catch (err) {
+                    // Silently ignore network errors
+                }
+            }
+
+            updateUnreadCount();
+            setInterval(updateUnreadCount, 30000);
+        })();
     </script>
 
     <!-- Toast Container -->

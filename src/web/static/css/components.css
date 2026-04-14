@@ -212,13 +212,26 @@
 
 .notification-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
+  top: 6px;
+  right: 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: var(--radius-full);
   background: var(--color-error);
   border: 2px solid rgba(251, 248, 255, 0.85);
+  color: var(--color-on-error);
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.notification-badge.hidden {
+  display: none;
 }
 
 /* Search input - underline style (used in page-level search forms) */
@@ -280,6 +293,11 @@
 .stat-card.secondary { border-bottom-color: var(--color-secondary); }
 .stat-card.tertiary { border-bottom-color: #fbc02d; }
 .stat-card.error { border-bottom-color: var(--color-error); }
+.stat-card.compliance-risk {
+  border-bottom-color: var(--color-error);
+  background: var(--color-error-container);
+  box-shadow: 0 0 0 1px rgba(186, 26, 26, 0.15), var(--shadow-sm);
+}
 
 .stat-card-header {
   display: flex;
@@ -1677,6 +1695,86 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator {
 }
 
 /* ========================================
+   NOTIFICATION LIST
+   ======================================== */
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-surface-container);
+  transition: background var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+
+.notification-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.notification-unread {
+  background: var(--color-primary-fixed);
+  border-color: rgba(0, 6, 102, 0.08);
+}
+
+.notification-read {
+  background: var(--color-surface-container-lowest);
+  opacity: 0.9;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.notification-title {
+  font-family: var(--font-headline);
+  font-size: var(--text-body-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+.notification-time {
+  font-size: var(--text-label-sm);
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.notification-body {
+  font-size: var(--text-body-sm);
+  color: var(--color-on-surface-variant);
+  margin: 0 0 var(--space-3);
+  line-height: var(--leading-relaxed);
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notification-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  flex-shrink: 0;
+  margin-top: var(--space-1);
+}
+
+/* ========================================
    DROPDOWN
    ======================================== */
 
@@ -1809,4 +1907,18 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator {
 
 [data-theme="dark"] .notification-badge {
   border-color: rgba(19, 19, 24, 0.85);
+}
+
+[data-theme="dark"] .notification-unread {
+  background: rgba(189, 194, 255, 0.12);
+  border-color: rgba(189, 194, 255, 0.15);
+}
+
+[data-theme="dark"] .notification-read {
+  background: var(--color-surface-container-lowest);
+}
+
+[data-theme="dark"] .stat-card.compliance-risk {
+  background: rgba(186, 26, 26, 0.12);
+  box-shadow: 0 0 0 1px rgba(186, 26, 26, 0.2), var(--shadow-sm);
 }

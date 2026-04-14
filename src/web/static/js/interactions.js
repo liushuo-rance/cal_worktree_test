@@ -414,6 +414,40 @@
   };
 
   // ========================================
+  // NOTIFICATION HELPERS
+  // ========================================
+
+  window.fetchUnreadCount = async function() {
+    try {
+      const response = await fetch('/notifications/api/unread-count');
+      if (!response.ok) return 0;
+      const data = await response.json();
+      return data.unread_count || 0;
+    } catch (err) {
+      return 0;
+    }
+  };
+
+  window.updateNotificationBadge = async function() {
+    const badge = document.getElementById('notification-badge');
+    if (!badge) return;
+    const count = await fetchUnreadCount();
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  };
+
+  window.refreshNotifications = async function() {
+    if (typeof loadNotifications === 'function') {
+      await loadNotifications();
+    }
+    await updateNotificationBadge();
+  };
+
+  // ========================================
   // PRINT FUNCTIONALITY
   // ========================================
 

@@ -12,7 +12,7 @@
 
     <!-- Summary Metrics (Tonal Layering) -->
     <section class="mb-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             <!-- Total Employees -->
             <div class="stat-card primary">
                 <div class="stat-card-header">
@@ -67,6 +67,25 @@
                         </span>
                     {% else %}
                         <span class="text-on-surface-variant">无待审批</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Compliance Risk -->
+            <div class="stat-card {% if compliance_risk_count and compliance_risk_count > 0 %}compliance-risk{% else %}primary{% endif %}">
+                <div class="stat-card-header">
+                    <span class="stat-card-label" style="{% if compliance_risk_count and compliance_risk_count > 0 %}color: var(--color-error);{% else %}color: var(--color-primary-container);{% endif %}">本月加班合规风险</span>
+                    <span class="material-symbols-outlined stat-card-icon" style="{% if compliance_risk_count and compliance_risk_count > 0 %}color: var(--color-error);{% else %}color: var(--color-primary-container);{% endif %}">policy</span>
+                </div>
+                <div class="stat-card-value {% if compliance_risk_count and compliance_risk_count > 0 %}error{% endif %}">{{ compliance_risk_count or 0 }}</div>
+                <div class="stat-card-footer">
+                    {% if compliance_risk_count and compliance_risk_count > 0 %}
+                        <span class="chip chip-error">
+                            <span class="material-symbols-outlined text-sm">warning</span>
+                            <span>需关注</span>
+                        </span>
+                    {% else %}
+                        <span class="text-on-surface-variant">合规状态良好</span>
                     {% endif %}
                 </div>
             </div>
