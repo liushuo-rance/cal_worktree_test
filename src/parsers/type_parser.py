@@ -52,14 +52,13 @@ TYPE_RULES = {
 }
 
 
-def calculate_confidence(text: str, record_type: str, matched_pattern: str = None) -> float:
+def calculate_confidence(text: str, record_type: str) -> float:
     """
     计算识别置信度
 
     Args:
         text: 原始文本
         record_type: 识别到的类型
-        matched_pattern: 匹配的模式
 
     Returns:
         置信度分数 (0-1)
@@ -103,7 +102,7 @@ def classify_record_type(text: str) -> Dict[str, Any]:
         # 检查模式
         pattern_match = None
         subtype = None
-        for pattern, st, conf in rules.get('patterns', []):
+        for pattern, st, _ in rules.get('patterns', []):
             if re.search(pattern, text):
                 pattern_match = pattern
                 subtype = st
@@ -111,7 +110,7 @@ def classify_record_type(text: str) -> Dict[str, Any]:
 
         # 如果匹配到关键词或模式
         if keyword_match or pattern_match:
-            confidence = calculate_confidence(text, record_type, pattern_match)
+            confidence = calculate_confidence(text, record_type)
 
             result = {
                 'type': record_type,

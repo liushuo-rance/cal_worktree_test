@@ -13,22 +13,6 @@ class ParseError(Exception):
     pass
 
 
-# 节假日名称映射
-HOLIDAY_NAME_PATTERNS = {
-    '元旦': 'New Year',
-    '春节': 'Spring Festival',
-    '清明': 'Tomb Sweeping',
-    '清明节': 'Tomb Sweeping',
-    '劳动': 'Labor Day',
-    '劳动节': 'Labor Day',
-    '端午': 'Dragon Boat',
-    '端午节': 'Dragon Boat',
-    '中秋': 'Mid-Autumn',
-    '中秋节': 'Mid-Autumn',
-    '国庆': 'National Day',
-    '国庆节': 'National Day',
-}
-
 # 法定假日天数配置
 STATUTORY_DAYS = {
     '元旦': 1,

@@ -24,13 +24,6 @@ def _check_employee_exists(conn: sqlite3.Connection, employee_id: str) -> bool:
     return cursor.fetchone() is not None
 
 
-def _minutes_to_hours_minutes(total_minutes: int) -> tuple:
-    """将总分钟数转换为小时和分钟"""
-    hours = total_minutes // 60
-    minutes = total_minutes % 60
-    return hours, minutes
-
-
 def store_overtime_record(
     conn: sqlite3.Connection,
     employee_id: str,

@@ -13,8 +13,6 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from services.review_service import (
-    get_pending_reviews,
-    get_review_by_id,
     approve_review,
     reject_review,
     ReviewServiceError,
