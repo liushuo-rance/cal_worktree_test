@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Review Queue - The Digital Jurist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Playfair+Display:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "inverse-surface": "#2f3038",
+                "surface-dim": "#dad9e4",
+                "secondary-container": "#a0f399",
+                "tertiary-fixed": "#ffdbca",
+                "surface-container-high": "#e8e7f2",
+                "on-tertiary-fixed": "#331200",
+                "error-container": "#ffdad6",
+                "surface-container-low": "#f3f2fe",
+                "on-secondary-container": "#217128",
+                "secondary": "#1b6d24",
+                "on-tertiary-container": "#f57009",
+                "surface-bright": "#fbf8ff",
+                "on-surface": "#1a1b23",
+                "tertiary-container": "#532100",
+                "inverse-primary": "#bdc2ff",
+                "tertiary-fixed-dim": "#ffb68f",
+                "surface": "#fbf8ff",
+                "on-tertiary": "#ffffff",
+                "on-secondary": "#ffffff",
+                "surface-container-highest": "#e2e1ed",
+                "primary-fixed-dim": "#bdc2ff",
+                "background": "#fbf8ff",
+                "surface-tint": "#4c56af",
+                "on-tertiary-fixed-variant": "#773200",
+                "on-error": "#ffffff",
+                "secondary-fixed-dim": "#88d982",
+                "on-surface-variant": "#454652",
+                "on-secondary-fixed-variant": "#005312",
+                "on-primary-fixed": "#000767",
+                "surface-container": "#eeedf8",
+                "on-error-container": "#93000a",
+                "surface-container-lowest": "#ffffff",
+                "on-primary": "#ffffff",
+                "on-primary-fixed-variant": "#343d96",
+                "tertiary": "#321100",
+                "primary-fixed": "#e0e0ff",
+                "on-secondary-fixed": "#002204",
+                "outline-variant": "#c6c5d4",
+                "surface-variant": "#e2e1ed",
+                "primary": "#000666",
+                "outline": "#767683",
+                "inverse-on-surface": "#f1f0fb",
+                "primary-container": "#1a237e",
+                "secondary-fixed": "#a3f69c",
+                "on-primary-container": "#8690ee",
+                "error": "#ba1a1a",
+                "on-background": "#1a1b23"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem",
+                "custom": "4px"
+            },
+            "fontFamily": {
+                "headline": ["Playfair Display", "serif"],
+                "body": ["Inter", "sans-serif"],
+                "label": ["Inter", "sans-serif"],
+                "manrope": ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .bg-gradient-sidebar {
+            background: linear-gradient(to bottom, #000666, #1A237E);
+        }
+        .primary-action-btn {
+            border-radius: 4px !important;
+        }
+        .primary-action-btn:hover {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-gradient-sidebar dark:from-slate-950 dark:to-indigo-950 shadow-2xl dark:shadow-none flex flex-col py-8 z-50">
+<div class="px-8 mb-10">
+<h1 class="text-lg font-bold tracking-widest text-white uppercase font-manrope">The Digital Jurist</h1>
+<p class="text-xs text-indigo-300/80 font-medium">Compliance Division</p>
+</div>
+<nav class="flex-1">
+<ul class="space-y-1">
+<li>
+<a class="text-indigo-100/70 hover:text-white px-8 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope tracking-tight font-semibold">Compliance Dashboard</span>
+</a>
+</li>
+<li>
+<a class="bg-[#fbf8ff] text-[#000666] rounded-l-full ml-4 pl-4 py-3 font-bold transition-all duration-300 flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span class="font-manrope tracking-tight font-semibold">Review Queue</span>
+</a>
+</li>
+<li>
+<a class="text-indigo-100/70 hover:text-white px-8 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span class="font-manrope tracking-tight font-semibold">Audit Logs</span>
+</a>
+</li>
+<li>
+<a class="text-indigo-100/70 hover:text-white px-8 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+<span class="font-manrope tracking-tight font-semibold">Legal Library</span>
+</a>
+</li>
+<li>
+<a class="text-indigo-100/70 hover:text-white px-8 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-manrope tracking-tight font-semibold">Settings</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="px-6 mt-auto">
+<button class="primary-action-btn w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center gap-2 transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>New Audit</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-[#fbf8ff]/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-[#1A237E]/10 dark:border-white/10 flex justify-between items-center px-8">
+<div class="flex items-center gap-8">
+<h2 class="text-xl font-bold text-[#1A237E] dark:text-white font-headline">Review Queue</h2>
+<nav class="flex gap-6 h-full">
+<a class="text-[#1A237E] border-b-2 border-[#1A237E] pb-1 font-bold dark:text-white dark:border-indigo-400 font-manrope font-medium text-sm flex items-center" href="#">Pending</a>
+<a class="text-slate-500 hover:text-[#1A237E] dark:text-slate-400 font-manrope font-medium text-sm flex items-center transition-colors" href="#">Flagged</a>
+<a class="text-slate-500 hover:text-[#1A237E] dark:text-slate-400 font-manrope font-medium text-sm flex items-center transition-colors" href="#">Resolved</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-sm" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container rounded-full border-none focus:ring-2 focus:ring-primary/20 text-sm w-64" placeholder="Search entries..." type="text"/>
+</div>
+<div class="flex items-center gap-4 text-primary dark:text-indigo-300">
+<button class="opacity-80 hover:opacity-100 transition-opacity"><span class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
+<button class="opacity-80 hover:opacity-100 transition-opacity"><span class="material-symbols-outlined" data-icon="help_outline">help_outline</span></button>
+</div>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-primary/10">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="professional headshot of a legal manager in a corporate office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlcV1YuANSz6Ih5XlgdNF-sZPsYo32cDCbqONxN8wAKmXLcG4jaaPJf48InyHn57Hvs_w7XvM2NQXEl-NMT0vxI2CbVaJJX0DmQS4jJTbl-MzncGwCbMcW_cVu3OmgC6ESlgPkjednpJFN_fhIRs_XI3AAHANlx4-fa6FxOD76S5WkXAkdlLLRYTXZXYmWXBe_Fa9S3HY8jnKeDc-Wg0QEXGGPMXLFj1_Do-3Xbx9xNG0NErQS5zxyimoOTsP4cKr7nr8IUwrZAXI"/>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="mt-16 p-8">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h3 class="text-3xl font-bold text-primary font-headline tracking-tight">Pending OT Review</h3>
+<p class="text-on-surface-variant text-sm mt-1">Found 24 records requiring immediate compliance verification.</p>
+</div>
+<div class="flex gap-3">
+<button class="primary-action-btn px-4 py-2 text-primary font-bold border border-primary/20 hover:bg-primary/5 transition-all text-sm">
+                        Export Report
+                    </button>
+<button class="primary-action-btn px-6 py-2 bg-gradient-to-r from-primary to-primary-container text-white font-bold transition-all active:scale-95 text-sm">
+                        Batch Approve
+                    </button>
+</div>
+</div>
+<!-- Bento Stats Summary (Asymmetric Layout) -->
+<div class="grid grid-cols-12 gap-6 mb-10">
+<div class="col-span-8 bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/15 shadow-sm flex items-center justify-between">
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest mb-2">Total Exposure</p>
+<p class="text-4xl font-bold text-primary font-headline">142.5 <span class="text-lg font-medium text-on-surface-variant">hrs</span></p>
+</div>
+<div class="h-16 w-px bg-outline-variant/30"></div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest mb-2">Flagged Items</p>
+<p class="text-4xl font-bold text-error font-headline">08</p>
+</div>
+<div class="h-16 w-px bg-outline-variant/30"></div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest mb-2">Approvals Today</p>
+<p class="text-4xl font-bold text-secondary font-headline">156</p>
+</div>
+</div>
+<div class="col-span-4 bg-primary text-white p-6 rounded-lg shadow-xl relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-2">Compliance Status</p>
+<p class="text-xl font-bold font-headline mb-4">Awaiting Audit Completion</p>
+<div class="w-full bg-white/20 h-2 rounded-full overflow-hidden">
+<div class="bg-secondary-fixed w-3/4 h-full"></div>
+</div>
+</div>
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-white/5 text-9xl pointer-events-none" data-icon="gavel">gavel</span>
+</div>
+</div>
+<!-- Table Container -->
+<div class="bg-surface-container-lowest rounded-lg border border-gray-300 shadow-sm overflow-hidden">
+<table class="w-full border-collapse text-left">
+<thead>
+<tr class="bg-blue-50 text-on-surface-variant text-[11px] font-bold uppercase tracking-widest border-b border-gray-300">
+<th class="px-6 py-4">Employee Name</th>
+<th class="px-6 py-4">Date</th>
+<th class="px-6 py-4">Raw Description</th>
+<th class="px-6 py-4">Parsed Type</th>
+<th class="px-6 py-4">Duration</th>
+<th class="px-6 py-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-300">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<img alt="Avatar" class="h-8 w-8 rounded-full bg-indigo-100" data-alt="professional portrait of a male employee in business casual attire smiling slightly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmFRBEVES8ycLuFgKx23mNlOPUr43jdNW2G77RUTcTo-xjyXjShoEIhBhpjFliuH_mN0eF5JYUar6_Txa1QLEnEAFCYqT0jCyK4w77_p-EtvIAWldeJOngNt5LQxuamvF_UsLDdyY0DWEv_DwqN_jMQt4aCub4VN41wiO-Q4ZC_DVWG8UCIIgjeq19sDzBV6MWxP1AEzKTE-wuxMRCtoemHwup_4eTs4yMtNzB-ldDkXX_WAg4UWL2bWyGpXcyc9eDTWlkL_parDE"/>
+<div>
+<p class="font-bold text-sm">Alexander Miller</p>
+<p class="text-xs text-on-surface-variant">Senior Analyst</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium tabular-nums">Oct 24, 2023</td>
+<td class="px-6 py-5">
+<code class="text-xs bg-surface-container px-2 py-1 rounded text-primary-container font-mono">
+                                    #Q4-Audit: extended hours for compliance filing
+                                </code>
+</td>
+<td class="px-6 py-5">
+<span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container">Weekday OT</span>
+</td>
+<td class="px-6 py-5 font-bold font-headline tabular-nums">4.5 hrs</td>
+<td class="px-6 py-5">
+<div class="flex justify-end gap-2">
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-secondary-container/30 text-secondary hover:bg-secondary-container hover:shadow-sm transition-all active:scale-90" title="Approve">
+<span class="material-symbols-outlined text-lg" data-icon="check">check</span>
+</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-error-container/30 text-error hover:bg-error-container hover:shadow-sm transition-all active:scale-90" title="Reject">
+<span class="material-symbols-outlined text-lg" data-icon="close">close</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<img alt="Avatar" class="h-8 w-8 rounded-full bg-indigo-100" data-alt="professional portrait of a female employee with glasses and a friendly expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOiKm70UWdmW4GcwWos3Fzn2aa_4BiCKACmCch3Osj0ioSv512m9PLxenUaIfVz1SdOGj1IWpD4m_NWshBzFE7d69QOB-AhnRqlgbu-8SM70s_bIqO4pbjVmcp8FgtDPIBQ3Z44ianwq8wAGeI08CDnm8ExizfnrBoFquG27bksgN0d6e4Ir9z0PrzKUlXpfAT4t_WFjoWumsBJTVno2X-UT4VB0nw88nSDNHKBN3iHVCZSAS-kU-muaBCO55QKNFOCBkmm5SchUI"/>
+<div>
+<p class="font-bold text-sm">Sarah Lundberg</p>
+<p class="text-xs text-on-surface-variant">Lead Developer</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium tabular-nums">Oct 21, 2023</td>
+<td class="px-6 py-5">
+<code class="text-xs bg-surface-container px-2 py-1 rounded text-primary-container font-mono">
+                                    &gt; critical bug fix: weekend deployment hotfix
+                                </code>
+</td>
+<td class="px-6 py-5">
+<span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-tertiary-fixed text-on-tertiary-fixed-variant">Weekend OT</span>
+</td>
+<td class="px-6 py-5 font-bold font-headline tabular-nums">6.2 hrs</td>
+<td class="px-6 py-5">
+<div class="flex justify-end gap-2">
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-secondary-container/30 text-secondary hover:bg-secondary-container hover:shadow-sm transition-all active:scale-90" title="Approve">
+<span class="material-symbols-outlined text-lg" data-icon="check">check</span>
+</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-error-container/30 text-error hover:bg-error-container hover:shadow-sm transition-all active:scale-90" title="Reject">
+<span class="material-symbols-outlined text-lg" data-icon="close">close</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<img alt="Avatar" class="h-8 w-8 rounded-full bg-indigo-100" data-alt="professional portrait of a diverse male employee in a white shirt with a focused expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC31A2Ym7Bnjf_nyttSZ_TeDe69IubCo2t0tq9aY8rGXfBEi7czEHQEnwEYh4ymETO2E4oTSkK5-eC2FfqSvC2TSE9tDcw-Yj4deamHlbPteRA3uOVM7WSzQhLg2p4YXlFIm5Sed0IcdgbBSEcuC1jdCQv4khwx7F6t9ycMa8OvsVQcsjrlwWj5U5yjax9E0025jHNPjQ_zy42HdN4GpumPo1kQFeNDMOYPMqd3wJ-oG_vsxzlmcbzljHSxcH9PrjvMOdKfBMO400c"/>
+<div>
+<p class="font-bold text-sm">David Wu</p>
+<p class="text-xs text-on-surface-variant">Project Manager</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium tabular-nums">Oct 24, 2023</td>
+<td class="px-6 py-5">
+<code class="text-xs bg-surface-container px-2 py-1 rounded text-primary-container font-mono">
+                                    client-meeting: sync for overseas expansion
+                                </code>
+</td>
+<td class="px-6 py-5">
+<span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container">Weekday OT</span>
+</td>
+<td class="px-6 py-5 font-bold font-headline tabular-nums">2.0 hrs</td>
+<td class="px-6 py-5">
+<div class="flex justify-end gap-2">
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-secondary-container/30 text-secondary hover:bg-secondary-container hover:shadow-sm transition-all active:scale-90" title="Approve">
+<span class="material-symbols-outlined text-lg" data-icon="check">check</span>
+</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-error-container/30 text-error hover:bg-error-container hover:shadow-sm transition-all active:scale-90" title="Reject">
+<span class="material-symbols-outlined text-lg" data-icon="close">close</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 (Violation Example) -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5 border-l-4 border-error">
+<div class="flex items-center gap-3">
+<img alt="Avatar" class="h-8 w-8 rounded-full bg-indigo-100" data-alt="professional portrait of a female employee in a blazer looking directly at the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgrAJOGMeIhYRwYFZ5nqu6Mlbk4nkSovhhfMKxMuQlCb9l0-9Y4AbEiBBizypdtwmDNN1scK3036uxTSPVmF1Axigy0wGAA03dQiyQAL-PQz2ZxIlfpw_5mOF2ww_IHL4XVdv2BO10wguSoi46nIQXp7ewmuBiLSlMLuAySkQVLoMFB8se1KrV6FkD92EtOEGm8_PkVljOe1KLXfEXpbkKYOEepnWaUPDC1JZZi6rNIrNUMafuKyc3DOKO-O_WVwus6MduUOzPCB0"/>
+<div>
+<p class="font-bold text-sm">Elena Perez</p>
+<p class="text-xs text-on-surface-variant">Sales Director</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-sm font-medium tabular-nums">Oct 23, 2023</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<code class="text-xs bg-error-container/20 px-2 py-1 rounded text-error font-mono italic">
+                                        System Flag: Holiday Work Violation
+                                    </code>
+<span class="material-symbols-outlined text-error text-sm" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-error-container text-on-error-container">Holiday OT</span>
+</td>
+<td class="px-6 py-5 font-bold font-headline tabular-nums text-error">8.0 hrs</td>
+<td class="px-6 py-5">
+<div class="flex justify-end gap-2">
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-secondary-container/30 text-secondary hover:bg-secondary-container hover:shadow-sm transition-all active:scale-90" title="Approve">
+<span class="material-symbols-outlined text-lg" data-icon="check">check</span>
+</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-custom bg-error text-white hover:bg-error/90 hover:shadow-md transition-all active:scale-90 shadow-md" title="Reject">
+<span class="material-symbols-outlined text-lg" data-icon="close">close</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Empty State Row (Hidden by default, shown if no rows exist) -->
+<tr class="hidden" id="empty-state-row">
+<td class="px-6 py-20 text-center" colspan="6">
+<div class="flex flex-col items-center justify-center gap-4 text-on-surface-variant">
+<div class="h-20 w-20 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-blue-400" style="font-variation-settings: 'wght' 200;">check_circle</span>
+</div>
+<p class="text-lg font-headline font-bold text-primary">All caught up! No pending reviews.</p>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination / Footer -->
+<div class="px-6 py-4 bg-surface-container-low flex justify-between items-center text-xs text-on-surface-variant font-medium">
+<p>Showing 1-4 of 24 entries</p>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-surface-container-lowest border border-outline-variant/30 rounded-custom hover:bg-white hover:shadow-sm transition-colors disabled:opacity-50" disabled="">Previous</button>
+<button class="px-3 py-1 bg-primary text-white rounded-custom shadow-sm">1</button>
+<button class="px-3 py-1 bg-surface-container-lowest border border-outline-variant/30 rounded-custom hover:bg-white hover:shadow-sm transition-colors">2</button>
+<button class="px-3 py-1 bg-surface-container-lowest border border-outline-variant/30 rounded-custom hover:bg-white hover:shadow-sm transition-colors">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

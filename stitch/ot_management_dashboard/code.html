@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Digital Jurist - Compliance Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#bdc2ff",
+                        "outline": "#767683",
+                        "on-background": "#1a1b23",
+                        "inverse-on-surface": "#f1f0fb",
+                        "primary": "#000666",
+                        "tertiary": "#321100",
+                        "on-surface-variant": "#454652",
+                        "tertiary-container": "#532100",
+                        "secondary-fixed-dim": "#88d982",
+                        "inverse-primary": "#bdc2ff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#331200",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#e0e0ff",
+                        "primary-container": "#1a237e",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#e2e1ed",
+                        "surface-dim": "#dad9e4",
+                        "secondary-container": "#a0f399",
+                        "tertiary-fixed": "#ffdbca",
+                        "surface-bright": "#fbf8ff",
+                        "inverse-surface": "#2f3038",
+                        "surface-container-high": "#e8e7f2",
+                        "error-container": "#ffdad6",
+                        "surface": "#fbf8ff",
+                        "on-secondary-container": "#217128",
+                        "on-secondary-fixed-variant": "#005312",
+                        "surface-tint": "#4c56af",
+                        "surface-container-highest": "#e2e1ed",
+                        "on-secondary-fixed": "#002204",
+                        "on-primary-fixed": "#000767",
+                        "background": "#fbf8ff",
+                        "on-surface": "#1a1b23",
+                        "surface-container": "#eeedf8",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#1b6d24",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#a3f69c",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "on-primary-container": "#8690ee",
+                        "on-tertiary-container": "#f57009",
+                        "on-primary-fixed-variant": "#343d96",
+                        "surface-container-low": "#f3f2fe",
+                        "outline-variant": "#c6c5d4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .headline { font-family: 'Manrope', sans-serif; }
+        .glass-panel {
+            background: rgba(243, 242, 254, 0.8);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar (Authority Panel) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-gradient-to-b from-[#000666] to-[#1A237E] flex flex-col h-full py-8 z-[60] shadow-2xl dark:shadow-none">
+<div class="px-6 mb-10">
+<h2 class="font-['Manrope'] font-bold text-white uppercase tracking-widest text-xs mb-1">Compliance Portal</h2>
+<p class="text-blue-100/60 text-[10px] font-['Inter']">Academic Labor Law Suite</p>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Active State: Dashboard -->
+<a class="bg-[#fbf8ff] text-[#000666] rounded-l-full ml-4 pl-6 py-3 font-bold transition-all duration-300 relative after:content-[''] after:absolute after:right-0 after:top-0 after:h-full after:w-2 after:bg-[#fbf8ff] flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-['Inter'] text-sm tracking-wide">Dashboard</span>
+</a>
+<a class="text-blue-100/70 hover:text-white px-6 py-3 flex items-center gap-3 transition-all hover:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span class="font-['Inter'] text-sm tracking-wide">OT Records</span>
+</a>
+<a class="text-blue-100/70 hover:text-white px-6 py-3 flex items-center gap-3 transition-all hover:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="event_busy">event_busy</span>
+<span class="font-['Inter'] text-sm tracking-wide">Leave Records</span>
+</a>
+<a class="text-blue-100/70 hover:text-white px-6 py-3 flex items-center gap-3 transition-all hover:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="font-['Inter'] text-sm tracking-wide">Employee Directory</span>
+</a>
+<a class="text-blue-100/70 hover:text-white px-6 py-3 flex items-center gap-3 transition-all hover:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-['Inter'] text-sm tracking-wide">Holiday Calendar</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-lg flex items-center justify-center gap-2 transition-colors font-bold text-xs">
+                New Compliance Audit
+            </button>
+<div class="mt-8 space-y-4">
+<a class="flex items-center gap-3 text-blue-100/50 text-xs hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="help_center">help_center</span>
+                    Support
+                </a>
+<a class="flex items-center gap-3 text-blue-100/50 text-xs hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="gavel">gavel</span>
+                    Legal Documentation
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 sticky top-0 z-50 bg-[#fbf8ff] dark:bg-slate-950">
+<div class="flex items-center gap-4">
+<h1 class="text-xl font-bold tracking-tight text-[#1A237E] dark:text-blue-400 font-['Manrope']">The Digital Jurist</h1>
+<div class="h-6 w-[1px] bg-[#eeedf8] dark:bg-slate-900 mx-2"></div>
+<nav class="hidden md:flex gap-6">
+<a class="text-[#1A237E] dark:text-blue-300 font-bold border-b-2 border-[#1A237E] py-5 text-sm font-['Manrope']" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-[#1A237E] transition-colors py-5 text-sm font-['Manrope']" href="#">Analytics</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-[#1A237E] transition-colors py-5 text-sm font-['Manrope']" href="#">Reporting</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-slate-400 text-lg" data-icon="search">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-1.5 text-xs w-64 focus:ring-1 focus:ring-primary" placeholder="Search compliance codes..." type="text"/>
+</div>
+<div class="flex items-center gap-4 text-slate-500">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="account_balance">account_balance</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="settings">settings</span>
+</div>
+<img alt="Administrator Profile" class="w-8 h-8 rounded-full border border-outline-variant/30 object-cover" data-alt="Professional portrait of a legal administrator in a modern office setting with natural lighting and professional attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPqL3gxbELURaTdKJIFBDp_yU0y0BHvl7MtPiGlefqOnPtr29bC4u0feo7_wX626phhaQIxL_xAt_TUV9GyrqY3Kf_lvGSx_zT0YE_Xklo_OfPdjyY29AiWYZPwqbx2oT4MZhQzc627QuwO4CJw2vMcigk3mFBnBoUwy2oJQbVUNkqZXPW_8N-yuChf9jhGZBhdHpCZTCN7lTjghlUpUeyWj28WiISNy9Tv3lLUJq8q03PytsshlDJvf_E69EXKb2U8bS1jL8HbMs"/>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="p-8 space-y-12 max-w-7xl mx-auto w-full">
+<!-- Summary Metrics (Tonal Layering & Academic Scaling) -->
+<section>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Total Employees -->
+<div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm border-b-4 border-primary-container transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-primary-container font-semibold text-xs tracking-wider uppercase font-['Inter']">Total Employees</span>
+<span class="material-symbols-outlined text-primary-container/40" data-icon="groups">groups</span>
+</div>
+<div class="text-[3.5rem] font-extrabold text-on-surface font-['Manrope'] leading-none">1,248</div>
+<div class="mt-4 flex items-center gap-1 text-[10px] text-secondary font-bold">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
+                            +12% from last quarter
+                        </div>
+</div>
+<!-- OT Records -->
+<div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm border-b-4 border-secondary transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-secondary font-semibold text-xs tracking-wider uppercase font-['Inter']">OT Records</span>
+<span class="material-symbols-outlined text-secondary/40" data-icon="history_edu">history_edu</span>
+</div>
+<div class="text-[3.5rem] font-extrabold text-on-surface font-['Manrope'] leading-none">842</div>
+<div class="mt-4 flex items-center gap-1 text-[10px] text-on-surface-variant font-medium">
+                            4.2h average per employee
+                        </div>
+</div>
+<!-- Leave Records -->
+<div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm border-b-4 border-[#fbc02d] transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[#b4891b] font-semibold text-xs tracking-wider uppercase font-['Inter']">Leave Records</span>
+<span class="material-symbols-outlined text-[#fbc02d]/40" data-icon="event_busy">event_busy</span>
+</div>
+<div class="text-[3.5rem] font-extrabold text-on-surface font-['Manrope'] leading-none">56</div>
+<div class="mt-4 flex items-center gap-1 text-[10px] text-tertiary font-bold">
+                            Active statutory filings
+                        </div>
+</div>
+<!-- Pending Approvals -->
+<div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm border-b-4 border-error transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-error font-semibold text-xs tracking-wider uppercase font-['Inter']">Pending Approvals</span>
+<span class="material-symbols-outlined text-error/40" data-icon="gavel">gavel</span>
+</div>
+<div class="text-[3.5rem] font-extrabold text-error font-['Manrope'] leading-none">19</div>
+<div class="mt-4 flex items-center gap-1 text-[10px] text-error font-bold">
+                            Action required for compliance
+                        </div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid (Minimalist Authorities) -->
+<section class="space-y-6">
+<div class="flex items-end justify-between px-2">
+<h2 class="text-2xl font-bold text-on-surface font-['Manrope']">System Quick Actions</h2>
+<p class="text-sm text-on-surface-variant font-['Inter']">Last audit synced 14 minutes ago</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Import Markdown -->
+<button class="group relative bg-surface-container p-8 rounded-lg text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline-variant/10">
+<div class="bg-primary/5 group-hover:bg-white/10 w-14 h-14 rounded-lg flex items-center justify-center mb-6 transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white text-3xl" data-icon="upload_file">upload_file</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface group-hover:text-white font-['Manrope'] mb-2">Import Markdown</h3>
+<p class="text-xs text-on-surface-variant group-hover:text-blue-100/70 leading-relaxed">Bulk sync labor data from structured compliance documents.</p>
+<span class="absolute top-4 right-4 material-symbols-outlined text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_outward">arrow_outward</span>
+</button>
+<!-- Review Queue -->
+<button class="group relative bg-surface-container p-8 rounded-lg text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline-variant/10">
+<div class="bg-primary/5 group-hover:bg-white/10 w-14 h-14 rounded-lg flex items-center justify-center mb-6 transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white text-3xl" data-icon="fact_check">fact_check</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface group-hover:text-white font-['Manrope'] mb-2">Review Queue</h3>
+<p class="text-xs text-on-surface-variant group-hover:text-blue-100/70 leading-relaxed">Address flags and compliance warnings in the pending stream.</p>
+<span class="absolute top-4 right-4 material-symbols-outlined text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_outward">arrow_outward</span>
+</button>
+<!-- Employee Directory -->
+<button class="group relative bg-surface-container p-8 rounded-lg text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline-variant/10">
+<div class="bg-primary/5 group-hover:bg-white/10 w-14 h-14 rounded-lg flex items-center justify-center mb-6 transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white text-3xl" data-icon="badge">badge</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface group-hover:text-white font-['Manrope'] mb-2">Employee Directory</h3>
+<p class="text-xs text-on-surface-variant group-hover:text-blue-100/70 leading-relaxed">Access full labor contracts and historical overtime performance.</p>
+<span class="absolute top-4 right-4 material-symbols-outlined text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_outward">arrow_outward</span>
+</button>
+<!-- Holiday Calendar -->
+<button class="group relative bg-surface-container p-8 rounded-lg text-left transition-all hover:bg-primary-container duration-300 ring-1 ring-outline-variant/10">
+<div class="bg-primary/5 group-hover:bg-white/10 w-14 h-14 rounded-lg flex items-center justify-center mb-6 transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white text-3xl" data-icon="calendar_today">calendar_today</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface group-hover:text-white font-['Manrope'] mb-2">Holiday Calendar</h3>
+<p class="text-xs text-on-surface-variant group-hover:text-blue-100/70 leading-relaxed">Manage statutory holidays and peak-season compliance windows.</p>
+<span class="absolute top-4 right-4 material-symbols-outlined text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" data-icon="arrow_outward">arrow_outward</span>
+</button>
+</div>
+</section>
+<!-- Academic Insight Section (Bento Style) -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Compliance Health Card -->
+<div class="lg:col-span-2 bg-surface-container-low rounded-lg p-8 relative overflow-hidden group">
+<div class="relative z-10">
+<h3 class="text-sm font-bold text-primary mb-6 uppercase tracking-widest font-['Manrope']">Labor Risk Analysis</h3>
+<div class="flex items-center gap-12 mb-8">
+<div>
+<p class="text-[3rem] font-bold text-on-surface leading-tight font-['Manrope']">94.8%</p>
+<p class="text-xs text-on-surface-variant font-medium">Compliance Integrity Score</p>
+</div>
+<div class="h-16 w-[1px] bg-outline-variant/30"></div>
+<div>
+<p class="text-[3rem] font-bold text-on-surface leading-tight font-['Manrope']">02</p>
+<p class="text-xs text-on-surface-variant font-medium">Critical Breaches (Active)</p>
+</div>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[94.8%]"></div>
+</div>
+</div>
+<!-- Subtle background graphic for authority -->
+<div class="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[15rem]" data-icon="balance">balance</span>
+</div>
+</div>
+<!-- Legal Digest Sidebar -->
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-sm border-l-4 border-primary">
+<h3 class="text-sm font-bold text-on-surface mb-6 font-['Manrope']">Latest Labor Law Briefs</h3>
+<div class="space-y-6">
+<div class="group cursor-pointer">
+<p class="text-[10px] text-on-surface-variant mb-1 font-bold">12 OCT 2023</p>
+<h4 class="text-sm font-bold text-primary group-hover:underline mb-1">Mandatory Rest Period Amendment</h4>
+<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">New regulations require a minimum 11-hour break between consecutive shifts starting next quarter.</p>
+</div>
+<div class="h-[1px] bg-surface-container"></div>
+<div class="group cursor-pointer">
+<p class="text-[10px] text-on-surface-variant mb-1 font-bold">08 OCT 2023</p>
+<h4 class="text-sm font-bold text-primary group-hover:underline mb-1">Weekend Compensation Thresholds</h4>
+<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">Revised overtime multipliers for Saturday work exceeding 6 hours in technical departments.</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Separation (The Shadow Logic) -->
+<footer class="mt-auto py-8 px-8 flex justify-between items-center bg-[#eeedf8] dark:bg-slate-900 h-[1px]">
+<!-- Subtle baseline -->
+</footer>
+</main>
+</body></html>

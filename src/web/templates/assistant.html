@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}AI 助手{% endblock %}
+
+{% block page_title %}AI 助手{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/assistant.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container assistant-page flex flex-col">
+  <!-- Header -->
+  <div class="assistant-header">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white" style="background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);">
+        <span class="material-symbols-outlined text-lg">smart_toy</span>
+      </div>
+      <div>
+        <h1 class="assistant-header__title">AI 助手</h1>
+        <p class="assistant-header__subtitle">智能加班记录助手</p>
+      </div>
+    </div>
+    <div class="assistant-header__actions">
+      <button id="clear-btn">
+        <span class="material-symbols-outlined text-base">delete</span>
+        清空对话
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages Stage -->
+  <div id="messages" class="messages-stage">
+    {% if not messages %}
+      <div id="empty-state" class="empty-state">
+        <div class="empty-state__icon">
+          <span class="material-symbols-outlined">smart_toy</span>
+        </div>
+        <p class="empty-state__title">有什么可以帮您的？</p>
+        <p class="empty-state__hint">
+          可查询加班记录、生成统计报表、分析调休余额……
+        </p>
+      </div>
+    {% endif %}
+
+    {% for msg in messages %}
+      {% if msg.role == 'user' and msg.content.startswith('[系统提示]') %}
+        {# 隐藏后端注入的系统提示消息 #}
+      {% elif msg.role == 'user' %}
+        <div class="msg-row msg-row--user">
+          <div class="msg-bubble--user">
+            <p class="whitespace-pre-wrap">{{ msg.content }}</p>
+          </div>
+          <div class="user-avatar">我</div>
+        </div>
+      {% elif msg.role == 'assistant' %}
+        <div class="msg-row msg-row--ai">
+          <div class="ai-avatar">
+            <span class="material-symbols-outlined text-base">auto_awesome</span>
+          </div>
+          <div class="assistant-turn">
+            <div class="msg-bubble--ai assistant-bubble">
+              {{ msg.content }}
+            </div>
+          </div>
+        </div>
+      {% elif msg.role == 'tool_call' %}
+        <div class="msg-row msg-row--ai">
+          <div class="ai-avatar" style="visibility: hidden;">
+            <span class="material-symbols-outlined text-base">auto_awesome</span>
+          </div>
+          <div class="assistant-turn">
+            {% set args_str = msg.arguments | tojson %}
+            <div class="tool-record">
+              <span class="material-symbols-outlined">build_circle</span>
+              <span><code>{{ args_str[:60] }}{% if args_str | length > 60 %}...{% endif %}</code></span>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Input Bar -->
+  <form id="chat-form" class="assistant-inputbar">
+    <div class="assistant-inputbar__field">
+      <textarea
+        id="message-input"
+        rows="1"
+        placeholder="输入消息，Shift+Enter 换行"
+      ></textarea>
+    </div>
+    <button type="submit" id="send-btn" class="assistant-inputbar__submit">
+      <span class="material-symbols-outlined">arrow_upward</span>
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
+<script>
+  window.ASSISTANT_STREAM_URL = "{{ url_for('assistant.stream') }}";
+  window.ASSISTANT_CLEAR_URL = "{{ url_for('assistant.clear') }}";
+</script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>
+{% endblock %}

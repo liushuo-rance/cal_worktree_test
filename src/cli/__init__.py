@@ -1,1 +1,59 @@
-# CLI模块
+"""
+CLI模块
+
+提供导入、查询、报表、导出等命令的公开接口。
+"""
+
+from src.cli.commands import (
+    CLIError,
+    import_file,
+    import_excel_csv,
+    query_records,
+    generate_report,
+    export_data,
+    calculate_salary,
+    list_holidays,
+    check_holiday_config,
+    query_comp_off,
+    mark_expired_comp_off,
+    notify_comp_off_expiry,
+    list_employees,
+    create_employee,
+    get_employee,
+    list_reviews,
+    approve_review_item,
+    reject_review_item,
+    import_holidays_from_text,
+    delete_holiday,
+    delete_year_holidays,
+    delete_overtime_record_cli,
+    delete_employee,
+    get_stats,
+)
+
+__all__ = [
+    "CLIError",
+    "import_file",
+    "import_excel_csv",
+    "query_records",
+    "generate_report",
+    "export_data",
+    "calculate_salary",
+    "list_holidays",
+    "check_holiday_config",
+    "query_comp_off",
+    "mark_expired_comp_off",
+    "notify_comp_off_expiry",
+    "list_employees",
+    "create_employee",
+    "get_employee",
+    "list_reviews",
+    "approve_review_item",
+    "reject_review_item",
+    "import_holidays_from_text",
+    "delete_holiday",
+    "delete_year_holidays",
+    "delete_overtime_record_cli",
+    "delete_employee",
+    "get_stats",
+]

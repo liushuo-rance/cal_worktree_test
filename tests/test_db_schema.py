@@ -156,8 +156,8 @@ class TestCompOffBalanceSchema:
         columns = {row['name'] for row in cursor.fetchall()}
 
         expected_columns = {
-            'id', 'employee_id', 'acquired_date', 'expiry_date',
-            'total_hours', 'total_minutes', 'used_hours', 'used_minutes',
+            'id', 'employee_id', 'source_overtime_id', 'acquired_date', 'expiry_date',
+            'total_minutes', 'remaining_minutes',
             'status', 'created_at', 'updated_at'
         }
         assert expected_columns.issubset(columns)
@@ -169,17 +169,15 @@ class TestCompOffBalanceSchema:
         # 插入周末加班产生的调休余额
         cursor.execute("""
             INSERT INTO comp_off_balances
-            (employee_id, acquired_date, expiry_date, total_hours, total_minutes, used_hours, used_minutes, status)
-            VALUES ('E001', '2025-10-25', '2026-04-25', 15, 0, 0, 0, 'active')
+            (employee_id, source_overtime_id, acquired_date, expiry_date, total_minutes, remaining_minutes, status)
+            VALUES ('E001', 1, '2025-10-25', '2026-04-25', 900, 900, 'active')
         """)
         initialized_db.commit()
 
-        cursor.execute("SELECT total_hours, total_minutes, used_hours, used_minutes FROM comp_off_balances WHERE employee_id = 'E001'")
+        cursor.execute("SELECT total_minutes, remaining_minutes FROM comp_off_balances WHERE employee_id = 'E001'")
         row = cursor.fetchone()
-        assert row['total_hours'] == 15
-        assert row['total_minutes'] == 0
-        assert row['used_hours'] == 0
-        assert row['used_minutes'] == 0
+        assert row['total_minutes'] == 900
+        assert row['remaining_minutes'] == 900
 
 
 class TestCompOffUsageSchema:
@@ -287,5 +285,22 @@ class TestImportSessionSchema:
         expected_columns = {
             'id', 'file_path', 'status', 'total_records',
             'processed_records', 'error_records', 'created_at', 'completed_at'
+        }
+        assert expected_columns.issubset(columns)
+
+
+class TestNotificationHistorySchema:
+    """通知历史表结构测试"""
+
+    def test_notification_history_columns(self, initialized_db):
+        """通知历史表应包含正确的列"""
+        cursor = initialized_db.cursor()
+        cursor.execute("PRAGMA table_info(notification_history)")
+        columns = {row['name'] for row in cursor.fetchall()}
+
+        expected_columns = {
+            'id', 'notification_type', 'trigger_mode', 'recipient_email',
+            'employee_id', 'sent_at', 'status', 'error_message',
+            'content_summary', 'days_threshold'
         }
         assert expected_columns.issubset(columns)

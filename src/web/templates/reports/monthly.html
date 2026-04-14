@@ -38,10 +38,17 @@
                     查看
                 </button>
             </form>
-            <a href="{{ url_for('reports.reports_index') }}" class="btn btn-secondary btn-sm">
-                <span class="material-symbols-outlined text-sm">arrow_back</span>
-                返回
-            </a>
+            <div class="flex items-center gap-2">
+                {% if report %}
+                <a href="{{ url_for('reports.monthly_report_export', employee_id=employee_id, year=year, month=month, format='csv') }}" class="btn btn-secondary btn-sm">导出 CSV</a>
+                <a href="{{ url_for('reports.monthly_report_export', employee_id=employee_id, year=year, month=month, format='xlsx') }}" class="btn btn-secondary btn-sm">导出 Excel</a>
+                <a href="{{ url_for('reports.monthly_report_export', employee_id=employee_id, year=year, month=month, format='pdf') }}" class="btn btn-secondary btn-sm">导出 PDF</a>
+                {% endif %}
+                <a href="{{ url_for('reports.reports_index') }}" class="btn btn-secondary btn-sm">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    返回
+                </a>
+            </div>
         </div>
     </div>
 </div>

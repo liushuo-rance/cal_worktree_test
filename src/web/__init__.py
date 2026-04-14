@@ -142,13 +142,46 @@ def create_app(test_config=None):
             db.close()
 
     # 注册蓝图
-    from web.routes import dashboard, employees, records, review, reports, holidays
+    from web.routes import dashboard, employees, records, review, reports, holidays, api, notifications, assistant, settings
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(employees.bp)
     app.register_blueprint(records.bp)
     app.register_blueprint(review.bp)
     app.register_blueprint(reports.bp)
     app.register_blueprint(holidays.bp)
+    app.register_blueprint(api.bp)
+    app.register_blueprint(notifications.bp)
+    app.register_blueprint(assistant.bp)
+    app.register_blueprint(settings.bp)
+
+    # APScheduler 自动通知
+    scheduler_enabled = os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true'
+    if scheduler_enabled:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from services.notification_service import run_scheduled_comp_off_notification
+
+        scheduler = BackgroundScheduler()
+
+        def scheduled_notification_job():
+            db_path = app.config['DATABASE']
+            conn = sqlite3.connect(db_path)
+            try:
+                run_scheduled_comp_off_notification(conn)
+            except Exception as e:
+                app.logger.error(f"定时调休提醒任务失败: {e}")
+            finally:
+                conn.close()
+
+        scheduler.add_job(
+            scheduled_notification_job,
+            'cron',
+            hour=9,
+            minute=0,
+            id='comp_off_expiry_notification',
+            replace_existing=True
+        )
+        scheduler.start()
+        app.logger.info("APScheduler 已启动: 每天 09:00 发送调休到期提醒")
 
     # 注册自定义模板过滤器
     @app.template_filter('strptime')

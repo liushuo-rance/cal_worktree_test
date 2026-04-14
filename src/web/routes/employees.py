@@ -2,12 +2,17 @@
 员工管理路由
 """
 
+import os
+import sys
 import sqlite3
 import logging
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from web.utils import get_db
+from services.storage_service import delete_employee_service
 
 bp = Blueprint('employees', __name__, url_prefix='/employees')
 logger = logging.getLogger(__name__)
@@ -21,7 +26,7 @@ def list_employees():
 
     employees = []
     try:
-        cursor.execute("SELECT * FROM employees ORDER BY name")
+        cursor.execute("SELECT * FROM employees ORDER BY is_active DESC, name")
         employees = [dict(row) for row in cursor.fetchall()]
         logger.info(f"查询到 {len(employees)} 名员工")
     except sqlite3.Error as e:
@@ -75,6 +80,18 @@ def create_employee():
     finally:
         conn.close()
 
+    return redirect(url_for('employees.list_employees'))
+
+
+@bp.route('/<employee_id>/delete/', methods=['POST'])
+def delete_employee(employee_id):
+    """删除员工（软删除）"""
+    try:
+        delete_employee_service(get_db(), employee_id)
+        flash('员工已删除', 'success')
+    except Exception as e:
+        logger.error(f"删除员工失败: {e}")
+        flash('删除员工失败', 'error')
     return redirect(url_for('employees.list_employees'))
 
 

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>调休余额到期提醒</title>
+    <style>
+        body { font-family: Inter, -apple-system, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+        .container { max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px; }
+        .header { font-size: 18px; font-weight: 700; color: #000666; margin-bottom: 16px; }
+        .summary { background: #f3f2fe; border-radius: 6px; padding: 16px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #000666; color: #ffffff; text-align: left; padding: 10px 8px; }
+        td { border-bottom: 1px solid #e2e1ed; padding: 10px 8px; }
+        .numeric { text-align: right; }
+        .footer { margin-top: 24px; font-size: 12px; color: #767683; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">调休余额到期提醒 - {{ reference_date }}</div>
+
+    <div class="summary">
+        <strong>汇总：</strong>共 <strong>{{ employee_count }}</strong> 位员工、<strong>{{ record_count }}</strong> 条调休余额将在 <strong>{{ days_threshold }}</strong> 天内到期。
+    </div>
+
+    {% if balances %}
+    <table>
+        <thead>
+            <tr>
+                <th>员工姓名</th>
+                <th>获得日期</th>
+                <th class="numeric">剩余时长（小时）</th>
+                <th>到期日期</th>
+                <th class="numeric">剩余天数</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in balances %}
+            <tr>
+                <td>{{ b.employee_name }}</td>
+                <td>{{ b.acquired_date }}</td>
+                <td class="numeric">{{ "%.2f"|format(b.remaining_minutes / 60) }}</td>
+                <td>{{ b.expiry_date }}</td>
+                <td class="numeric">{{ b.days_remaining|int }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align:center; color:#767683;">今日暂无即将到期的调休余额。</p>
+    {% endif %}
+
+    <div class="footer">
+        本邮件由加班记录分析系统自动生成。<br>
+        如需查看最新详情，请登录系统查看「调休余额」报表。
+    </div>
+</div>
+</body>
+</html>

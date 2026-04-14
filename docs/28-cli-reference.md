@@ -223,7 +223,31 @@ python -m src.cli.commands calculate-salary --month 2025-01 --all --output ./sal
 
 ---
 
-### 3.6 节假日管理命令
+### 3.6 员工管理命令
+
+#### `delete_employee`
+
+删除指定员工（软删除）。该命令会将员工标记为已离职，同时将该员工的所有加班记录标记为在职状态 `inactive`。
+
+```bash
+python -m src.cli.commands delete_employee <employee_id>
+```
+
+**参数**:
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `employee_id` | 员工ID | `E001` |
+
+**示例**:
+
+```bash
+python -m src.cli.commands delete_employee E001
+```
+
+---
+
+### 3.7 节假日管理命令
 
 #### `holidays`
 
@@ -263,7 +287,7 @@ python -m src.cli.commands holidays import --year 2025 --interactive
 
 ---
 
-### 3.7 调休管理命令
+### 3.8 调休管理命令
 
 #### `comp-off`
 

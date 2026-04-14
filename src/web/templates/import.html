@@ -3,200 +3,168 @@
 {% block title %}记录导入 - 加班记录管理系统{% endblock %}
 {% block page_title %}记录导入{% endblock %}
 
-{% from "components/forms.html" import form_select, form_actions with context %}
-{% from "components/skeleton.html" import skeleton_card with context %}
+{% from "components/forms.html" import form_select with context %}
 
 {% block content %}
 <div class="page-container">
 
+    <!-- Page Header -->
     <div class="mb-8">
-        <p class="text-on-surface-variant text-body-md">上传 Markdown 文件导入加班记录</p>
+        <p class="text-on-surface-variant text-body-md">导入 Markdown 加班记录或上传 CSV/Excel 表格</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Upload Form -->
-        <div class="lg:col-span-2">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- LEFT: Editor -->
+        <div class="lg:col-span-8">
             <div class="content-card">
                 <div class="content-card-header">
-                    <div class="flex items-center justify-between">
-                        <h5 class="content-card-title">
-                            <span class="material-symbols-outlined inline-icon">upload_file</span>
-                            上传文件
-                        </h5>
-                        <a href="{{ url_for('records.import_sessions') }}?next={{ url_for('records.import_records') | urlencode }}" class="text-sm text-primary hover:underline">
-                            导入历史 &rarr;
-                        </a>
-                    </div>
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">edit_note</span>
+                        编辑器
+                    </h5>
+                    <span class="badge badge-outline">支持 Markdown / CSV / Excel</span>
                 </div>
                 <div class="content-card-body">
-                    <form method="POST" enctype="multipart/form-data" id="import-form">
+                    <form method="POST" id="import-form" enctype="multipart/form-data">
                         {% set employee_options = [] %}
                         {% for emp in employees %}
                             {% set _ = employee_options.append({'value': emp.employee_id, 'label': emp.name + ' (' + emp.employee_id + ')'}) %}
                         {% endfor %}
-                        {{ form_select('employee_id', '选择员工', employee_options, required=true) }}
 
-                        <!-- File Upload Zone -->
                         <div class="form-group">
-                            <label class="form-label">选择 Markdown 文件 <span class="required">*</span></label>
-                            <div class="file-upload-zone" id="drop-zone">
-                                <input type="file" id="file" name="file" accept=".md,.markdown,.txt" required multiple
-                                       class="file-upload-input">
-                                <div class="file-upload-content">
-                                    <span class="material-symbols-outlined file-upload-icon">cloud_upload</span>
-                                    <p class="file-upload-text">点击或拖拽文件到此处上传</p>
-                                    <p class="file-upload-hint">支持 .md, .markdown, .txt 格式，可同时选择多个文件</p>
+                            {{ form_select('employee_id', '选择员工', employee_options, required=true) }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="file-upload-input">上传文件</label>
+                            <input type="file" id="file-upload-input" name="file" accept=".md,.txt,.csv,.xlsx,.xls" class="form-input">
+                            <span class="form-helper">支持 .md / .txt（Markdown 加班记录）以及 .csv / .xlsx / .xls（表格导入）</span>
+                        </div>
+
+                        <!-- Hidden file input for programmatic insert -->
+                        <input type="file" id="file-insert-input" accept=".md,.markdown,.txt" style="display:none;">
+
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <div class="flex items-center justify-between">
+                                <label class="form-label" for="markdown-editor">记录内容</label>
+                                <button type="button" class="btn btn-secondary btn-sm" id="insert-file-btn">
+                                    <span class="material-symbols-outlined">note_add</span>
+                                    插入文件
+                                </button>
+                            </div>
+                            <div class="editor-wrapper" id="editor-wrapper">
+                                <div class="editor-drag-overlay" id="editor-drag-overlay">
+                                    <div class="drag-overlay-content">
+                                        <span class="material-symbols-outlined">download</span>
+                                        <span>释放以插入 Markdown 内容</span>
+                                    </div>
                                 </div>
-                                <div class="file-upload-preview" id="file-preview" style="display: none;">
-                                    <span class="material-symbols-outlined">description</span>
-                                    <span class="file-name" id="file-name"></span>
-                                    <button type="button" class="file-remove" onclick="clearFile()">
-                                        <span class="material-symbols-outlined">close</span>
-                                    </button>
-                                </div>
+                                <textarea id="markdown-editor" name="text_content"
+                                          class="form-textarea"
+                                          rows="14"
+                                          placeholder="在此编辑或粘贴加班记录 Markdown...&#10;&#10;示例格式：&#10;## 2024年1月加班记录&#10;**2024-01-15** 晚上加班2小时，完成项目文档&#10;**2024-01-20** 周六加班4小时，系统维护&#10;**2024-01-25** 请假半天，病假"></textarea>
                             </div>
                         </div>
 
-                        <!-- Format Example -->
-                        <div class="form-group">
-                            <label class="form-label">文件格式示例</label>
-                            <div class="code-preview">
-                                <pre><code>## 2024年1月加班记录
-
-**2024-01-15** 晚上加班2小时，完成项目文档
-**2024-01-20** 周六加班4小时，系统维护
-**2024-01-25** 请假半天，病假</code></pre>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 text-body-sm text-on-surface-variant">
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">subject</span>
+                                    <span id="line-count">0 行</span>
+                                </span>
+                                <span class="text-outline">|</span>
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">schedule</span>
+                                    <span>自动保存到会话</span>
+                                </span>
                             </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" id="submit-btn">
-                                <span class="material-symbols-outlined">upload</span>
-                                开始导入
-                            </button>
+                            <div class="form-actions" style="margin-top: 0;">
+                                <button type="submit" class="btn btn-primary" id="submit-btn">
+                                    <span class="material-symbols-outlined">upload</span>
+                                    开始导入
+                                </button>
+                            </div>
                         </div>
                     </form>
-
-                    <!-- Loading State with Progress -->
-                    <div id="loading-state" style="display: none;">
-                        <div class="py-8">
-                            <!-- Progress Header -->
-                            <div class="text-center mb-6">
-                                <div class="inline-block">
-                                    <span class="material-symbols-outlined spinning text-4xl text-primary" id="progress-icon">sync</span>
-                                </div>
-                                <h3 class="text-headline-sm font-headline font-bold mt-4" id="progress-title">正在解析文件...</h3>
-                                <p class="text-on-surface-variant mt-2" id="progress-message">请稍候，系统正在处理您的文件</p>
-                            </div>
-
-                            <!-- Progress Bar -->
-                            <div class="progress-container mb-6">
-                                <div class="progress-bar-bg">
-                                    <div class="progress-bar-fill" id="progress-bar" style="width: 0%"></div>
-                                </div>
-                                <div class="flex justify-between mt-2">
-                                    <span class="text-label-sm text-on-surface-variant" id="progress-percent">0%</span>
-                                    <span class="text-label-sm text-on-surface-variant" id="progress-step">准备中...</span>
-                                </div>
-                            </div>
-
-                            <!-- Progress Log -->
-                            <div class="progress-log" id="progress-log">
-                                <div class="progress-log-item active" id="log-start">
-                                    <span class="log-time">--:--:--</span>
-                                    <span class="log-icon material-symbols-outlined">pending</span>
-                                    <span class="log-text">等待开始...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Instructions -->
-        <div class="lg:col-span-1">
+        <!-- RIGHT: Instructions + Format Reference -->
+        <div class="lg:col-span-4">
             <div class="content-card">
                 <div class="content-card-header">
                     <h5 class="content-card-title">
                         <span class="material-symbols-outlined inline-icon">info</span>
-                        导入说明
+                        使用说明
                     </h5>
                 </div>
                 <div class="content-card-body">
-                    <div class="space-y-6">
+                    <div class="space-y-5">
                         <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
-                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
+                            <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-primary-fixed">check</span>
                             </div>
                             <div>
-                                <h6 class="font-semibold text-on-surface">支持的记录类型</h6>
-                                <p class="text-body-sm text-on-surface-variant mt-1">加班记录、请假记录、调休记录</p>
+                                <h6 class="font-semibold text-on-surface">直接编辑</h6>
+                                <p class="text-body-sm text-on-surface-variant mt-1">在编辑器中直接输入或粘贴 Markdown 格式的加班记录。</p>
                             </div>
                         </div>
 
                         <div class="h-px bg-surface-container"></div>
 
                         <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
-                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
+                            <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-primary-fixed">check</span>
                             </div>
                             <div>
-                                <h6 class="font-semibold text-on-surface">自动识别</h6>
-                                <p class="text-body-sm text-on-surface-variant mt-1">日期、时长、类型自动解析</p>
+                                <h6 class="font-semibold text-on-surface">插入文件</h6>
+                                <p class="text-body-sm text-on-surface-variant mt-1">点击"插入文件"或将 .md / .txt 文件拖拽到编辑器中导入内容。</p>
                             </div>
                         </div>
 
                         <div class="h-px bg-surface-container"></div>
 
                         <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
-                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
+                            <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-primary-fixed">check</span>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold text-on-surface">表格导入</h6>
+                                <p class="text-body-sm text-on-surface-variant mt-1">直接上传 .csv / .xlsx / .xls 文件，系统自动识别列头。</p>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-surface-container"></div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm text-on-primary-fixed">check</span>
                             </div>
                             <div>
                                 <h6 class="font-semibold text-on-surface">审批流程</h6>
-                                <p class="text-body-sm text-on-surface-variant mt-1">导入后需要审批才能生效</p>
-                            </div>
-                        </div>
-
-                        <div class="h-px bg-surface-container"></div>
-
-                        <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
-                                <span class="material-symbols-outlined text-sm text-on-secondary-container">check</span>
-                            </div>
-                            <div>
-                                <h6 class="font-semibold text-on-surface">调休自动计算</h6>
-                                <p class="text-body-sm text-on-surface-variant mt-1">周末加班自动生成调休余额</p>
+                                <p class="text-body-sm text-on-surface-variant mt-1">导入后进入预览页，确认无误后保存生效。</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Tips -->
             <div class="content-card mt-6">
                 <div class="content-card-header">
                     <h5 class="content-card-title">
-                        <span class="material-symbols-outlined inline-icon">lightbulb</span>
-                        提示
+                        <span class="material-symbols-outlined inline-icon">code</span>
+                        格式示例
                     </h5>
                 </div>
-                <div class="content-card-body">
-                    <ul class="space-y-3 text-body-sm text-on-surface-variant">
-                        <li class="flex items-start gap-2">
-                            <span class="material-symbols-outlined text-primary text-sm">arrow_right</span>
-                            <span>日期格式支持：2024-01-15 或 2024.01.15</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span class="material-symbols-outlined text-primary text-sm">arrow_right</span>
-                            <span>时长可写为：2小时、2h、或 2.5</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span class="material-symbols-outlined text-primary text-sm">arrow_right</span>
-                            <span>请假需注明类型：病假、事假、年假</span>
-                        </li>
-                    </ul>
+                <div class="content-card-body p-0">
+                    <div class="code-preview">
+<pre><code>## 2024年1月加班记录
+
+**2024-01-15** 晚上加班2小时，完成项目文档
+**2024-01-20** 周六加班4小时，系统维护
+**2024-01-25** 请假半天，病假</code></pre>
+                    </div>
                 </div>
             </div>
         </div>
@@ -204,79 +172,50 @@
 </div>
 
 <style>
-.file-upload-zone {
-    border: 2px dashed var(--color-outline-variant);
-    border-radius: var(--radius-md);
-    padding: var(--space-8);
-    text-align: center;
-    transition: all var(--duration-fast) var(--ease-default);
+.editor-wrapper {
     position: relative;
-    cursor: pointer;
+    margin-top: 8px;
 }
 
-.file-upload-zone:hover,
-.file-upload-zone.dragover {
-    border-color: var(--color-primary);
-    background: var(--color-surface-container-low);
-}
-
-.file-upload-input {
+.editor-drag-overlay {
     position: absolute;
     inset: 0;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.file-upload-icon {
-    font-size: 48px;
-    color: var(--color-outline);
-    margin-bottom: var(--space-3);
-}
-
-.file-upload-text {
-    font-family: var(--font-headline);
-    font-size: var(--text-body-lg);
-    font-weight: var(--font-semibold);
-    color: var(--color-on-surface);
-    margin-bottom: var(--space-1);
-}
-
-.file-upload-hint {
-    font-size: var(--text-body-sm);
-    color: var(--color-on-surface-variant);
-}
-
-.file-upload-preview {
-    display: flex;
+    background: rgba(0, 6, 102, 0.06);
+    border: 2px dashed var(--color-primary);
+    border-radius: var(--radius-sm);
+    display: none;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    background: var(--color-primary-fixed);
+    z-index: 10;
+    backdrop-filter: blur(1px);
+}
+
+.editor-wrapper.drag-active .editor-drag-overlay {
+    display: flex;
+}
+
+.drag-overlay-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--color-outline-variant);
     border-radius: var(--radius-sm);
-}
-
-.file-upload-preview .material-symbols-outlined {
-    color: var(--color-primary);
-}
-
-.file-name {
-    font-weight: var(--font-medium);
     color: var(--color-on-surface);
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
 }
 
-.file-remove {
-    background: none;
-    border: none;
-    color: var(--color-on-surface-variant);
-    cursor: pointer;
-    padding: var(--space-1);
-    margin-left: auto;
+.drag-overlay-content .material-symbols-outlined {
+    color: var(--color-primary);
+    font-size: 20px;
 }
 
 .code-preview {
     background: var(--color-surface-container-low);
-    border-radius: var(--radius-sm);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     padding: var(--space-4);
     overflow-x: auto;
 }
@@ -285,216 +224,113 @@
     margin: 0;
     font-family: var(--font-mono);
     font-size: var(--text-body-sm);
-    line-height: 1.6;
+    line-height: 1.7;
     color: var(--color-on-surface);
-}
-
-.spinning {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* Progress Bar Styles */
-.progress-container {
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.progress-bar-bg {
-    height: 8px;
-    background: var(--color-surface-container);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.progress-log {
-    max-height: 200px;
-    overflow-y: auto;
-    background: var(--color-surface-container-low);
-    border-radius: var(--radius-sm);
-    padding: var(--space-3);
-    font-size: var(--text-body-sm);
-}
-
-.progress-log-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-1) 0;
-    color: var(--color-on-surface-variant);
-    opacity: 0.6;
-    transition: all var(--duration-fast);
-}
-
-.progress-log-item.active {
-    color: var(--color-on-surface);
-    opacity: 1;
-    font-weight: var(--font-medium);
-}
-
-.progress-log-item.completed {
-    color: var(--color-success);
-    opacity: 0.8;
-}
-
-.log-time {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    min-width: 60px;
-    color: var(--color-on-surface-variant);
-}
-
-.log-icon {
-    font-size: 16px;
-    width: 20px;
-}
-
-.progress-log-item.active .log-icon {
-    color: var(--color-primary);
-}
-
-.progress-log-item.completed .log-icon {
-    color: var(--color-success);
-}
-
-.log-text {
-    flex: 1;
 }
 </style>
 
 <script>
-// File upload handling
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file');
-const filePreview = document.getElementById('file-preview');
-const fileContent = document.querySelector('.file-upload-content');
-const fileName = document.getElementById('file-name');
-const importForm = document.getElementById('import-form');
-const loadingState = document.getElementById('loading-state');
-const submitBtn = document.getElementById('submit-btn');
+(function() {
+    const fileInput = document.getElementById('file-insert-input');
+    const insertBtn = document.getElementById('insert-file-btn');
+    const editor = document.getElementById('markdown-editor');
+    const editorWrapper = document.getElementById('editor-wrapper');
+    const lineCountEl = document.getElementById('line-count');
+    const form = document.getElementById('import-form');
 
-// Drag and drop
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-});
-
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length) {
-        fileInput.files = files;
-        showFilePreview(fileInput.files);
+    function updateStats() {
+        const text = editor.value || '';
+        const lines = text.trim().length ? text.split('\n').length : 0;
+        lineCountEl.textContent = lines + ' 行';
     }
-});
 
-// File selection
-fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) {
-        showFilePreview(fileInput.files);
+    function insertTextAtCursor(text) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        const before = editor.value.substring(0, start);
+        const after = editor.value.substring(end);
+        editor.value = before + text + after;
+        editor.selectionStart = editor.selectionEnd = start + text.length;
+        editor.focus();
+        updateStats();
     }
-});
 
-function showFilePreview(files) {
-    const count = files.length;
-    if (count === 1) {
-        fileName.textContent = files[0].name;
-    } else {
-        const names = Array.from(files).slice(0, 3).map(f => f.name).join(', ');
-        fileName.textContent = `${names}${count > 3 ? '...' : ''} (${count} 个文件)`;
+    function readFileAndInsert(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            let content = e.target.result;
+            if (editor.value.trim().length > 0) {
+                content = '\n\n' + content;
+            }
+            insertTextAtCursor(content);
+        };
+        reader.onerror = function() {
+            alert('文件读取失败，请重试');
+        };
+        reader.readAsText(file);
     }
-    fileContent.style.display = 'none';
-    filePreview.style.display = 'flex';
-}
 
-function clearFile() {
-    fileInput.value = '';
-    fileContent.style.display = 'block';
-    filePreview.style.display = 'none';
-}
+    insertBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
 
-// Form submission with animated progress display
-importForm.addEventListener('submit', (e) => {
-    // 显示加载状态
-    importForm.style.display = 'none';
-    loadingState.style.display = 'block';
-
-    // 模拟步骤动画（给用户视觉反馈）- 仅AI大模型解析，无本地回退
-    const steps = [
-        { step: 'start', message: '🚀 启动AI大模型解析引擎...', icon: 'play_arrow', progress: 5 },
-        { step: 'extract', message: '📄 读取Markdown文件...', icon: 'folder_open', progress: 10 },
-        { step: 'ai_connect', message: '🔌 连接Claude AI大模型...', icon: 'cloud', progress: 15 },
-        { step: 'ai_start', message: '🤖 AI大模型正在逐行解析...', icon: 'smart_toy', progress: 25 },
-        { step: 'ai_progress', message: '🧠 AI分析第1-5行记录...', icon: 'psychology', progress: 40 },
-        { step: 'ai_progress2', message: '💡 AI提取日期、类型、时长...', icon: 'psychology', progress: 55 },
-        { step: 'ai_done', message: '✅ AI大模型解析完成', icon: 'check_circle', progress: 70 },
-        { step: 'process', message: '📊 分析置信度和异常...', icon: 'analytics', progress: 85 },
-        { step: 'complete', message: '🎉 准备预览页面...', icon: 'celebration', progress: 95 }
-    ];
-
-    let currentStep = 0;
-    const logContainer = document.getElementById('progress-log');
-    logContainer.innerHTML = '';
-
-    function showStep(stepData, isActive = true) {
-        const now = new Date();
-        const timeStr = now.toTimeString().slice(0, 8);
-
-        // 更新进度条
-        document.getElementById('progress-bar').style.width = stepData.progress + '%';
-        document.getElementById('progress-percent').textContent = stepData.progress + '%';
-        document.getElementById('progress-step').textContent = stepData.message;
-        document.getElementById('progress-title').textContent = stepData.message;
-
-        // 添加日志项
-        const div = document.createElement('div');
-        div.className = `progress-log-item ${isActive ? 'active' : 'completed'}`;
-        div.innerHTML = `
-            <span class="log-time">${timeStr}</span>
-            <span class="log-icon material-symbols-outlined">${stepData.icon}</span>
-            <span class="log-text">${stepData.message}</span>
-        `;
-        logContainer.appendChild(div);
-        logContainer.scrollTop = logContainer.scrollHeight;
-
-        // 将之前的项标记为完成
-        if (logContainer.children.length > 1) {
-            const prevItems = logContainer.querySelectorAll('.progress-log-item');
-            prevItems[prevItems.length - 2].classList.remove('active');
-            prevItems[prevItems.length - 2].classList.add('completed');
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length) {
+            readFileAndInsert(fileInput.files[0]);
         }
-    }
+        fileInput.value = '';
+    });
 
-    // 显示第一个步骤
-    showStep(steps[0]);
-
-    // 逐步显示后续步骤
-    const stepInterval = setInterval(() => {
-        currentStep++;
-        if (currentStep < steps.length) {
-            showStep(steps[currentStep]);
-        } else {
-            clearInterval(stepInterval);
+    editorWrapper.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        editorWrapper.classList.add('drag-active');
+    });
+    editorWrapper.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        editorWrapper.classList.remove('drag-active');
+    });
+    editorWrapper.addEventListener('drop', function(e) {
+        e.preventDefault();
+        editorWrapper.classList.remove('drag-active');
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            readFileAndInsert(files[0]);
         }
-    }, 600);
+    });
 
-    // 允许表单正常提交
-});
+    editor.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        editorWrapper.classList.add('drag-active');
+    });
+    editor.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        editorWrapper.classList.remove('drag-active');
+    });
+    editor.addEventListener('drop', function(e) {
+        e.preventDefault();
+        editorWrapper.classList.remove('drag-active');
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            readFileAndInsert(files[0]);
+        }
+    });
+
+    editor.addEventListener('input', updateStats);
+
+    const fileUploadInput = document.getElementById('file-upload-input');
+
+    form.addEventListener('submit', function(e) {
+        const hasFile = fileUploadInput && fileUploadInput.files.length > 0;
+        if (!hasFile && !editor.value.trim()) {
+            e.preventDefault();
+            alert('请先输入记录内容、插入 Markdown 文件或选择表格文件');
+            editor.focus();
+            return false;
+        }
+    });
+
+    updateStats();
+})();
 </script>
 {% endblock %}

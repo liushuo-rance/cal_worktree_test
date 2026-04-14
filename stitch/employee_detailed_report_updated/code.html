@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Inter:wght@100..900&amp;family=Lora:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#1b6d24",
+                    "on-background": "#1a1b23",
+                    "primary-container": "#1a237e",
+                    "surface-container-high": "#e8e7f2",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#bdc2ff",
+                    "surface-dim": "#dad9e4",
+                    "outline-variant": "#c6c5d4",
+                    "on-tertiary-container": "#f57009",
+                    "surface-bright": "#fbf8ff",
+                    "surface-variant": "#e2e1ed",
+                    "outline": "#767683",
+                    "on-tertiary-fixed": "#331200",
+                    "surface": "#fbf8ff",
+                    "on-primary-fixed": "#000767",
+                    "on-primary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed": "#002204",
+                    "on-error": "#ffffff",
+                    "secondary-container": "#a0f399",
+                    "secondary-fixed": "#a3f69c",
+                    "on-secondary-container": "#217128",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#ffb68f",
+                    "primary-fixed": "#e0e0ff",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#321100",
+                    "surface-tint": "#4c56af",
+                    "primary": "#000666",
+                    "on-surface": "#1a1b23",
+                    "inverse-surface": "#2f3038",
+                    "on-primary-fixed-variant": "#343d96",
+                    "on-surface-variant": "#454652",
+                    "surface-container-highest": "#e2e1ed",
+                    "background": "#fbf8ff",
+                    "on-secondary-fixed-variant": "#005312",
+                    "on-primary-container": "#8690ee",
+                    "inverse-on-surface": "#f1f0fb",
+                    "secondary-fixed-dim": "#88d982",
+                    "tertiary-container": "#532100",
+                    "surface-container-low": "#f3f2fe",
+                    "surface-container": "#eeedf8",
+                    "on-tertiary-fixed-variant": "#773200",
+                    "tertiary-fixed": "#ffdbca",
+                    "primary-fixed-dim": "#bdc2ff",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem",
+                    "action": "4px"
+            },
+            "fontFamily": {
+                    "headline": ["Lora", "serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"],
+                    "manrope": ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-layering {
+            background: linear-gradient(180deg, var(--tw-surface-container-low) 0%, var(--tw-surface) 100%);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c6c5d4; border-radius: 10px; }
+        .primary-action-btn {
+            border-radius: 4px !important;
+            transition: all 0.2s ease;
+        }
+        .primary-action-btn:hover {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface flex min-h-screen">
+<!-- SideNavBar (Authority Panel) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#000666] dark:bg-[#000433] flex flex-col py-8 z-50">
+<div class="px-8 mb-10">
+<h1 class="text-lg font-bold tracking-widest text-white uppercase font-manrope">The Digital Jurist</h1>
+<p class="text-[10px] text-indigo-300 tracking-widest font-medium">Labor Compliance Authority</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="text-indigo-200 hover:text-white px-8 py-3 flex items-center gap-3 transition-colors font-manrope font-semibold tracking-tight text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="bg-[#fbf8ff] text-[#000666] rounded-l-full ml-4 pl-4 py-3 font-bold transition-all flex items-center gap-3 font-manrope tracking-tight text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Employee Directory</span>
+</a>
+<a class="text-indigo-200 hover:text-white px-8 py-3 flex items-center gap-3 transition-colors font-manrope font-semibold tracking-tight text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+<span>Compliance Reports</span>
+</a>
+<a class="text-indigo-200 hover:text-white px-8 py-3 flex items-center gap-3 transition-colors font-manrope font-semibold tracking-tight text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span>Overtime Logs</span>
+</a>
+<a class="text-indigo-200 hover:text-white px-8 py-3 flex items-center gap-3 transition-colors font-manrope font-semibold tracking-tight text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Salary Analytics</span>
+</a>
+</nav>
+<div class="px-8 mt-auto space-y-6">
+<button class="primary-action-btn w-full bg-white/10 hover:bg-white/20 text-white py-3 text-sm font-bold flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                New Audit
+            </button>
+<div class="space-y-4 pt-6 border-t border-white/10">
+<a class="text-indigo-200 hover:text-white flex items-center gap-3 text-sm font-semibold" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="text-indigo-200 hover:text-white flex items-center gap-3 text-sm font-semibold" href="#">
+<span class="material-symbols-outlined" data-icon="balance">balance</span>
+<span>Legal Support</span>
+</a>
+</div>
+</div>
+</aside>
+<div class="flex-1 ml-64 min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 border-b-2 border-slate-100 flex justify-between items-center w-full px-8 py-4 shadow-sm">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold text-[#1A237E] font-headline">Employee Compliance Report</span>
+<nav class="hidden md:flex items-center gap-6 ml-8">
+<a class="text-[#1A237E] border-b-2 border-[#1A237E] pb-2 font-bold font-manrope text-sm" href="#">Overview</a>
+<a class="text-slate-500 hover:text-[#1A237E] transition-colors font-manrope text-sm font-medium" href="#">History</a>
+<a class="text-slate-500 hover:text-[#1A237E] transition-colors font-manrope text-sm font-medium" href="#">Export</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<input class="pl-10 pr-4 py-2 bg-surface-container rounded-full text-sm border-none focus:ring-2 focus:ring-primary/20 w-64 transition-all" placeholder="Search logs..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg" data-icon="search">search</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-transform active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="primary-action-btn bg-primary text-white px-5 py-2 text-sm font-bold active:scale-95">
+                        Approve Log
+                    </button>
+<div class="h-8 w-8 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a professional legal administrator with a clean workspace in the background, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDERdNT7XdGFQCN94AGKmP76gviOXvJzbVcTqytQ3k80Q2sTgFM-uPPFrhnaMmkUQyiIURZh9uOPW9XLBxKE7ndKehFa2xM2VpzOolMxfJywlU95m-nwQxJl-j5uQcLv8SYGrcm8bEDFByVKkvuVSXJhQRrpBEYVTTokltCU7UOXV_J0XFISKmlNLdDdUGcd1-cZ00HWusvCTfOIVZDrV1xqpnyrbiAANzJTwVSXWnADVMseUIiPnFbxhX3cFKvqVbB1jjtnaN7-0Y"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="p-8 flex-1">
+<!-- Hero Summary Section (Editorial Scaling) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+<div class="lg:col-span-2 bg-surface-container-lowest p-10 rounded-xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-9xl" data-icon="calendar_month">calendar_month</span>
+</div>
+<div class="relative z-10">
+<span class="text-primary-container font-manrope text-xs font-black uppercase tracking-[0.2em] mb-4 block">Compensatory Leave Balance</span>
+<div class="flex items-baseline gap-4">
+<h2 class="text-primary text-[5rem] font-manrope font-bold leading-none tracking-tighter">42.5</h2>
+<span class="text-on-surface-variant font-manrope text-2xl font-light">HOURS</span>
+</div>
+<div class="mt-8 flex gap-8">
+<div>
+<p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Accrued YTD</p>
+<p class="text-primary font-manrope text-xl font-bold">128.0 hr</p>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div>
+<p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Used YTD</p>
+<p class="text-primary font-manrope text-xl font-bold">85.5 hr</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-primary p-10 rounded-xl text-white flex flex-col justify-between shadow-2xl relative">
+<div class="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 100% 0%, white 0%, transparent 70%);"></div>
+<div>
+<span class="text-indigo-300 font-manrope text-xs font-black uppercase tracking-[0.2em] mb-4 block">Current Month OT Salary</span>
+<h2 class="text-5xl font-manrope font-bold tracking-tight">$2,840.00</h2>
+<p class="mt-2 text-indigo-200 text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+                            12% increase from last month
+                        </p>
+</div>
+<div class="mt-8 pt-6 border-t border-white/10">
+<div class="flex justify-between items-center text-xs font-medium text-indigo-200">
+<span>Compliance Status</span>
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-bold">EXEMPT</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Tabbed Interface Section -->
+<section class="bg-surface-container rounded-xl overflow-hidden shadow-sm">
+<!-- Tab Headers -->
+<div class="flex border-b border-outline-variant/30 px-6">
+<button class="px-8 py-5 text-sm font-bold text-primary border-b-2 border-primary">Monthly Log</button>
+<button class="px-8 py-5 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Leave Balance History</button>
+<button class="px-8 py-5 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Salary Breakdown</button>
+</div>
+<!-- Tab Content: Tab 1 - Monthly Log -->
+<div class="p-4 overflow-x-auto">
+<table class="w-full text-left border-separate border-spacing-0 border border-slate-300">
+<thead>
+<tr class="bg-blue-50">
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-slate-300">Date</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-slate-300">Entry Type</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-slate-300">Duration</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-slate-300">Description</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-slate-300">Multiplier</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-slate-300">Status</th>
+<th class="px-6 py-4 border-b border-slate-300"></th>
+</tr>
+</thead>
+<tbody class="text-sm font-body">
+<!-- Zebra striping with surface-container-low -->
+<tr class="bg-surface-container-lowest">
+<td class="px-6 py-5 font-bold text-primary border-b border-slate-100">Oct 24, 2023</td>
+<td class="px-6 py-5 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                                        Regular Overtime
+                                    </div>
+</td>
+<td class="px-6 py-5 tabular-nums border-b border-slate-100">04:30 hr</td>
+<td class="px-6 py-5 text-on-surface-variant border-b border-slate-100">Q4 Financial Closing - Support</td>
+<td class="px-6 py-5 font-bold border-b border-slate-100">1.5x</td>
+<td class="px-6 py-5 border-b border-slate-100">
+<span class="px-2 py-1 rounded bg-secondary-container/50 text-on-secondary-container text-[10px] font-bold uppercase">Approved</span>
+</td>
+<td class="px-6 py-5 text-right border-b border-slate-100">
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary" data-icon="more_vert">more_vert</span>
+</td>
+</tr>
+<tr class="bg-surface-container-low">
+<td class="px-6 py-5 font-bold text-primary border-b border-slate-100">Oct 21, 2023</td>
+<td class="px-6 py-5 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+                                        Weekend Duty
+                                    </div>
+</td>
+<td class="px-6 py-5 tabular-nums border-b border-slate-100">08:00 hr</td>
+<td class="px-6 py-5 text-on-surface-variant border-b border-slate-100">System Migration Oversight</td>
+<td class="px-6 py-5 font-bold border-b border-slate-100">2.0x</td>
+<td class="px-6 py-5 border-b border-slate-100">
+<span class="px-2 py-1 rounded bg-secondary-container/50 text-on-secondary-container text-[10px] font-bold uppercase">Approved</span>
+</td>
+<td class="px-6 py-5 text-right border-b border-slate-100">
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary" data-icon="more_vert">more_vert</span>
+</td>
+</tr>
+<tr class="bg-surface-container-lowest">
+<td class="px-6 py-5 font-bold text-primary border-b border-slate-100">Oct 14, 2023</td>
+<td class="px-6 py-5 border-b border-slate-100">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                                        Public Holiday
+                                    </div>
+</td>
+<td class="px-6 py-5 tabular-nums border-b border-slate-100">02:15 hr</td>
+<td class="px-6 py-5 text-on-surface-variant border-b border-slate-100">Emergency Server Response</td>
+<td class="px-6 py-5 font-bold border-b border-slate-100">3.0x</td>
+<td class="px-6 py-5 border-b border-slate-100">
+<span class="px-2 py-1 rounded bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold uppercase">Pending Review</span>
+</td>
+<td class="px-6 py-5 text-right border-b border-slate-100">
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary" data-icon="more_vert">more_vert</span>
+</td>
+</tr>
+<tr class="bg-surface-container-low">
+<td class="px-6 py-5 font-bold text-primary">Oct 10, 2023</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                                        Regular Overtime
+                                    </div>
+</td>
+<td class="px-6 py-5 tabular-nums">03:00 hr</td>
+<td class="px-6 py-5 text-on-surface-variant">Departmental Strategy Meet</td>
+<td class="px-6 py-5 font-bold">1.5x</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 rounded bg-secondary-container/50 text-on-secondary-container text-[10px] font-bold uppercase">Approved</span>
+</td>
+<td class="px-6 py-5 text-right">
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary" data-icon="more_vert">more_vert</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Bottom Multi-column Layout for Analysis -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+<!-- Salary Multiplier Analysis (Bento Card) -->
+<div class="bg-surface-container-lowest p-8 rounded-xl border-l-4 border-primary shadow-sm">
+<h3 class="font-headline font-bold text-primary mb-6 flex items-center gap-2 text-xl">
+<span class="material-symbols-outlined" data-icon="calculate">calculate</span>
+                        Labor Law Multiplier Breakdown
+                    </h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center p-4 bg-surface-container-low rounded">
+<span class="text-sm font-bold text-on-surface">Standard Workdays (1.5x)</span>
+<div class="text-right">
+<p class="text-lg font-bold text-primary">12.5 hrs</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">$540.20 Earned</p>
+</div>
+</div>
+<div class="flex justify-between items-center p-4 bg-surface-container-low rounded">
+<span class="text-sm font-bold text-on-surface">Weekend Duty (2.0x)</span>
+<div class="text-right">
+<p class="text-lg font-bold text-primary">8.0 hrs</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">$920.00 Earned</p>
+</div>
+</div>
+<div class="flex justify-between items-center p-4 bg-surface-container-low rounded border-2 border-error/20">
+<span class="text-sm font-bold text-on-surface">Special Holiday (3.0x)</span>
+<div class="text-right">
+<p class="text-lg font-bold text-error">2.15 hrs</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">$480.15 Earned</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Compliance Alerts & Notes -->
+<div class="bg-surface-container p-8 rounded-xl border-2 border-dashed border-outline-variant/50">
+<h3 class="font-headline font-bold text-primary-container mb-4 text-xl">Jurist Auditor Notes</h3>
+<div class="bg-white/60 p-4 rounded-lg mb-4 backdrop-blur-sm">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="info">info</span>
+<div>
+<p class="text-sm font-bold text-on-surface">Threshold Warning</p>
+<p class="text-xs text-on-surface-variant mt-1">This employee is approaching the 48-hour weekly threshold. Legal mandate requires immediate rest period after Oct 28th entries.</p>
+</div>
+</div>
+</div>
+<div class="bg-secondary-container/20 p-4 rounded-lg border border-secondary/10">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-secondary" data-icon="verified">verified</span>
+<div>
+<p class="text-sm font-bold text-on-secondary-container">Statutory Compliance</p>
+<p class="text-xs text-on-surface-variant mt-1">All leave conversions for Q3 have been validated against the National Labor Code Article 92. No discrepancies found.</p>
+</div>
+</div>
+</div>
+<button class="mt-6 w-full text-primary font-bold text-sm flex items-center justify-center gap-2 hover:underline">
+                        View Full Audit History
+                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

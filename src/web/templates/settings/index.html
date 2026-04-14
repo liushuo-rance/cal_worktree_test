@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}系统设置 - 加班记录管理系统{% endblock %}
+{% block page_title %}系统设置{% endblock %}
+
+{% from "components/forms.html" import form_input with context %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">配置 AI 解析、邮件发送和通知参数</p>
+    </div>
+
+    <form action="{{ url_for('settings.settings_save') }}" method="POST">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- AI 解析配置 -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">smart_toy</span>
+                        AI 解析配置
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="material-symbols-outlined {% if ai_configured %}text-secondary{% else %}text-error{% endif %}">
+                            {% if ai_configured %}check_circle{% else %}error{% endif %}
+                        </span>
+                        <span class="font-semibold {% if ai_configured %}text-secondary{% else %}text-error{% endif %}">
+                            {% if ai_configured %}已配置{% else %}未配置{% endif %}
+                        </span>
+                    </div>
+
+                    {{ form_input('volces_api_key', 'API Key', value=configs.VOLCES_API_KEY, type='password', placeholder='输入火山方舟 API Key', helper='若已配置，再次提交不会显示原有密钥，留空则表示不修改') }}
+                    {{ form_input('volces_model', '模型端点 ID', value=configs.VOLCES_MODEL, placeholder='例如 ep-xxxxxxxxxxxxxxxx') }}
+                    {{ form_input('volces_base_url', 'Base URL', value=configs.VOLCES_BASE_URL, placeholder='https://ark.cn-beijing.volces.com/api/v3') }}
+                </div>
+            </div>
+
+            <!-- SMTP 邮件配置 -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">mail</span>
+                        SMTP 邮件配置
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="material-symbols-outlined {% if email_configured %}text-secondary{% else %}text-error{% endif %}">
+                            {% if email_configured %}check_circle{% else %}error{% endif %}
+                        </span>
+                        <span class="font-semibold {% if email_configured %}text-secondary{% else %}text-error{% endif %}">
+                            {% if email_configured %}已配置{% else %}未配置{% endif %}
+                        </span>
+                    </div>
+
+                    {{ form_input('smtp_host', 'SMTP 服务器', value=configs.SMTP_HOST, placeholder='例如 smtp.163.com') }}
+                    {{ form_input('smtp_port', 'SMTP 端口', value=configs.SMTP_PORT, placeholder='587 或 465') }}
+                    {{ form_input('smtp_user', '发件邮箱', value=configs.SMTP_USER, placeholder='user@example.com') }}
+                    {{ form_input('smtp_password', '邮箱授权码 / 密码', value=configs.SMTP_PASSWORD, type='password', placeholder='输入邮箱授权码') }}
+                    {{ form_input('smtp_from', '发件人名称（可选）', value=configs.SMTP_FROM, placeholder='默认与发件邮箱相同') }}
+                </div>
+            </div>
+
+            <!-- 通知配置 -->
+            <div class="content-card lg:col-span-2">
+                <div class="content-card-header">
+                    <h5 class="content-card-title">
+                        <span class="material-symbols-outlined inline-icon">notifications</span>
+                        通知配置
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    {{ form_input('hr_notification_email', 'HR 通知邮箱', value=configs.HR_NOTIFICATION_EMAIL, placeholder='多个邮箱用英文逗号分隔，如 hr@company.com,admin@company.com') }}
+                    <p class="text-on-surface-variant text-body-sm mt-4">
+                        调休到期提醒邮件将发送到上述邮箱。若未配置，手动/自动通知功能将无法使用。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 flex items-center gap-4">
+            <button type="submit" class="btn btn-primary">
+                <span class="material-symbols-outlined">save</span>
+                保存设置
+            </button>
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-ghost">返回首页</a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

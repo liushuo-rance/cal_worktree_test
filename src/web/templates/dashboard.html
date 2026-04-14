@@ -180,41 +180,46 @@
         <div class="bg-surface-container-lowest p-8 rounded-md shadow-sm border-l-4 border-primary">
             <h3 class="text-label-md font-headline font-bold text-on-surface mb-6">最近活动</h3>
             <div class="space-y-6">
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
-                        <span class="material-symbols-outlined text-sm text-on-secondary-container">add</span>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-body-sm font-medium text-on-surface">导入加班记录</p>
-                        <p class="text-label-sm text-on-surface-variant">15条记录已导入</p>
-                        <div class="flex items-center justify-between mt-1">
-                            <p class="text-label-sm text-on-surface-variant">10分钟前</p>
-                            <a href="{{ url_for('records.import_sessions') }}?next={{ url_for('dashboard.index') | urlencode }}" class="text-label-sm text-primary hover:underline">查看历史</a>
+                {% if recent_activities %}
+                    {% for activity in recent_activities %}
+                        {% if activity.type == 'employee_added' %}
+                            {% set icon = 'person_add' %}
+                            {% set bg_class = 'bg-tertiary-container' %}
+                            {% set text_class = 'text-on-tertiary-container' %}
+                        {% elif activity.type == 'review_approved' %}
+                            {% set icon = 'check' %}
+                            {% set bg_class = 'bg-primary-fixed' %}
+                            {% set text_class = 'text-on-primary-fixed' %}
+                        {% else %}
+                            {% set icon = 'add' %}
+                            {% set bg_class = 'bg-secondary-container' %}
+                            {% set text_class = 'text-on-secondary-container' %}
+                        {% endif %}
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full {{ bg_class }} flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-sm {{ text_class }}">{{ icon }}</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-body-sm font-medium text-on-surface">{{ activity.title }}</p>
+                                <p class="text-label-sm text-on-surface-variant">{{ activity.description }}</p>
+                                <div class="flex items-center justify-between mt-1">
+                                    <p class="text-label-sm text-on-surface-variant">{{ format_relative_time(activity.timestamp) }}</p>
+                                    {% if activity.type == 'record_imported' %}
+                                    <a href="{{ url_for('records.import_sessions') }}?next={{ url_for('dashboard.index') | urlencode }}" class="text-label-sm text-primary hover:underline">查看历史</a>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
+                        {% if not loop.last %}
+                        <div class="h-px bg-surface-container"></div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8">
+                        <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2">notifications_off</span>
+                        <p class="text-body-sm text-on-surface-variant">暂无最近活动</p>
                     </div>
-                </div>
-                <div class="h-px bg-surface-container"></div>
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
-                        <span class="material-symbols-outlined text-sm text-on-primary-fixed">check</span>
-                    </div>
-                    <div>
-                        <p class="text-body-sm font-medium text-on-surface">审批通过</p>
-                        <p class="text-label-sm text-on-surface-variant">张三的调休申请</p>
-                        <p class="text-label-sm text-on-surface-variant mt-1">1小时前</p>
-                    </div>
-                </div>
-                <div class="h-px bg-surface-container"></div>
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-tertiary-container flex items-center justify-center flex-shrink-0">
-                        <span class="material-symbols-outlined text-sm text-on-tertiary-container">person_add</span>
-                    </div>
-                    <div>
-                        <p class="text-body-sm font-medium text-on-surface">新员工入职</p>
-                        <p class="text-label-sm text-on-surface-variant">李四已添加到系统</p>
-                        <p class="text-label-sm text-on-surface-variant mt-1">昨天</p>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     </section>

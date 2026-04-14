@@ -12,6 +12,38 @@ class ReviewServiceError(Exception):
     pass
 
 
+def add_to_review_queue(
+    conn: sqlite3.Connection,
+    import_session_id: int,
+    raw_text: str,
+    parsed_type: Optional[str] = None,
+    parsed_subtype: Optional[str] = None,
+    parsed_date: Optional[str] = None,
+    parsed_hours: Optional[float] = None,
+    parsed_minutes: Optional[int] = None,
+    confidence_level: Optional[str] = None,
+    confidence_score: Optional[float] = None,
+    anomalies: Optional[str] = None
+) -> int:
+    """
+    将记录添加到审批队列
+    """
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO review_queue (
+            import_session_id, raw_text, parsed_type, parsed_subtype, parsed_date,
+            parsed_hours, parsed_minutes, confidence_level, confidence_score,
+            anomalies, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    """, (
+        import_session_id, raw_text, parsed_type, parsed_subtype, parsed_date,
+        parsed_hours, parsed_minutes, confidence_level, confidence_score,
+        anomalies
+    ))
+    conn.commit()
+    return cursor.lastrowid
+
+
 def get_pending_reviews(conn: sqlite3.Connection, session_id: int) -> List[Dict[str, Any]]:
     """
     获取指定会话的所有待审核记录

@@ -72,9 +72,14 @@
                             </thead>
                             <tbody>
                                 {% for emp in employees %}
-                                <tr>
+                                <tr class="{% if emp.is_active == 0 %}opacity-60 bg-surface-container{% endif %}">
                                     <td><code class="font-mono">{{ emp.employee_id }}</code></td>
-                                    <td class="font-medium">{{ emp.name }}</td>
+                                    <td class="font-medium">
+                                        {{ emp.name }}
+                                        {% if emp.is_active == 0 %}
+                                            <span class="badge badge-error ml-2">已离职</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if emp.department %}
                                             <span class="badge badge-outline">{{ emp.department }}</span>
@@ -89,6 +94,14 @@
                                             <span class="material-symbols-outlined icon-sm">visibility</span>
                                             详情
                                         </a>
+                                        {% if emp.is_active != 0 %}
+                                        <form method="POST" action="{{ url_for('employees.delete_employee', employee_id=emp.employee_id) }}" class="inline-block ml-2" onsubmit="return confirm('确定要删除员工 {{ emp.name }} 吗？');">
+                                            <button type="submit" class="btn btn-error btn-sm">
+                                                <span class="material-symbols-outlined icon-sm">delete</span>
+                                                删除
+                                            </button>
+                                        </form>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}

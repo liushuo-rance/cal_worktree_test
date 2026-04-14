@@ -1,7 +1,6 @@
 """
 调休余额服务
 提供调休余额计算、FIFO抵扣、过期管理功能
-兼容 src/db/schema.py 中的表结构
 """
 
 import sqlite3
@@ -14,20 +13,20 @@ class CompOffError(Exception):
     pass
 
 
-def _minutes_to_hours_minutes(total_minutes: int) -> tuple:
-    """将总分钟数转换为小时和分钟"""
-    hours = total_minutes // 60
-    minutes = total_minutes % 60
-    return hours, minutes
-
-
 def get_total_acquired(conn: sqlite3.Connection, employee_id: str) -> int:
     """
-    获取累计获得的调休时长（分钟）
+    获取累计获得的调休时长
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+
+    Returns:
+        总获得分钟数
     """
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT SUM(total_hours * 60 + total_minutes) as total
+        SELECT SUM(total_minutes) as total
         FROM comp_off_balances
         WHERE employee_id = ?
     """, (employee_id,))
@@ -38,12 +37,19 @@ def get_total_acquired(conn: sqlite3.Connection, employee_id: str) -> int:
 
 def get_total_used(conn: sqlite3.Connection, employee_id: str) -> int:
     """
-    获取累计使用的调休时长（分钟）
+    获取累计使用的调休时长
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+
+    Returns:
+        总使用分钟数
     """
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT SUM(used_hours * 60 + used_minutes) as total
-        FROM comp_off_balances
+        SELECT SUM(used_minutes) as total
+        FROM comp_off_usage_records
         WHERE employee_id = ?
     """, (employee_id,))
 
@@ -53,14 +59,18 @@ def get_total_used(conn: sqlite3.Connection, employee_id: str) -> int:
 
 def get_remaining_balance(conn: sqlite3.Connection, employee_id: str) -> int:
     """
-    获取剩余调休余额（分钟）
+    获取剩余调休余额
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+
+    Returns:
+        剩余分钟数
     """
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT SUM(
-            (total_hours * 60 + total_minutes)
-            - (used_hours * 60 + used_minutes)
-        ) as total
+        SELECT SUM(remaining_minutes) as total
         FROM comp_off_balances
         WHERE employee_id = ?
           AND status = 'active'
@@ -77,24 +87,27 @@ def get_balance_breakdown(
 ) -> List[Dict[str, Any]]:
     """
     获取调休余额明细
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+
+    Returns:
+        余额明细列表
     """
     cursor = conn.cursor()
     cursor.execute("""
         SELECT
             id,
             acquired_date,
-            total_hours,
             total_minutes,
-            used_hours,
-            used_minutes,
+            remaining_minutes,
             expiry_date,
-            status,
-            (total_hours * 60 + total_minutes - used_hours * 60 - used_minutes) as remaining_minutes
+            status
         FROM comp_off_balances
         WHERE employee_id = ?
+          AND remaining_minutes > 0
           AND status = 'active'
-          AND (expiry_date IS NULL OR expiry_date >= date('now'))
-          AND (total_hours * 60 + total_minutes - used_hours * 60 - used_minutes) > 0
         ORDER BY acquired_date ASC
     """, (employee_id,))
 
@@ -105,11 +118,22 @@ def deduct_comp_off(
     conn: sqlite3.Connection,
     employee_id: str,
     deduction_date: date,
-    minutes_needed: int,
-    leave_record_id: Optional[int] = None
+    minutes_needed: int
 ) -> Dict[str, Any]:
     """
     抵扣调休（FIFO算法）
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+        deduction_date: 抵扣日期
+        minutes_needed: 需要抵扣的分钟数
+
+    Returns:
+        抵扣结果
+
+    Raises:
+        CompOffError: 余额不足
     """
     # 检查总余额
     remaining = get_remaining_balance(conn, employee_id)
@@ -133,22 +157,28 @@ def deduct_comp_off(
         available = balance['remaining_minutes']
         deduct = min(available, minutes_to_deduct)
 
-        # 计算新的 used_hours / used_minutes
-        total_used_minutes = (balance['used_hours'] * 60 + balance['used_minutes']) + deduct
-        new_used_hours, new_used_minutes = _minutes_to_hours_minutes(total_used_minutes)
-
         # 更新余额
+        new_remaining = available - deduct
         cursor.execute("""
             UPDATE comp_off_balances
-            SET used_hours = ?, used_minutes = ?
+            SET remaining_minutes = ?
             WHERE id = ?
-        """, (new_used_hours, new_used_minutes, balance['id']))
+        """, (new_remaining, balance['id']))
+
+        # 记录使用
+        used_hours = deduct // 60
+        used_mins = deduct % 60
+        cursor.execute("""
+            INSERT INTO comp_off_usage_records
+            (employee_id, balance_id, used_minutes, usage_date, duration_hours, duration_minutes, total_minutes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (employee_id, balance['id'], deduct, deduction_date.isoformat(), used_hours, used_mins, deduct))
 
         deductions.append({
             'balance_id': balance['id'],
             'acquired_date': balance['acquired_date'],
             'deducted_minutes': deduct,
-            'remaining_after': available - deduct
+            'remaining_after': new_remaining
         })
 
         minutes_to_deduct -= deduct
@@ -160,6 +190,169 @@ def deduct_comp_off(
         'deducted_minutes': minutes_needed,
         'deductions': deductions
     }
+
+
+def get_expiring_balances(
+    conn: sqlite3.Connection,
+    reference_date: Optional[date] = None,
+    days_threshold: int = 30
+) -> List[Dict[str, Any]]:
+    """
+    获取即将过期的调休余额
+
+    Args:
+        conn: 数据库连接
+        reference_date: 参考日期（默认今天）
+        days_threshold: 过期天数阈值
+
+    Returns:
+        即将过期的余额列表
+    """
+    if reference_date is None:
+        reference_date = date.today()
+
+    expiry_threshold = reference_date + timedelta(days=days_threshold)
+
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            b.id,
+            b.employee_id,
+            e.name as employee_name,
+            b.acquired_date,
+            b.remaining_minutes,
+            b.expiry_date,
+            julianday(b.expiry_date) - julianday(?) as days_remaining
+        FROM comp_off_balances b
+        JOIN employees e ON b.employee_id = e.employee_id
+        WHERE b.remaining_minutes > 0
+          AND b.status = 'active'
+          AND b.expiry_date IS NOT NULL
+          AND b.expiry_date <= ?
+          AND b.expiry_date >= ?
+        ORDER BY b.expiry_date ASC
+    """, (reference_date.isoformat(), expiry_threshold.isoformat(),
+          reference_date.isoformat()))
+
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def expire_balance(conn: sqlite3.Connection, balance_id: int) -> None:
+    """
+    将余额标记为过期
+
+    Args:
+        conn: 数据库连接
+        balance_id: 余额ID
+    """
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE comp_off_balances
+        SET status = 'expired'
+        WHERE id = ?
+    """, (balance_id,))
+    conn.commit()
+
+
+def create_comp_off_from_overtime(
+    conn: sqlite3.Connection,
+    overtime_id: int
+) -> int:
+    """
+    从周末加班记录创建调休余额
+
+    Args:
+        conn: 数据库连接
+        overtime_id: 加班记录ID
+
+    Returns:
+        调休余额ID
+
+    Raises:
+        CompOffError: 非周末加班或记录不存在
+    """
+    cursor = conn.cursor()
+
+    # 获取加班记录
+    cursor.execute("""
+        SELECT employee_id, work_date, total_minutes, overtime_type
+        FROM overtime_records
+        WHERE id = ?
+    """, (overtime_id,))
+
+    row = cursor.fetchone()
+    if not row:
+        raise CompOffError(f"加班记录不存在: {overtime_id}")
+
+    # 只有周末加班才生成调休
+    if row['overtime_type'] not in ['weekend', 'adjusted_holiday']:
+        raise CompOffError(
+            f"只有周末加班才能生成调休, 当前类型: {row['overtime_type']}"
+        )
+
+    employee_id = row['employee_id']
+    work_date = row['work_date']
+    total_minutes = row['total_minutes']
+
+    # 计算过期日期（6个月后）
+    work_date_obj = date.fromisoformat(work_date)
+    expiry_date = work_date_obj + timedelta(days=180)
+
+    # 创建调休余额
+    cursor.execute(
+        """
+        INSERT INTO comp_off_balances
+        (employee_id, source_overtime_id, acquired_date,
+         total_minutes, remaining_minutes, expiry_date)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (employee_id, overtime_id, work_date, total_minutes,
+         total_minutes, expiry_date.isoformat())
+    )
+
+    conn.commit()
+
+    return cursor.lastrowid
+
+
+def apply_comp_off_to_leave(
+    conn: sqlite3.Connection,
+    employee_id: str,
+    leave_date: date,
+    leave_minutes: int
+) -> Dict[str, Any]:
+    """
+    将调休应用到请假
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+        leave_date: 请假日期
+        leave_minutes: 请假分钟数
+
+    Returns:
+        抵扣结果
+    """
+    remaining_balance = get_remaining_balance(conn, employee_id)
+
+    # 计算可用抵扣
+    available = min(remaining_balance, leave_minutes)
+    cash_deduction = leave_minutes - available
+
+    result = {
+        'success': True,
+        'leave_minutes': leave_minutes,
+        'covered_minutes': 0,
+        'cash_deduction_minutes': cash_deduction
+    }
+
+    if available > 0:
+        # 执行抵扣
+        deduction_result = deduct_comp_off(conn, employee_id, leave_date, available)
+        result['covered_minutes'] = deduction_result['deducted_minutes']
+        result['deductions'] = deduction_result['deductions']
+
+    return result
 
 
 def create_pending_comp_off_request(
@@ -174,7 +367,8 @@ def create_pending_comp_off_request(
     创建待审批的调休申请
     不扣除 comp_off_balances，只写入 comp_off_usage_records 并标记为 pending
     """
-    hours, minutes = _minutes_to_hours_minutes(minutes_needed)
+    hours = minutes_needed // 60
+    minutes = minutes_needed % 60
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO comp_off_usage_records
@@ -212,14 +406,11 @@ def approve_comp_off_request(
     employee_id = row['employee_id']
     usage_date = date.fromisoformat(row['usage_date'])
     minutes_needed = row['total_minutes']
-    leave_record_id = row['leave_record_id']
 
-    # 执行余额扣除
     deduction_result = deduct_comp_off(
-        conn, employee_id, usage_date, minutes_needed, leave_record_id
+        conn, employee_id, usage_date, minutes_needed
     )
 
-    # 更新状态
     cursor.execute("""
         UPDATE comp_off_usage_records
         SET status = 'approved'
@@ -255,139 +446,3 @@ def reject_comp_off_request(
         WHERE id = ?
     """, (request_id,))
     conn.commit()
-
-
-def get_expiring_balances(
-    conn: sqlite3.Connection,
-    reference_date: Optional[date] = None,
-    days_threshold: int = 30
-) -> List[Dict[str, Any]]:
-    """
-    获取即将过期的调休余额
-    """
-    if reference_date is None:
-        reference_date = date.today()
-
-    expiry_threshold = reference_date + timedelta(days=days_threshold)
-
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT
-            b.id,
-            b.employee_id,
-            e.name as employee_name,
-            b.acquired_date,
-            (b.total_hours * 60 + b.total_minutes - b.used_hours * 60 - b.used_minutes) as remaining_minutes,
-            b.expiry_date,
-            julianday(b.expiry_date) - julianday(?) as days_remaining
-        FROM comp_off_balances b
-        JOIN employees e ON b.employee_id = e.employee_id
-        WHERE b.status = 'active'
-          AND (b.total_hours * 60 + b.total_minutes - b.used_hours * 60 - b.used_minutes) > 0
-          AND b.expiry_date IS NOT NULL
-          AND b.expiry_date <= ?
-          AND b.expiry_date >= ?
-        ORDER BY b.expiry_date ASC
-    """, (reference_date.isoformat(), expiry_threshold.isoformat(),
-          reference_date.isoformat()))
-
-    return [dict(row) for row in cursor.fetchall()]
-
-
-def expire_balance(conn: sqlite3.Connection, balance_id: int) -> None:
-    """
-    将余额标记为过期
-    """
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE comp_off_balances
-        SET status = 'expired'
-        WHERE id = ?
-    """, (balance_id,))
-    conn.commit()
-
-
-def create_comp_off_from_overtime(
-    conn: sqlite3.Connection,
-    overtime_id: int
-) -> int:
-    """
-    从周末加班记录创建调休余额
-    """
-    cursor = conn.cursor()
-
-    # 获取加班记录
-    cursor.execute("""
-        SELECT employee_id, work_date, total_minutes, overtime_type
-        FROM overtime_records
-        WHERE id = ?
-    """, (overtime_id,))
-
-    row = cursor.fetchone()
-    if not row:
-        raise CompOffError(f"加班记录不存在: {overtime_id}")
-
-    # 只有周末加班才生成调休
-    if row['overtime_type'] != 'weekend':
-        raise CompOffError(
-            f"只有周末加班才能生成调休, 当前类型: {row['overtime_type']}"
-        )
-
-    employee_id = row['employee_id']
-    work_date = row['work_date']
-    total_minutes = row['total_minutes']
-    total_hours, remaining_minutes = _minutes_to_hours_minutes(total_minutes)
-
-    # 计算过期日期（6个月后）
-    work_date_obj = date.fromisoformat(work_date)
-    expiry_date = work_date_obj + timedelta(days=180)
-
-    # 创建调休余额
-    cursor.execute(
-        """
-        INSERT INTO comp_off_balances
-        (employee_id, acquired_date, expiry_date,
-         total_hours, total_minutes, used_hours, used_minutes)
-        VALUES (?, ?, ?, ?, ?, 0, 0)
-        """,
-        (employee_id, work_date, expiry_date.isoformat(),
-         total_hours, remaining_minutes)
-    )
-
-    conn.commit()
-    return cursor.lastrowid
-
-
-def apply_comp_off_to_leave(
-    conn: sqlite3.Connection,
-    employee_id: str,
-    leave_date: date,
-    leave_minutes: int,
-    leave_record_id: Optional[int] = None
-) -> Dict[str, Any]:
-    """
-    将调休应用到请假
-    创建 pending 状态的调休申请, 不立即扣除余额
-    """
-    remaining_balance = get_remaining_balance(conn, employee_id)
-
-    # 计算可用抵扣
-    available = min(remaining_balance, leave_minutes)
-    cash_deduction = leave_minutes - available
-
-    result = {
-        'success': True,
-        'leave_minutes': leave_minutes,
-        'covered_minutes': 0,
-        'cash_deduction_minutes': cash_deduction
-    }
-
-    if available > 0:
-        # 创建待审批的调休申请, 不立即扣减余额
-        request_id = create_pending_comp_off_request(
-            conn, employee_id, leave_date, available, '', leave_record_id
-        )
-        result['covered_minutes'] = available
-        result['pending_request_id'] = request_id
-
-    return result

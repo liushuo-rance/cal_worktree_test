@@ -5,6 +5,7 @@
 
 from datetime import time
 from enum import Enum
+from typing import Tuple
 
 
 class TimePeriod(Enum):
@@ -47,7 +48,7 @@ def hours_minutes_to_total_minutes(hours: int, minutes: int) -> int:
     return hours * 60 + minutes
 
 
-def total_minutes_to_hours_minutes(total_minutes: int) -> tuple[int, int]:
+def total_minutes_to_hours_minutes(total_minutes: int) -> Tuple[int, int]:
     """
     将总分钟数转换为小时和分钟
 
@@ -114,7 +115,7 @@ def is_work_time(t: time) -> bool:
     return False
 
 
-def get_time_period(t: time) -> TimePeriod | str:
+def get_time_period(t: time) -> TimePeriod:
     """
     获取给定时间所属的时间段类型
 
@@ -160,7 +161,7 @@ def calculate_overtime_hours(
     start_time: time,
     end_time: time,
     include_lunch: bool = False
-) -> tuple[int, int, int]:
+) -> Tuple[int, int, int]:
     """
     计算加班时长
     根据工作时间规则，只计算标准工作时间之外的时段

@@ -45,7 +45,6 @@
                 <span class="material-symbols-outlined">warning</span>
                 <span>检测到有异常记录，请仔细检查标记为"警告"的行，点击"编辑"进行修改</span>
             </div>
-            {% endif %}
             {% if preview.duplicate_count %}
             <div class="alert alert-error mt-6" style="background: #fff7ed; border-color: #f97316; color: #c2410c;">
                 <span class="material-symbols-outlined" style="color: #f97316;">error</span>
@@ -54,6 +53,7 @@
                     <p class="mt-1 text-sm" style="color: #9a3412;">系统发现这些记录已存在于数据库中。为避免数据覆盖，默认已选择"跳过"。如需覆盖旧数据，请在对应行手动切换为"覆盖"。</p>
                 </div>
             </div>
+            {% endif %}
             {% endif %}
         </div>
     </div>
@@ -85,20 +85,24 @@
             <div id="ai-details-content" style="display: none;">
                 <div class="mb-4">
                     <h6 class="text-label-lg font-semibold mb-2">📤 发送给AI的Prompt:</h6>
-                    {% if ai_details.prompt %}
-                    <pre class="code-preview" style="max-height: 400px; overflow: auto;"><code>{{ ai_details.prompt }}</code></pre>
-                    {% else %}
-                    <p class="text-on-surface-variant italic">没有生成Prompt</p>
-                    {% endif %}
+                    <div id="ai-prompt-wrapper">
+                        {% if ai_details.prompt %}
+                        <pre class="code-preview" style="max-height: 400px; overflow: auto;"><code id="ai-prompt-text">{{ ai_details.prompt }}</code></pre>
+                        {% else %}
+                        <p id="ai-prompt-empty" class="text-on-surface-variant italic">没有生成Prompt</p>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div>
                     <h6 class="text-label-lg font-semibold mb-2">📥 AI返回的Response:</h6>
-                    {% if ai_details.response %}
-                    <pre class="code-preview" style="max-height: 400px; overflow: auto;"><code>{{ ai_details.response }}</code></pre>
-                    {% else %}
-                    <p class="text-on-surface-variant italic">没有收到Response</p>
-                    {% endif %}
+                    <div id="ai-response-wrapper">
+                        {% if ai_details.response %}
+                        <pre class="code-preview" style="max-height: 400px; overflow: auto;"><code id="ai-response-text">{{ ai_details.response }}</code></pre>
+                        {% else %}
+                        <p id="ai-response-empty" class="text-on-surface-variant italic">没有收到Response</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,6 +115,33 @@
     }
     </script>
     {% endif %}
+
+    <!-- SSE Status Panel -->
+    <div id="parsing-panel" class="content-card mb-6 {% if is_complete %}hidden{% endif %}">
+        <div class="content-card-body">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <span class="relative flex h-3 w-3">
+                        <span id="parsing-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span id="parsing-dot" class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+                    <span class="text-body-md font-medium text-on-surface" id="parsing-title">AI 解析中…</span>
+                </div>
+                <span class="text-label-md text-on-surface-variant" id="parsing-count">已完成 0 / {{ preview.total_count }} 条</span>
+            </div>
+            <div class="w-full bg-surface-container-low rounded-full h-2.5 overflow-hidden">
+                <div id="parsing-progress" class="bg-primary h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p class="text-body-xs text-on-surface-variant mt-2" id="parsing-message">正在连接 AI 大模型，请稍候</p>
+        </div>
+    </div>
+
+    <div id="complete-panel" class="content-card mb-6 {% if not is_complete %}hidden{% endif %}">
+        <div class="content-card-body flex items-center gap-3">
+            <span class="material-symbols-outlined text-success text-body-lg">check_circle</span>
+            <span class="text-body-md font-medium text-on-surface">解析完成，共 <span id="complete-count">{{ preview.total_count }}</span> 条记录</span>
+        </div>
+    </div>
 
     <!-- Records Edit Form -->
     <form method="POST" action="{{ url_for('records.import_confirm') }}" id="import-form">
@@ -230,7 +261,7 @@
                                     </div>
                                 </td>
                                 <td class="display-mode">
-                                    <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="flex items-center gap-2">
                                         {% if record.confidence_level == 'HIGH' %}
                                         <span class="badge badge-secondary">高</span>
                                         {% elif record.confidence_level == 'MEDIUM' %}
@@ -246,6 +277,12 @@
                                         {% if record.is_duplicate %}
                                         <span class="badge" style="background: #ffedd5; color: #9a3412; border: 1px solid #fdba74;">重复</span>
                                         {% endif %}
+                                        {% if record.is_duplicate and record.duplicate_existing %}
+                                        <div class="mt-1 text-body-xs" style="color: #9a3412;">
+                                            已存在: {{ record.duplicate_existing.duration_hours }}h{% if record.duplicate_existing.duration_minutes %}{{ record.duplicate_existing.duration_minutes }}m{% endif %}
+                                            {% if record.duplicate_existing.description %}- {{ record.duplicate_existing.description }}{% endif %}
+                                        </div>
+                                        {% endif %}
 
                                         {% if record.validation_errors %}
                                         <span class="material-symbols-outlined text-error" title="{{ record.validation_errors|join(', ') }}">error</span>
@@ -254,12 +291,6 @@
                                         <span class="material-symbols-outlined text-warning" title="{{ record.anomalies|join(', ') }}">warning</span>
                                         {% endif %}
                                     </div>
-                                    {% if record.is_duplicate and record.duplicate_existing %}
-                                    <div class="mt-1 text-body-xs" style="color: #9a3412;">
-                                        已存在: {{ record.duplicate_existing.duration_hours }}h{% if record.duplicate_existing.duration_minutes %}{{ record.duplicate_existing.duration_minutes }}m{% endif %}
-                                        {% if record.duplicate_existing.description %}- {{ record.duplicate_existing.description }}{% endif %}
-                                    </div>
-                                    {% endif %}
                                 </td>
                                 <td class="display-mode">
                                     <div class="flex items-center gap-1">
@@ -428,9 +459,16 @@
                                     <input type="hidden" name="records[{{ loop.index0 }}][subtype]" class="input-subtype" value="{{ record.overtime_type or record.leave_type or '' }}">
                                     <input type="hidden" name="records[{{ loop.index0 }}][hours]" class="input-hours" value="{{ record.parsed_hours if record.parsed_hours is defined else '0' }}">
                                     <input type="hidden" name="records[{{ loop.index0 }}][content]" class="input-content" value="{{ record.content }}">
+                                    <input type="hidden" name="records[{{ loop.index0 }}][duplicate_action]" class="input-duplicate-action" value="skip">
                                 </td>
                             </tr>
                             {% endfor %}
+                            <tr id="empty-state" {% if preview.records %}class="hidden"{% endif %}>
+                                <td colspan="10" class="text-center py-12 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-display-sm mb-2">hourglass_empty</span>
+                                    <p class="text-body-md">暂无记录，等待 AI 解析中…</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -443,10 +481,17 @@
                 <span class="material-symbols-outlined">cancel</span>
                 取消导入
             </a>
-            <button type="submit" class="btn btn-primary btn-lg" id="confirm-btn">
-                <span class="material-symbols-outlined">check_circle</span>
-                确认导入
-            </button>
+            <div class="flex flex-col items-end gap-1">
+                {% if not is_complete %}
+                <p class="text-body-xs text-on-surface-variant" id="import-tip">AI 解析完成后方可导入</p>
+                {% else %}
+                <p class="text-body-xs text-on-surface-variant hidden" id="import-tip">AI 解析完成后方可导入</p>
+                {% endif %}
+                <button type="submit" class="btn btn-primary btn-lg" id="confirm-btn" {% if not is_complete %}disabled{% endif %}>
+                    <span class="material-symbols-outlined">check_circle</span>
+                    确认导入
+                </button>
+            </div>
         </div>
     </form>
 </div>
@@ -475,6 +520,284 @@ const subtypeOptions = {
         { value: 'full_day', label: '全天' }
     ]
 };
+
+let nextRecordIndex = document.querySelectorAll('.record-row').length;
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+}
+
+function formatDate(parsed_date) {
+    if (!parsed_date) return '';
+    if (typeof parsed_date === 'string') {
+        if (parsed_date.includes('GMT')) {
+            const parts = parsed_date.split(' ');
+            const mm = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'};
+            return `${parts[3]}-${mm[parts[2]] || '01'}-${parts[1]}`;
+        }
+        return parsed_date;
+    }
+    if (parsed_date && typeof parsed_date === 'object' && parsed_date.toISOString) {
+        return parsed_date.toISOString().slice(0,10);
+    }
+    return String(parsed_date);
+}
+
+function renderBatch(records) {
+    const tbody = document.querySelector('#records-table tbody');
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.classList.add('hidden');
+
+    const otMap = {weekday_morning:'工作日-早上', weekday_lunch:'工作日-午休', weekday_evening:'工作日-晚上', weekday_mixed:'工作日-全天', weekend:'周末加班', holiday:'法定节假日'};
+    const lvMap = {personal:'事假', sick:'病假', annual:'年假', marriage:'婚假', maternity:'产假', bereavement:'丧假'};
+
+    records.forEach(record => {
+        const idx = nextRecordIndex++;
+        const dateStr = formatDate(record.parsed_date || record.date);
+        const lineNum = record.line_num !== undefined ? record.line_num : '-';
+        const type = record.type || 'unknown';
+        const otType = record.overtime_type || '';
+        const lvType = record.leave_type || '';
+        const subtypeVal = otType || lvType || '';
+        const hours = (record.parsed_hours !== undefined && record.parsed_hours !== null) ? record.parsed_hours : 0;
+        const content = escapeHtml(record.content || '');
+        const rawLine = escapeHtml(record.raw_line || record.content || '');
+        const reasoning = escapeHtml(record.reasoning || '');
+        const aiParsed = !!record.ai_parsed;
+        const confidence = record.confidence_level || 'LOW';
+        const hasAnomaly = !!record.has_anomaly;
+        const anomalies = record.anomalies || [];
+        const validationErrors = record.validation_errors || [];
+
+        const isDuplicate = !!record.is_duplicate;
+        const duplicateExisting = record.duplicate_existing || null;
+        const rowClass = confidence === 'LOW' ? 'bg-error-container/20' : (hasAnomaly ? 'bg-warning/10' : (isDuplicate ? 'bg-orange-50' : ''));
+
+        const typeChip = type === 'overtime' ? '<span class="chip chip-success">加班</span>' :
+                         type === 'leave' ? '<span class="chip chip-warning">请假</span>' :
+                         type === 'comp_off' ? '<span class="chip chip-info">调休</span>' :
+                         '<span class="chip">未知</span>';
+
+        let subtypeBadge = otType ? `<span class="badge badge-outline">${otMap[otType] || otType}</span>` :
+                           lvType ? `<span class="badge badge-outline">${lvMap[lvType] || lvType}</span>` :
+                           '<span class="text-error text-body-xs">未设置</span>';
+
+        const confBadge = confidence === 'HIGH' ? '<span class="badge badge-secondary">高</span>' :
+                          confidence === 'MEDIUM' ? '<span class="badge badge-primary">中</span>' :
+                          '<span class="badge badge-outline text-error">低</span>';
+
+        const aiBadge = aiParsed ? '<span class="badge badge-outline text-primary" title="由Claude AI大模型解析">🤖 AI</span>' : '';
+        const errIcon = validationErrors.length ? `<span class="material-symbols-outlined text-error" title="${escapeHtml(validationErrors.join(', '))}">error</span>` : '';
+        const warnIcon = hasAnomaly ? `<span class="material-symbols-outlined text-warning" title="${escapeHtml(anomalies.join(', '))}">warning</span>` : '';
+
+        const dupBadge = isDuplicate ? '<span class="badge" style="background: #ffedd5; color: #9a3412; border: 1px solid #fdba74;">重复</span>' : '';
+        let dupExistingHtml = '';
+        if (isDuplicate && duplicateExisting) {
+            const dupHours = duplicateExisting.duration_hours !== undefined ? duplicateExisting.duration_hours : 0;
+            const dupMinutes = duplicateExisting.duration_minutes || '';
+            const dupDesc = duplicateExisting.description ? `- ${escapeHtml(duplicateExisting.description)}` : '';
+            dupExistingHtml = `<div class="mt-1 text-body-xs" style="color: #9a3412;">已存在: ${dupHours}h${dupMinutes ? dupMinutes + 'm' : ''} ${dupDesc}</div>`;
+        }
+
+        const reasoningHtml = reasoning ? `<span class="text-body-xs text-on-surface-variant" title="AI解析推理：${reasoning}"><span class="material-symbols-outlined text-primary" style="font-size: 12px; vertical-align: middle;">psychology</span> ${reasoning.length > 40 ? reasoning.slice(0,40)+'...' : reasoning}</span>` : '';
+
+        const hasTypeError = (type === 'overtime' && !otType) || (type === 'leave' && !lvType);
+        const dateErrorHtml = !dateStr ? '<p class="form-error text-body-xs mt-1">原日期未识别，请选择正确日期</p>' : '';
+        const subtypeErrorHtml = hasTypeError ? '<p class="form-error text-body-xs mt-1">原解析缺少子类型，请选择</p>' : '';
+        const aiHeaderHtml = aiParsed ? `<div class="flex items-center gap-2 mb-3 pb-3 border-b border-outline-variant"><span class="material-symbols-outlined text-primary">smart_toy</span><span class="text-body-sm font-medium text-primary">🤖 AI大模型解析结果</span>${reasoning ? `<span class="text-body-xs text-on-surface-variant ml-2">推理：${reasoning}</span>` : ''}</div>` : '';
+
+        const html = `
+<tr class="record-row ${rowClass}" data-index="${idx}">
+    <td><input type="checkbox" name="selected_records" value="${idx}" checked class="record-checkbox"></td>
+    <td class="text-on-surface-variant">${lineNum}</td>
+    <td class="display-mode">${dateStr ? `<code class="font-mono text-label-md">${dateStr}</code>` : '<span class="text-error">未识别</span>'}</td>
+    <td class="display-mode text-on-surface-variant">${record.weekday || '-'}</td>
+    <td class="display-mode">${typeChip}</td>
+    <td class="display-mode">${subtypeBadge}</td>
+    <td class="display-mode"><span class="tabular-nums">${parseFloat(hours).toFixed(1)}h</span></td>
+    <td class="display-mode">
+        <div class="flex flex-col gap-1">
+            <code class="text-body-sm font-mono bg-surface-container px-2 py-1 rounded truncate max-w-md inline-block" title="${rawLine}">${rawLine.length > 50 ? rawLine.slice(0,50)+'...' : rawLine}</code>
+            ${aiParsed && reasoningHtml ? reasoningHtml : ''}
+        </div>
+    </td>
+    <td class="display-mode">
+        <div class="flex items-center gap-2">${confBadge}${aiBadge}${dupBadge}${errIcon}${warnIcon}</div>
+        ${dupExistingHtml}
+    </td>
+    <td class="display-mode">
+        <div class="flex items-center gap-1">
+            <button type="button" class="action-btn text-primary" onclick="editRow(${idx})" title="编辑"><span class="material-symbols-outlined">edit</span></button>
+            <button type="button" class="action-btn text-error" onclick="deleteRow(${idx})" title="删除"><span class="material-symbols-outlined">delete</span></button>
+        </div>
+        ${isDuplicate ? '<div class="mt-2 flex items-center gap-2 text-body-xs"><label class="flex items-center gap-1 cursor-pointer" title="保留旧数据，不导入本条"><input type="radio" name="records['+idx+'][duplicate_action]" value="skip" checked class="form-radio"><span style="color: #9a3412;">跳过</span></label><label class="flex items-center gap-1 cursor-pointer" title="用新数据覆盖旧记录"><input type="radio" name="records['+idx+'][duplicate_action]" value="overwrite" class="form-radio"><span style="color: #1d4ed8;">覆盖</span></label></div>' : ''}
+    </td>
+    <td class="edit-mode hidden" colspan="7">
+        <div class="p-4 bg-surface-container-low rounded-lg">
+            ${aiHeaderHtml}
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="form-label text-label-sm">日期 <span class="required">*</span></label>
+                    <input type="date" class="form-input edit-date" value="${dateStr}">${dateErrorHtml}</div>
+                <div>
+                    <label class="form-label text-label-sm">类型 <span class="required">*</span></label>
+                    <select class="form-select edit-type" onchange="updateSubtypeOptions(${idx})" data-index="${idx}">
+                        <option value="overtime" ${type==='overtime'?'selected':''}>加班</option>
+                        <option value="leave" ${type==='leave'?'selected':''}>请假</option>
+                        <option value="comp_off" ${type==='comp_off'?'selected':''}>调休</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label text-label-sm">子类型 <span class="required">*</span></label>
+                    <select class="form-select edit-subtype" data-index="${idx}"></select>${subtypeErrorHtml}</div>
+                <div>
+                    <label class="form-label text-label-sm">时长（小时）</label>
+                    <input type="number" class="form-input edit-hours" step="0.5" min="0" max="24" value="${hours}">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-label-sm">描述</label>
+                <input type="text" class="form-input edit-content" value="${content}" placeholder="请输入记录描述">
+            </div>
+            <input type="hidden" class="orig-date" value="${dateStr}">
+            <input type="hidden" class="orig-type" value="${type}">
+            <input type="hidden" class="orig-subtype" value="${subtypeVal}">
+            <input type="hidden" class="orig-hours" value="${hours}">
+            <input type="hidden" class="orig-content" value="${content}">
+            <div class="flex justify-end gap-2">
+                <button type="button" class="btn btn-sm btn-ghost" onclick="cancelEdit(${idx})"><span class="material-symbols-outlined">undo</span>取消</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="saveEdit(${idx})"><span class="material-symbols-outlined">save</span>保存</button>
+            </div>
+        </div>
+    </td>
+</tr>
+<tr class="hidden-inputs" data-index="${idx}">
+    <td colspan="9">
+        <input type="hidden" name="records[${idx}][date]" class="input-date" value="${dateStr}">
+        <input type="hidden" name="records[${idx}][type]" class="input-type" value="${type}">
+        <input type="hidden" name="records[${idx}][subtype]" class="input-subtype" value="${subtypeVal}">
+        <input type="hidden" name="records[${idx}][hours]" class="input-hours" value="${hours}">
+        <input type="hidden" name="records[${idx}][content]" class="input-content" value="${content}">
+        <input type="hidden" name="records[${idx}][duplicate_action]" class="input-duplicate-action" value="skip">
+    </td>
+</tr>`;
+        tbody.insertAdjacentHTML('beforeend', html);
+        updateSubtypeOptions(idx);
+    });
+
+    const totalCount = document.querySelectorAll('.record-row').length;
+    document.getElementById('total-count').textContent = totalCount;
+
+    // Bind events for newly added checkboxes
+    tbody.querySelectorAll('.record-checkbox').forEach(cb => {
+        cb.removeEventListener('change', updateSelectedCount);
+        cb.addEventListener('change', updateSelectedCount);
+    });
+
+    // 更新置信度概览统计
+    let highDelta = 0, mediumDelta = 0, lowDelta = 0;
+    records.forEach(r => {
+        const level = r.confidence_level || 'LOW';
+        if (level === 'HIGH') highDelta++;
+        else if (level === 'MEDIUM') mediumDelta++;
+        else lowDelta++;
+    });
+    const highEl = document.getElementById('high-count');
+    const mediumEl = document.getElementById('medium-count');
+    const lowEl = document.getElementById('low-count');
+    if (highEl) highEl.textContent = (parseInt(highEl.textContent) || 0) + highDelta;
+    if (mediumEl) mediumEl.textContent = (parseInt(mediumEl.textContent) || 0) + mediumDelta;
+    if (lowEl) lowEl.textContent = (parseInt(lowEl.textContent) || 0) + lowDelta;
+
+    // Update low-confidence card styling
+    const lowCountVal = parseInt(lowEl ? lowEl.textContent : '0') || 0;
+    const lowBox = lowEl ? lowEl.parentElement : null;
+    if (lowBox) {
+        if (lowCountVal > 0) {
+            lowBox.classList.remove('bg-surface-container-low');
+            lowBox.classList.add('bg-error-container');
+            lowEl.classList.remove('text-on-surface');
+            lowEl.classList.add('text-error');
+        } else {
+            lowBox.classList.remove('bg-error-container');
+            lowBox.classList.add('bg-surface-container-low');
+            lowEl.classList.remove('text-error');
+            lowEl.classList.add('text-on-surface');
+        }
+    }
+
+    updateSelectedCount();
+}
+
+let parsingComplete = {{ 'true' if is_complete else 'false' }};
+
+// SSE streaming for incremental batch rendering
+(function() {
+    const streamKey = "{{ stream_key or '' }}";
+
+    if (!streamKey || parsingComplete) return;
+
+    const es = new EventSource(`/records/import/stream/?key=${streamKey}`);
+    es.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'progress') {
+            document.getElementById('parsing-progress').style.width = data.progress + '%';
+            document.getElementById('parsing-message').textContent = data.message;
+        } else if (data.type === 'batch_done') {
+            if (data.records && data.records.length) {
+                renderBatch(data.records);
+            }
+            document.getElementById('parsing-count').textContent = `已完成 ${data.completed} / ${data.total} 条`;
+            if (data.stats) {
+                document.getElementById('high-count').textContent = data.stats.high_confidence;
+                document.getElementById('medium-count').textContent = data.stats.medium_confidence;
+                document.getElementById('low-count').textContent = data.stats.low_confidence;
+                const lowEl = document.getElementById('low-count');
+                const lowBox = lowEl ? lowEl.parentElement : null;
+                if (lowBox) {
+                    if (data.stats.low_confidence > 0) {
+                        lowBox.classList.remove('bg-surface-container-low');
+                        lowBox.classList.add('bg-error-container');
+                        lowEl.classList.remove('text-on-surface');
+                        lowEl.classList.add('text-error');
+                    } else {
+                        lowBox.classList.remove('bg-error-container');
+                        lowBox.classList.add('bg-surface-container-low');
+                        lowEl.classList.remove('text-error');
+                        lowEl.classList.add('text-on-surface');
+                    }
+                }
+            }
+        } else if (data.type === 'done') {
+            es.close();
+            parsingComplete = true;
+            document.getElementById('parsing-panel').classList.add('hidden');
+            document.getElementById('complete-panel').classList.remove('hidden');
+            const tip = document.getElementById('import-tip');
+            if (tip) tip.classList.add('hidden');
+            const total = document.querySelectorAll('.record-row').length;
+            document.getElementById('complete-count').textContent = total;
+            updateSelectedCount();
+            // 更新 AI Prompt / Response DOM
+            if (data.prompt) {
+                document.getElementById('ai-prompt-wrapper').innerHTML =
+                    '<pre class="code-preview" style="max-height: 400px; overflow: auto;"><code id="ai-prompt-text">' + escapeHtml(data.prompt) + '</code></pre>';
+            }
+            if (data.response) {
+                document.getElementById('ai-response-wrapper').innerHTML =
+                    '<pre class="code-preview" style="max-height: 400px; overflow: auto;"><code id="ai-response-text">' + escapeHtml(data.response) + '</code></pre>';
+            }
+        } else if (data.type === 'error') {
+            es.close();
+            document.getElementById('parsing-message').textContent = '解析失败: ' + data.message;
+            document.getElementById('parsing-message').classList.add('text-error');
+            document.getElementById('parsing-dot').classList.remove('bg-amber-500');
+            document.getElementById('parsing-dot').classList.add('bg-error');
+            document.getElementById('parsing-ping').classList.add('hidden');
+        }
+    };
+})();
 
 // Initialize all subtype dropdowns on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -651,7 +974,7 @@ function updateSelectedCount() {
     document.getElementById('selected-count').textContent = checked + ' 条';
 
     const confirmBtn = document.getElementById('confirm-btn');
-    if (checked === 0) {
+    if (!parsingComplete || checked === 0) {
         confirmBtn.disabled = true;
         confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
     } else {

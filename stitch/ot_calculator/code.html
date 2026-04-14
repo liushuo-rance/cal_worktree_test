@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OT Calculator | The Digital Jurist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#1a1b23",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "primary-container": "#1a237e",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bdc2ff",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "primary": "#000666",
+                        "inverse-on-surface": "#f1f0fb",
+                        "outline-variant": "#c6c5d4",
+                        "secondary-fixed": "#a3f69c",
+                        "primary-fixed": "#e0e0ff",
+                        "on-secondary-fixed-variant": "#005312",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#fbf8ff",
+                        "on-primary-fixed": "#000767",
+                        "tertiary-fixed": "#ffdbca",
+                        "outline": "#767683",
+                        "on-primary-fixed-variant": "#343d96",
+                        "surface-variant": "#e2e1ed",
+                        "on-tertiary-fixed": "#331200",
+                        "surface-container": "#eeedf8",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#217128",
+                        "surface-container-low": "#f3f2fe",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#fbf8ff",
+                        "on-primary-container": "#8690ee",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#a0f399",
+                        "secondary": "#1b6d24",
+                        "surface-container-high": "#e8e7f2",
+                        "on-secondary-fixed": "#002204",
+                        "surface-tint": "#4c56af",
+                        "surface": "#fbf8ff",
+                        "surface-container-highest": "#e2e1ed",
+                        "on-surface": "#1a1b23",
+                        "secondary-fixed-dim": "#88d982",
+                        "on-surface-variant": "#454652",
+                        "inverse-primary": "#bdc2ff",
+                        "inverse-surface": "#2f3038",
+                        "tertiary-container": "#532100",
+                        "surface-dim": "#dad9e4",
+                        "tertiary": "#321100",
+                        "on-tertiary-container": "#f57009"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .compliance-gradient {
+            background: linear-gradient(135deg, #000666 0%, #1a237e 100%);
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface">
+<!-- Sidebar Authority Panel -->
+<aside class="h-screen w-64 fixed left-0 top-0 flex flex-col h-full bg-gradient-to-b from-[#000666] to-[#1a237e] shadow-2xl z-50">
+<div class="p-8">
+<div class="text-xl font-bold tracking-tight text-white font-headline">The Digital Jurist</div>
+<div class="text-[10px] uppercase tracking-[0.2em] text-blue-200/60 mt-1">Compliance Panel</div>
+</div>
+<nav class="mt-4 flex-1">
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors hover:bg-white/10 group" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-sm tracking-wide">Dashboard</span>
+</a>
+<a class="flex items-center bg-[#fbf8ff] text-[#000666] rounded-l-full ml-4 pl-4 py-3 font-bold transition-all shadow-lg" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="calculate">calculate</span>
+<span class="font-manrope text-sm tracking-wide">OT Calculator</span>
+</a>
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="groups">groups</span>
+<span class="font-manrope text-sm tracking-wide">Employee Records</span>
+</a>
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="gavel">gavel</span>
+<span class="font-manrope text-sm tracking-wide">Compliance Reports</span>
+</a>
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors hover:bg-white/10 mt-auto mb-8" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="settings">settings</span>
+<span class="font-manrope text-sm tracking-wide">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center h-16 px-8 sticky top-0 z-40 bg-[#fbf8ff]/80 backdrop-blur-xl">
+<div class="flex items-center space-x-4">
+<div class="text-lg font-black text-[#1a237e] font-headline">Labor Compliance</div>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-low border-none focus:ring-1 focus:ring-primary text-sm rounded-lg w-64 transition-all" placeholder="Search statutes or employees..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-6">
+<button class="text-slate-500 hover:text-[#1a237e] transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-slate-500 hover:text-[#1a237e] transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="flex items-center space-x-3 pl-4 border-l border-slate-200/50">
+<div class="text-right">
+<p class="text-xs font-bold text-on-surface">Elena Rodriguez</p>
+<p class="text-[10px] text-outline">Senior Auditor</p>
+</div>
+<img alt="Senior Auditor Profile" class="w-10 h-10 rounded-full border-2 border-white shadow-sm" data-alt="professional portrait of a confident female senior auditor in a business suit with a clean modern office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1InZj6Gv1PYSjXM4M_uIPWF4lmM_0qFabJjzro4lxga8FWcx4jgriy4GzAxeS7bThsoZmOiNAdzkoIKGqBznuBaHmNu1nHjQYFaOweCokopg8pe089xoqSYpjcVP2w5IfYDGCDCiO66jbhT60oK9nSdgfi-h1yYMfDwW_4NDU4kMeLnLXa5oiMj5VKlPB38D-_OxbQ4Mwds-jOrJ2PNJiUWAPHZMYIckQg9tmIBu9IOIN8g9a0tcCAJRoNbKemakM8-SNxPCOAvg"/>
+</div>
+</div>
+</header>
+<!-- Tool Content -->
+<div class="p-10 max-w-7xl mx-auto">
+<!-- Header Section with Asymmetry -->
+<div class="flex justify-between items-end mb-12">
+<div class="max-w-2xl">
+<h1 class="text-4xl font-extrabold font-headline tracking-tight text-primary mb-2">Overtime Calculation Tool</h1>
+<p class="text-on-surface-variant font-body">Calculate statutory overtime compensation based on the National Labor Standards. All computations are logged for audit compliance.</p>
+</div>
+<div class="bg-surface-container p-4 rounded-xl border border-outline-variant/10">
+<div class="flex items-center text-xs font-bold text-primary mb-1">
+<span class="material-symbols-outlined text-sm mr-2" data-icon="gavel">gavel</span>
+                        CURRENT LEGAL JURISDICTION
+                    </div>
+<p class="text-sm font-semibold">Standard Federal Labor Law (FLSA)</p>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Input Form (Editorial Surface) -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<section class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10">
+<h2 class="text-xl font-bold font-headline mb-8 flex items-center">
+<span class="w-2 h-6 bg-primary mr-3 rounded-full"></span>
+                            Employee Details
+                        </h2>
+<div class="space-y-8">
+<div class="relative group">
+<label class="block text-xs font-bold text-outline-variant uppercase tracking-wider mb-2">Employee Name</label>
+<input class="w-full border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 text-lg font-medium transition-all bg-transparent" type="text" value="Jonathan Aris"/>
+</div>
+<div class="relative group">
+<label class="block text-xs font-bold text-outline-variant uppercase tracking-wider mb-2">Calculation Period</label>
+<div class="flex items-center space-x-2">
+<input class="flex-1 border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 text-sm bg-transparent" type="date" value="2024-10-21"/>
+<span class="text-outline">to</span>
+<input class="flex-1 border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 text-sm bg-transparent" type="date" value="2024-10-27"/>
+</div>
+</div>
+<div class="relative group">
+<label class="block text-xs font-bold text-outline-variant uppercase tracking-wider mb-2">Base Hourly Rate ($)</label>
+<input class="w-full border-0 border-b-2 border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 text-lg font-medium transition-all bg-transparent" type="number" value="45.00"/>
+</div>
+<button class="w-full compliance-gradient text-white py-4 font-bold rounded-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center justify-center">
+<span class="material-symbols-outlined mr-2" data-icon="refresh">refresh</span>
+                                Recalculate Totals
+                            </button>
+</div>
+</section>
+<!-- Alert / Context Box -->
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/20 italic text-sm text-on-surface-variant flex gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="info">info</span>
+<p>Overtime rates are applied at 1.5x for weekly hours exceeding 40, and 2.0x for specified legal holidays and mandatory rest days.</p>
+</div>
+</div>
+<!-- Right Column: Results & Breakdown (Tonal Hierarchy) -->
+<div class="col-span-12 lg:col-span-8 space-y-8">
+<!-- Summary Cards (Bento Grid Style) -->
+<div class="grid grid-cols-3 gap-6">
+<div class="bg-surface-container p-6 rounded-xl border border-outline-variant/10">
+<p class="text-xs font-bold text-outline-variant uppercase mb-4">Total Hours Worked</p>
+<p class="text-4xl font-extrabold font-headline text-on-surface">54.5</p>
+<div class="mt-2 text-[10px] text-on-surface-variant">+14.5 over standard</div>
+</div>
+<div class="bg-white p-6 rounded-xl border-t-4 border-primary shadow-sm">
+<p class="text-xs font-bold text-primary uppercase mb-4">Standard Salary</p>
+<p class="text-4xl font-extrabold font-headline text-primary">$1,800.00</p>
+<div class="mt-2 text-[10px] text-outline">40 hrs at $45.00</div>
+</div>
+<div class="bg-white p-6 rounded-xl border-t-4 border-secondary-container shadow-sm">
+<p class="text-xs font-bold text-secondary uppercase mb-4">Total OT Pay</p>
+<p class="text-4xl font-extrabold font-headline text-secondary">$1,147.50</p>
+<div class="mt-2 text-[10px] text-on-secondary-container">Computed with premiums</div>
+</div>
+</div>
+<!-- Daily Breakdown Table (Academic Editorial Style) -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-outline-variant/10">
+<div class="p-6 border-b border-surface-container flex justify-between items-center">
+<h3 class="font-bold text-lg font-headline">Weekly Timesheet Breakdown</h3>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-surface-container text-[10px] font-bold rounded-full text-outline-variant">OCT 21 - OCT 27, 2024</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low">
+<tr>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Date</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Standard</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Overtime</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Daily Total</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container font-body text-sm">
+<!-- Monday -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-semibold">Oct 21, Mon</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary-container text-on-secondary-container">Standard Day</span>
+</td>
+<td class="px-6 py-4 text-right tabular-nums">8.0</td>
+<td class="px-6 py-4 text-right tabular-nums text-outline">0.0</td>
+<td class="px-6 py-4 text-right tabular-nums font-bold">8.0 hrs</td>
+</tr>
+<!-- Tuesday -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-semibold">Oct 22, Tue</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary-container text-on-secondary-container">Standard Day</span>
+</td>
+<td class="px-6 py-4 text-right tabular-nums">8.0</td>
+<td class="px-6 py-4 text-right tabular-nums text-outline">2.0</td>
+<td class="px-6 py-4 text-right tabular-nums font-bold">10.0 hrs</td>
+</tr>
+<!-- Saturday -->
+<tr class="bg-surface-container-low/50 hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-semibold">Oct 26, Sat</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-tertiary-fixed text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined text-xs mr-1" data-icon="warning">warning</span>
+                                                Weekend Work
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right tabular-nums">0.0</td>
+<td class="px-6 py-4 text-right tabular-nums text-on-tertiary-container font-medium">6.5</td>
+<td class="px-6 py-4 text-right tabular-nums font-bold">6.5 hrs</td>
+</tr>
+<!-- Sunday -->
+<tr class="bg-error-container/10 hover:bg-error-container/20 transition-colors">
+<td class="px-6 py-4 font-semibold text-error">Oct 27, Sun</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-error-container text-on-error-container">
+<span class="material-symbols-outlined text-xs mr-1" data-icon="gavel">gavel</span>
+                                                Legal Holiday
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right tabular-nums">0.0</td>
+<td class="px-6 py-4 text-right tabular-nums text-on-error-container font-medium">8.0</td>
+<td class="px-6 py-4 text-right tabular-nums font-bold">8.0 hrs</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Final Calculation Document View -->
+<div class="bg-primary-container p-10 rounded-xl text-white shadow-2xl relative overflow-hidden">
+<!-- Decorative Abstract Background -->
+<div class="absolute inset-0 opacity-10 pointer-events-none">
+<svg class="h-full w-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<path d="M0 100 L100 0 L100 100 Z" fill="white"></path>
+</svg>
+</div>
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-8 border-b border-white/10 pb-6">
+<div>
+<h4 class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Final Certified Payout</h4>
+<p class="text-4xl font-extrabold font-headline">$2,947.50</p>
+</div>
+<div class="text-right">
+<span class="material-symbols-outlined text-4xl opacity-50" data-icon="verified">verified</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
+<div class="flex justify-between">
+<span class="text-blue-200">Base Salary (40 hrs)</span>
+<span class="font-bold">$1,800.00</span>
+</div>
+<div class="flex justify-between">
+<span class="text-blue-200">Weekend Premium (1.5x)</span>
+<span class="font-bold">$438.75</span>
+</div>
+<div class="flex justify-between">
+<span class="text-blue-200">Holiday Premium (2.0x)</span>
+<span class="font-bold">$708.75</span>
+</div>
+<div class="flex justify-between border-t border-white/20 pt-4 mt-2 col-span-2">
+<span class="font-bold text-lg">Total Gross Earnings</span>
+<span class="font-bold text-lg">$2,947.50</span>
+</div>
+</div>
+<div class="mt-10 flex gap-4">
+<button class="flex-1 bg-white text-primary font-bold py-3 rounded text-sm hover:bg-blue-50 transition-colors">
+                                    Download Compliance PDF
+                                </button>
+<button class="px-6 border border-white/30 text-white font-bold py-3 rounded text-sm hover:bg-white/10 transition-colors">
+                                    Send to HR
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

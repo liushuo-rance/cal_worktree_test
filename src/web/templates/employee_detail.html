@@ -18,6 +18,14 @@
     {% if employee %}
     <!-- Employee Info Card -->
     <div class="content-card mb-8">
+        {% if employee.is_active == 0 %}
+        <div class="bg-error/10 text-error px-6 py-3 border-b border-error/20">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined">warning</span>
+                <span class="font-medium">该员工已离职</span>
+            </div>
+        </div>
+        {% endif %}
         <div class="content-card-header">
             <div class="flex items-center gap-4">
                 <div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-white text-2xl font-bold">
@@ -32,6 +40,9 @@
                             <span class="material-symbols-outlined icon-sm">business</span>
                             {{ employee.department }}
                         </span>
+                        {% endif %}
+                        {% if employee.is_active == 0 %}
+                        <span class="badge badge-error">已离职</span>
                         {% endif %}
                     </div>
                 </div>
@@ -83,7 +94,7 @@
                         </thead>
                         <tbody>
                             {% for record in overtime_records %}
-                            <tr>
+                            <tr class="{% if record.employment_status == 'inactive' %}opacity-60 bg-surface-container{% endif %}">
                                 <td>{{ record.work_date }}</td>
                                 <td>
                                     {% if record.overtime_type == 'holiday' %}
@@ -92,6 +103,9 @@
                                     <span class="chip chip-warning">周末</span>
                                     {% else %}
                                     <span class="chip chip-info">工作日延时</span>
+                                    {% endif %}
+                                    {% if record.employment_status == 'inactive' %}
+                                    <span class="badge badge-error ml-1">已离职</span>
                                     {% endif %}
                                 </td>
                                 <td class="numeric font-mono">

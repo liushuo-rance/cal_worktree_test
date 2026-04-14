@@ -53,8 +53,8 @@ def store_overtime_record(
     cursor.execute("""
         INSERT INTO overtime_records
         (employee_id, work_date, duration_hours, duration_minutes, total_minutes,
-         overtime_type, description, source_import_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         overtime_type, description, source_import_id, employment_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
     """, (
         employee_id, work_date, hours, minutes, total_minutes,
         overtime_type, description, import_id
@@ -146,17 +146,16 @@ def _create_comp_off_balance(
     创建调休余额记录
     """
     expiry_date = acquired_date + timedelta(days=expiry_days)
-    total_hours, remaining_minutes = _minutes_to_hours_minutes(total_minutes)
 
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO comp_off_balances
-        (employee_id, acquired_date, expiry_date, total_hours, total_minutes,
-         used_hours, used_minutes, status)
-        VALUES (?, ?, ?, ?, ?, 0, 0, 'active')
+        (employee_id, acquired_date, expiry_date, total_minutes,
+         remaining_minutes, status)
+        VALUES (?, ?, ?, ?, ?, 'active')
     """, (
         employee_id, acquired_date, expiry_date,
-        total_hours, remaining_minutes
+        total_minutes, total_minutes
     ))
 
     conn.commit()
@@ -202,8 +201,8 @@ def _store_overtime_record_no_commit(
     cursor.execute("""
         INSERT INTO overtime_records
         (employee_id, work_date, duration_hours, duration_minutes, total_minutes,
-         overtime_type, description, source_import_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         overtime_type, description, source_import_id, employment_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
     """, (
         employee_id, work_date, hours, minutes, total_minutes,
         overtime_type, description, import_id
@@ -395,7 +394,8 @@ def store_batch_records_with_session(
 
 def create_import_session(
     conn: sqlite3.Connection,
-    file_path: str
+    file_path: str,
+    employee_id: str = None
 ) -> int:
     """
     创建导入会话
@@ -403,9 +403,9 @@ def create_import_session(
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO import_sessions
-        (file_path, status, total_records, processed_records, error_records)
-        VALUES (?, 'pending', 0, 0, 0)
-    """, (file_path,))
+        (file_path, employee_id, status, total_records, processed_records, error_records)
+        VALUES (?, ?, 'pending', 0, 0, 0)
+    """, (file_path, employee_id))
 
     conn.commit()
     return cursor.lastrowid
@@ -431,3 +431,47 @@ def update_import_session_stats(
     """, (total, processed, failed, session_id))
 
     conn.commit()
+
+
+def delete_employee_service(conn: sqlite3.Connection, employee_id: str) -> Dict[str, Any]:
+    """
+    软删除员工：标记员工为 inactive，并更新相关加班记录的 employment_status
+
+    Args:
+        conn: 数据库连接
+        employee_id: 员工ID
+
+    Returns:
+        操作结果
+
+    Raises:
+        StorageError: 员工不存在
+    """
+    cursor = conn.cursor()
+
+    # 检查员工是否存在
+    cursor.execute("SELECT 1 FROM employees WHERE employee_id = ?", (employee_id,))
+    if cursor.fetchone() is None:
+        raise StorageError(f"员工不存在: {employee_id}")
+
+    # 软删除员工
+    cursor.execute("""
+        UPDATE employees
+        SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+        WHERE employee_id = ?
+    """, (employee_id,))
+
+    # 更新相关加班记录在职状态
+    cursor.execute("""
+        UPDATE overtime_records
+        SET employment_status = 'inactive'
+        WHERE employee_id = ?
+    """, (employee_id,))
+
+    conn.commit()
+
+    return {
+        'success': True,
+        'employee_id': employee_id,
+        'affected_records': cursor.rowcount
+    }

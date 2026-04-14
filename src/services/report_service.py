@@ -154,7 +154,7 @@ def generate_comp_off_report(
     warning_days: int = 30
 ) -> Dict[str, Any]:
     """
-    生成调休余额报表
+    生成调休余额报表（劳动法合规版）
 
     Args:
         conn: 数据库连接
@@ -166,56 +166,221 @@ def generate_comp_off_report(
     """
     cursor = conn.cursor()
 
-    # 查询所有调休余额
-    cursor.execute("""
-        SELECT * FROM comp_off_balances
-        WHERE employee_id = ? AND status = 'active'
-        ORDER BY acquired_date
-    """, (employee_id,))
+    employee = _get_employee_info(conn, employee_id)
+    employee_name = employee['name'] if employee else 'Unknown'
 
-    balance_items = []
-    total_hours = 0.0
-    expiring_soon_hours = 0.0
-    expiring_items = []
     today = date.today()
     warning_date = today + timedelta(days=warning_days)
 
+    # ========== 1. 汇总统计（所有历史记录） ==========
+    cursor.execute("""
+        SELECT
+            COALESCE(SUM(total_minutes), 0) as total_acquired,
+            COALESCE(SUM(total_minutes - remaining_minutes), 0) as total_used,
+            COALESCE(SUM(CASE WHEN status = 'expired' THEN remaining_minutes ELSE 0 END), 0) as total_expired
+        FROM comp_off_balances
+        WHERE employee_id = ?
+    """, (employee_id,))
+    summary_row = cursor.fetchone()
+    total_acquired_minutes = summary_row['total_acquired'] or 0
+    total_used_minutes = summary_row['total_used'] or 0
+    total_expired_minutes = summary_row['total_expired'] or 0
+
+    # ========== 2. 活跃余额明细（FIFO顺序）==========
+    cursor.execute("""
+        SELECT
+            b.id,
+            b.employee_id,
+            b.source_overtime_id,
+            b.acquired_date,
+            b.total_minutes,
+            b.remaining_minutes,
+            b.expiry_date,
+            b.status,
+            o.work_date as source_work_date,
+            o.total_minutes as source_total_minutes
+        FROM comp_off_balances b
+        LEFT JOIN overtime_records o ON b.source_overtime_id = o.id
+        WHERE b.employee_id = ?
+          AND b.remaining_minutes > 0
+          AND b.status = 'active'
+          AND (b.expiry_date IS NULL OR b.expiry_date >= ?)
+        ORDER BY b.acquired_date ASC
+    """, (employee_id, today.isoformat()))
+
+    active_balances = []
+    total_available_minutes = 0
+    expiring_soon_minutes = 0
+    expiring_items = []
+
     for row in cursor.fetchall():
         record = dict(row)
-        # 兼容两种schema：新schema用total_hours/total_minutes/used_hours/used_minutes计算，
-        # 旧schema/test用remaining_minutes直接读取
-        if 'remaining_minutes' in record:
-            remaining_minutes = record['remaining_minutes']
-        else:
-            remaining_minutes = (
-                record.get('total_hours', 0) * 60 + record.get('total_minutes', 0)
-                - record.get('used_hours', 0) * 60 - record.get('used_minutes', 0)
-            )
-        hours = _minutes_to_hours(remaining_minutes)
-        total_hours += hours
+        total_min = record['total_minutes']
+        remaining_min = record['remaining_minutes']
+        used_min = total_min - remaining_min
+        remaining_hours = _minutes_to_hours(remaining_min)
+        total_hours = _minutes_to_hours(total_min)
+        used_hours = _minutes_to_hours(used_min)
+
+        total_available_minutes += remaining_min
 
         item = {
             'acquired_date': record['acquired_date'],
-            'hours': hours,
+            'source_overtime_id': record['source_overtime_id'],
+            'source_overtime_date': record['source_work_date'],
+            'source_overtime_hours': _minutes_to_hours(record['source_total_minutes']) if record['source_total_minutes'] else total_hours,
+            'total_hours': total_hours,
+            'used_hours': used_hours,
+            'remaining_hours': remaining_hours,
             'expiry_date': record['expiry_date'],
-            'status': record['status']
+            'days_to_expiry': None,
+            'status': record['status'],
+            'usage_percentage': round((used_min / total_min * 100), 1) if total_min > 0 else 0.0
         }
-        balance_items.append(item)
 
-        # 检查是否即将到期
         if record['expiry_date']:
             expiry = datetime.strptime(record['expiry_date'], '%Y-%m-%d').date()
-            if expiry <= warning_date and expiry >= today:
-                expiring_soon_hours += hours
+            days_to_expiry = (expiry - today).days
+            item['days_to_expiry'] = days_to_expiry
+
+            if expiry <= warning_date:
+                expiring_soon_minutes += remaining_min
                 expiring_items.append(item)
+
+        active_balances.append(item)
+
+    # ========== 3. 已过期余额 ==========
+    cursor.execute("""
+        SELECT
+            b.id,
+            b.source_overtime_id,
+            b.acquired_date,
+            b.total_minutes,
+            b.remaining_minutes,
+            b.expiry_date,
+            o.work_date as source_work_date,
+            o.total_minutes as source_total_minutes
+        FROM comp_off_balances b
+        LEFT JOIN overtime_records o ON b.source_overtime_id = o.id
+        WHERE b.employee_id = ?
+          AND b.status = 'expired'
+        ORDER BY b.acquired_date ASC
+    """, (employee_id,))
+
+    expired_balances = []
+    for row in cursor.fetchall():
+        record = dict(row)
+        expired_balances.append({
+            'acquired_date': record['acquired_date'],
+            'source_overtime_id': record['source_overtime_id'],
+            'source_overtime_date': record['source_work_date'],
+            'total_hours': _minutes_to_hours(record['total_minutes']),
+            'expired_hours': _minutes_to_hours(record['remaining_minutes']),
+            'expiry_date': record['expiry_date']
+        })
+
+    # ========== 4. 已用完余额 ==========
+    cursor.execute("""
+        SELECT
+            b.id,
+            b.source_overtime_id,
+            b.acquired_date,
+            b.total_minutes,
+            b.expiry_date,
+            o.work_date as source_work_date
+        FROM comp_off_balances b
+        LEFT JOIN overtime_records o ON b.source_overtime_id = o.id
+        WHERE b.employee_id = ?
+          AND b.remaining_minutes = 0
+          AND b.status != 'expired'
+        ORDER BY b.acquired_date ASC
+    """, (employee_id,))
+
+    used_up_balances = []
+    for row in cursor.fetchall():
+        record = dict(row)
+        used_up_balances.append({
+            'acquired_date': record['acquired_date'],
+            'source_overtime_date': record['source_work_date'],
+            'total_hours': _minutes_to_hours(record['total_minutes']),
+            'expiry_date': record['expiry_date']
+        })
+
+    # ========== 5. 使用流水（FIFO抵扣明细） ==========
+    cursor.execute("""
+        SELECT
+            u.usage_date,
+            u.used_minutes,
+            u.duration_hours,
+            u.duration_minutes,
+            u.total_minutes,
+            u.description,
+            u.leave_record_id,
+            b.acquired_date as balance_acquired_date
+        FROM comp_off_usage_records u
+        LEFT JOIN comp_off_balances b ON u.balance_id = b.id
+        WHERE u.employee_id = ?
+        ORDER BY u.usage_date DESC, u.id DESC
+    """, (employee_id,))
+
+    usage_history = []
+    for row in cursor.fetchall():
+        record = dict(row)
+        usage_history.append({
+            'usage_date': record['usage_date'],
+            'hours': _minutes_to_hours(record['used_minutes'] or record['total_minutes'] or 0),
+            'balance_acquired_date': record['balance_acquired_date'],
+            'description': record['description'] or '调休使用'
+        })
+
+    # ========== 6. 加班类型汇总（ FR-009  compliance ） ==========
+    cursor.execute("""
+        SELECT overtime_type, SUM(total_minutes) as total_minutes
+        FROM overtime_records
+        WHERE employee_id = ?
+        GROUP BY overtime_type
+    """, (employee_id,))
+
+    weekday_minutes = 0
+    weekend_minutes = 0
+    holiday_minutes = 0
+
+    for row in cursor.fetchall():
+        if row['overtime_type'] == 'weekend':
+            weekend_minutes = row['total_minutes'] or 0
+        elif row['overtime_type'] == 'holiday':
+            holiday_minutes = row['total_minutes'] or 0
+        else:
+            weekday_minutes += (row['total_minutes'] or 0)
+
+    overtime_summary = {
+        'weekday_hours': _minutes_to_hours(weekday_minutes),
+        'weekend_hours': _minutes_to_hours(weekend_minutes),
+        'holiday_hours': _minutes_to_hours(holiday_minutes)
+    }
 
     return {
         'employee_id': employee_id,
-        'total_hours': total_hours,
-        'balance_items': balance_items,
-        'expiring_soon_hours': expiring_soon_hours,
+        'employee_name': employee_name,
+        'summary': {
+            'total_acquired_hours': _minutes_to_hours(total_acquired_minutes),
+            'total_used_hours': _minutes_to_hours(total_used_minutes),
+            'total_expired_hours': _minutes_to_hours(total_expired_minutes),
+            'total_available_hours': _minutes_to_hours(total_available_minutes)
+        },
+        'balance_status': {
+            'active_hours': _minutes_to_hours(total_available_minutes),
+            'used_hours': _minutes_to_hours(max(0, total_used_minutes - total_expired_minutes)),
+            'expired_hours': _minutes_to_hours(total_expired_minutes)
+        },
+        'active_balances': active_balances,
+        'expired_balances': expired_balances,
+        'used_up_balances': used_up_balances,
+        'usage_history': usage_history,
+        'expiring_soon_hours': _minutes_to_hours(expiring_soon_minutes),
         'expiring_items': expiring_items,
-        'warning_days': warning_days
+        'warning_days': warning_days,
+        'overtime_summary': overtime_summary
     }
 
 

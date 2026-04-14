@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Employee Records | The Digital Jurist</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#1a1b23",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "primary-container": "#1a237e",
+                        "on-tertiary-fixed-variant": "#773200",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bdc2ff",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "primary": "#000666",
+                        "inverse-on-surface": "#f1f0fb",
+                        "outline-variant": "#c6c5d4",
+                        "secondary-fixed": "#a3f69c",
+                        "primary-fixed": "#e0e0ff",
+                        "on-secondary-fixed-variant": "#005312",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#fbf8ff",
+                        "on-primary-fixed": "#000767",
+                        "tertiary-fixed": "#ffdbca",
+                        "outline": "#767683",
+                        "on-primary-fixed-variant": "#343d96",
+                        "surface-variant": "#e2e1ed",
+                        "on-tertiary-fixed": "#331200",
+                        "surface-container": "#eeedf8",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#217128",
+                        "surface-container-low": "#f3f2fe",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#fbf8ff",
+                        "on-primary-container": "#8690ee",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#a0f399",
+                        "secondary": "#1b6d24",
+                        "surface-container-high": "#e8e7f2",
+                        "on-secondary-fixed": "#002204",
+                        "surface-tint": "#4c56af",
+                        "surface": "#fbf8ff",
+                        "surface-container-highest": "#e2e1ed",
+                        "on-surface": "#1a1b23",
+                        "secondary-fixed-dim": "#88d982",
+                        "on-surface-variant": "#454652",
+                        "inverse-primary": "#bdc2ff",
+                        "inverse-surface": "#2f3038",
+                        "tertiary-container": "#532100",
+                        "surface-dim": "#dad9e4",
+                        "tertiary": "#321100",
+                        "on-tertiary-container": "#f57009"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tabular-lining {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 flex flex-col bg-gradient-to-b from-[#000666] to-[#1a237e] shadow-2xl z-50">
+<div class="px-8 py-8">
+<h1 class="text-xl font-bold tracking-tight text-white font-headline">The Digital Jurist</h1>
+<p class="text-blue-100/60 text-[10px] uppercase tracking-[0.2em] font-medium mt-1">Compliance Panel</p>
+</div>
+<nav class="flex-1 mt-4">
+<div class="space-y-1">
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors font-manrope text-sm tracking-wide group" href="#">
+<span class="material-symbols-outlined mr-4 opacity-70 group-hover:opacity-100">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors font-manrope text-sm tracking-wide group" href="#">
+<span class="material-symbols-outlined mr-4 opacity-70 group-hover:opacity-100">calculate</span>
+                    OT Calculator
+                </a>
+<!-- Active Tab: Employee Records -->
+<a class="flex items-center bg-[#fbf8ff] text-[#000666] rounded-l-full ml-4 pl-4 py-3 font-bold transition-all font-manrope text-sm tracking-wide shadow-lg" href="#">
+<span class="material-symbols-outlined mr-4" style="font-variation-settings: 'FILL' 1;">groups</span>
+                    Employee Records
+                </a>
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors font-manrope text-sm tracking-wide group" href="#">
+<span class="material-symbols-outlined mr-4 opacity-70 group-hover:opacity-100">gavel</span>
+                    Compliance Reports
+                </a>
+<a class="flex items-center text-blue-100/70 hover:text-white px-8 py-3 transition-colors font-manrope text-sm tracking-wide group" href="#">
+<span class="material-symbols-outlined mr-4 opacity-70 group-hover:opacity-100">settings</span>
+                    Settings
+                </a>
+</div>
+</nav>
+<div class="p-6 mb-4">
+<div class="bg-white/5 rounded-lg p-4 border border-white/10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden">
+<img alt="Senior Auditor" class="w-full h-full object-cover" data-alt="close-up portrait of a professional senior auditor in a navy suit against a soft office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZocnjpQ8ChyB176w_ADekaF0i8z6K1T8mh3Y7MuZY-pe9V-oH1xfrfBs_IbLIlb91Ctg_uXley8gU1J-UUJSiYp17LHF48uak4EhVnfkOylM3Gf8V65a99uOrvqPMvHeHXiY_QFOpvbJl95pcunPk7_R4QaPMJdE3fYAvXgso8H2VzpKIkrU1CCBo971bb4Jh-XggvooaC-CG6XhTysVFi9HYGusDnBs_ucrGtdSzfvr1UOYAmtW4XJ5yNRoanGJ1-KEnt7KzdUg"/>
+</div>
+<div>
+<p class="text-white text-xs font-semibold">Audit Mode</p>
+<p class="text-blue-100/50 text-[10px]">v4.2.0-stable</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="ml-64 min-h-screen">
+<!-- TopAppBar Component -->
+<header class="flex justify-between items-center h-16 px-8 bg-[#fbf8ff]/80 backdrop-blur-xl sticky top-0 z-40">
+<div class="flex items-center flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+<input class="w-full bg-transparent border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-sm py-2 pl-10 transition-all font-body" placeholder="Search by name, ID or department..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 border-r border-outline-variant pr-6">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-right">
+<p class="text-xs font-bold text-primary font-headline">Labor Compliance</p>
+<p class="text-[10px] text-outline">Senior Auditor</p>
+</span>
+<img alt="Senior Auditor Profile" class="w-8 h-8 rounded-sm bg-surface-container-high object-cover" data-alt="minimalist profile avatar of a senior auditor professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYjWY9RXUgEibMPm1XGDV8PIzwF6jF0ISpLOL-xh2qutL3nu1WMIxGQ8wB9lPjoUhumzuw_0ZgL9gGP0NIKqazUPQO-Izwnb2Uh-UPXJ-5xGJqPlHmJMkNjdESioIhVNxFtLS_UYxL-kbvKUwvf3qs9nwdaE79jUyDBTIDCI6ZVZSgTCaIv_rBTHfxVR-qrg_2ByqIiiSG33naXlJojZq0MRJdxW-lKENUOABc9JTBuELcctWcBC4j06P64EBzxJpTfKuUP-A_CLk"/>
+</div>
+</div>
+</header>
+<!-- Main Page Content -->
+<main class="p-8">
+<!-- Hero Header Section -->
+<section class="mb-12">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-4xl font-extrabold font-headline text-primary tracking-tight">Employee Records</h2>
+<p class="text-on-surface-variant mt-2 max-w-lg font-body leading-relaxed">
+                            Maintain and audit labor compliance data for all active personnel. 
+                            Use the editorial view to filter by violation status or overtime logs.
+                        </p>
+</div>
+<button class="flex items-center bg-gradient-to-r from-primary to-primary-container text-white px-6 py-3 rounded-lg font-semibold text-sm shadow-lg hover:opacity-90 transition-all">
+<span class="material-symbols-outlined mr-2 text-sm">person_add</span>
+                        Onboard New Record
+                    </button>
+</div>
+<!-- Statistics Grid (Bento Style) -->
+<div class="grid grid-cols-4 gap-4 mt-10">
+<div class="col-span-1 bg-surface-container-lowest p-6 rounded-lg shadow-sm border-l-4 border-primary">
+<p class="text-outline text-[10px] uppercase tracking-widest font-bold">Total Staff</p>
+<p class="text-3xl font-bold font-headline mt-2 text-primary tabular-lining">1,284</p>
+</div>
+<div class="col-span-1 bg-surface-container-lowest p-6 rounded-lg shadow-sm border-l-4 border-secondary">
+<p class="text-outline text-[10px] uppercase tracking-widest font-bold">Approved Status</p>
+<p class="text-3xl font-bold font-headline mt-2 text-secondary tabular-lining">1,102</p>
+</div>
+<div class="col-span-1 bg-surface-container-lowest p-6 rounded-lg shadow-sm border-l-4 border-error">
+<p class="text-outline text-[10px] uppercase tracking-widest font-bold">Action Required</p>
+<p class="text-3xl font-bold font-headline mt-2 text-error tabular-lining">182</p>
+</div>
+<div class="col-span-1 bg-surface-container-lowest p-6 rounded-lg shadow-sm border-l-4 border-tertiary-container">
+<p class="text-outline text-[10px] uppercase tracking-widest font-bold">New Logs (24h)</p>
+<p class="text-3xl font-bold font-headline mt-2 text-tertiary-container tabular-lining">43</p>
+</div>
+</div>
+</section>
+<!-- Table Filter Bar -->
+<section class="mb-6 flex items-center justify-between bg-surface-container-low p-2 rounded-lg">
+<div class="flex gap-2">
+<button class="bg-surface-container-lowest px-4 py-2 text-xs font-semibold rounded shadow-sm text-primary">All Employees</button>
+<button class="px-4 py-2 text-xs font-medium text-outline hover:text-primary transition-colors">By Department</button>
+<button class="px-4 py-2 text-xs font-medium text-outline hover:text-primary transition-colors">By Seniority</button>
+</div>
+<div class="flex items-center gap-4 px-4">
+<span class="text-xs text-outline font-medium flex items-center">
+<span class="material-symbols-outlined text-sm mr-2">filter_list</span>
+                        Sort by: <span class="text-primary ml-1 font-bold">Recent Activity</span>
+</span>
+<button class="material-symbols-outlined text-outline text-lg">download</button>
+</div>
+</section>
+<!-- Academic Employee Table -->
+<section class="bg-surface-container-lowest rounded-lg overflow-hidden shadow-sm border border-outline-variant/10">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container border-b border-outline-variant/20">
+<th class="px-8 py-5 text-xs font-bold text-on-surface-variant uppercase tracking-widest">Employee ID</th>
+<th class="px-8 py-5 text-xs font-bold text-on-surface-variant uppercase tracking-widest">Name &amp; Role</th>
+<th class="px-8 py-5 text-xs font-bold text-on-surface-variant uppercase tracking-widest">Department</th>
+<th class="px-8 py-5 text-xs font-bold text-on-surface-variant uppercase tracking-widest">Compliance Status</th>
+<th class="px-8 py-5 text-xs font-bold text-on-surface-variant uppercase tracking-widest">Last OT Log</th>
+<th class="px-8 py-5 text-xs font-bold text-on-surface-variant uppercase tracking-widest text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-body text-sm text-primary tabular-lining font-semibold">#DJ-82711</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary text-[10px] font-bold">EM</div>
+<div>
+<p class="text-sm font-bold text-on-surface leading-tight">Elias Miller</p>
+<p class="text-[10px] text-outline font-medium">Senior Software Engineer</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant font-medium">Core Logistics</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+                                    Approved
+                                </span>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant tabular-lining">Oct 12, 2023 · 4.5h</td>
+<td class="px-8 py-6 text-right space-x-3">
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">View History</button>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit_note</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 (Zebra) -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-body text-sm text-primary tabular-lining font-semibold">#DJ-91220</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary text-[10px] font-bold">SC</div>
+<div>
+<p class="text-sm font-bold text-on-surface leading-tight">Sarah Chen</p>
+<p class="text-[10px] text-outline font-medium">Project Manager</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant font-medium">Operations</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-error-container text-on-error-container text-[10px] font-bold uppercase tracking-wider">
+                                    Pending Audit
+                                </span>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant tabular-lining">Oct 14, 2023 · 12.0h</td>
+<td class="px-8 py-6 text-right space-x-3">
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">View History</button>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit_note</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-body text-sm text-primary tabular-lining font-semibold">#DJ-10293</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary text-[10px] font-bold">MK</div>
+<div>
+<p class="text-sm font-bold text-on-surface leading-tight">Marcus Knight</p>
+<p class="text-[10px] text-outline font-medium">Staff Legal Counsel</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant font-medium">Legal Affairs</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+                                    Approved
+                                </span>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant tabular-lining">Oct 09, 2023 · 2.0h</td>
+<td class="px-8 py-6 text-right space-x-3">
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">View History</button>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit_note</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-body text-sm text-primary tabular-lining font-semibold">#DJ-77121</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary text-[10px] font-bold">LW</div>
+<div>
+<p class="text-sm font-bold text-on-surface leading-tight">Lena Wu</p>
+<p class="text-[10px] text-outline font-medium">Design Director</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant font-medium">Experience</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold uppercase tracking-wider">
+                                    On Leave
+                                </span>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant tabular-lining">Sep 30, 2023 · 0.0h</td>
+<td class="px-8 py-6 text-right space-x-3">
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">View History</button>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit_note</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-8 py-6 font-body text-sm text-primary tabular-lining font-semibold">#DJ-88291</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary text-[10px] font-bold">JT</div>
+<div>
+<p class="text-sm font-bold text-on-surface leading-tight">Julian Thorne</p>
+<p class="text-[10px] text-outline font-medium">Senior Accountant</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant font-medium">Finance</td>
+<td class="px-8 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+                                    Approved
+                                </span>
+</td>
+<td class="px-8 py-6 text-sm text-on-surface-variant tabular-lining">Oct 15, 2023 · 8.2h</td>
+<td class="px-8 py-6 text-right space-x-3">
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">View History</button>
+<button class="text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit_note</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination/Table Footer -->
+<div class="px-8 py-4 bg-surface-container-lowest border-t border-outline-variant/10 flex justify-between items-center">
+<p class="text-xs text-outline font-medium">Showing <span class="text-on-surface font-bold">1-5</span> of 1,284 records</p>
+<div class="flex gap-2">
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-2 border border-primary bg-primary text-white rounded shadow-sm px-3 text-xs font-bold">1</button>
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low transition-all px-3 text-xs font-bold text-on-surface-variant">2</button>
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low transition-all px-3 text-xs font-bold text-on-surface-variant">3</button>
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Legal Citation Footer -->
+<footer class="mt-12 border-t border-outline-variant/20 pt-6">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary text-xl">gavel</span>
+<div>
+<p class="text-[10px] text-outline font-bold uppercase tracking-[0.2em]">Compliance Notice</p>
+<p class="text-xs text-on-surface-variant/80 mt-1 italic max-w-2xl leading-relaxed">
+                            "Pursuant to the Labor Standards Act, Art. 47, all overtime records must be maintained with 99.9% accuracy. Digital Jurist provides a ledger-based auditing system to ensure total compliance with federal and regional labor mandates."
+                        </p>
+</div>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

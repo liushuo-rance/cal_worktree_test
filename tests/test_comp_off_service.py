@@ -48,13 +48,18 @@ def memory_db():
             FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
         );
 
-        CREATE TABLE comp_off_usage (
+        CREATE TABLE comp_off_usage_records (
             id INTEGER PRIMARY KEY,
             employee_id TEXT NOT NULL,
-            balance_id INTEGER NOT NULL,
-            used_minutes INTEGER NOT NULL,
-            used_date DATE NOT NULL,
-            related_leave_id INTEGER,
+            balance_id INTEGER,
+            used_minutes INTEGER NOT NULL DEFAULT 0,
+            usage_date DATE NOT NULL,
+            leave_record_id INTEGER,
+            duration_hours INTEGER NOT NULL DEFAULT 0,
+            duration_minutes INTEGER NOT NULL DEFAULT 0,
+            total_minutes INTEGER NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (balance_id) REFERENCES comp_off_balances(id)
         );
@@ -123,10 +128,10 @@ def sample_comp_off_data(memory_db):
     ]
     for u in usage_records:
         cursor.execute("""
-            INSERT INTO comp_off_usage (id, employee_id, balance_id,
-                used_minutes, used_date)
-            VALUES (?, ?, ?, ?, ?)
-        """, u)
+            INSERT INTO comp_off_usage_records
+            (id, employee_id, balance_id, used_minutes, usage_date, total_minutes, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'approved')
+        """, (u[0], u[1], u[2], u[3], u[4], u[3]))
 
     memory_db.commit()
     return memory_db

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}通知中心 - 加班记录管理系统{% endblock %}
+{% block page_title %}通知中心{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="mb-8">
+        <p class="text-on-surface-variant text-body-md">管理邮件通知和查看发送记录</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Email Config Status -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">mail</span>
+                    邮件配置状态
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="material-symbols-outlined {% if email_configured %}text-secondary{% else %}text-error{% endif %}">
+                        {% if email_configured %}check_circle{% else %}error{% endif %}
+                    </span>
+                    <span class="font-semibold {% if email_configured %}text-secondary{% else %}text-error{% endif %}">
+                        {% if email_configured %}已配置{% else %}未配置{% endif %}
+                    </span>
+                </div>
+                <p class="text-on-surface-variant text-body-sm mb-4">收件人列表</p>
+                {% if hr_emails %}
+                    <ul class="space-y-2">
+                        {% for email in hr_emails %}
+                        <li class="flex items-center gap-2 text-body-sm">
+                            <span class="material-symbols-outlined text-on-surface-variant text-base">person</span>
+                            {{ email }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-on-surface-variant text-body-sm">暂无收件人配置</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Send Notification -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">send</span>
+                    手动发送提醒
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <p class="text-on-surface-variant text-body-sm mb-6">立即发送调休即将到期提醒邮件给 HR 收件人</p>
+
+                <form action="{{ url_for('notifications.send_comp_off_expiry') }}" method="POST">
+                    <button type="submit" class="btn btn-primary w-full" {% if not email_configured %}disabled{% endif %}>
+                        <span class="material-symbols-outlined">send</span>
+                        发送到期提醒
+                    </button>
+                </form>
+
+                {% if not email_configured %}
+                <p class="text-error text-body-sm mt-4">
+                    邮件未配置，无法发送提醒。请联系管理员配置 SMTP 和收件人环境变量。
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5 class="content-card-title">
+                    <span class="material-symbols-outlined inline-icon">analytics</span>
+                    发送统计
+                </h5>
+            </div>
+            <div class="content-card-body">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="p-3 bg-surface-container rounded-lg text-center">
+                        <div class="text-2xl font-headline font-bold text-primary">{{ stats.total_sent or 0 }}</div>
+                        <div class="text-xs text-on-surface-variant">累计发送</div>
+                    </div>
+                    <div class="p-3 bg-surface-container rounded-lg text-center">
+                        <div class="text-2xl font-headline font-bold {% if stats.last_status == 'success' %}text-secondary{% elif stats.last_status == 'partial' %}text-tertiary{% else %}text-on-surface-variant{% endif %}">
+                            {{ stats.last_status or '-' }}
+                        </div>
+                        <div class="text-xs text-on-surface-variant">上次状态</div>
+                    </div>
+                </div>
+                {% if stats.last_sent_at %}
+                <p class="text-on-surface-variant text-body-sm">
+                    上次发送时间: <span class="text-on-surface">{{ stats.last_sent_at }}</span>
+                </p>
+                {% else %}
+                <p class="text-on-surface-variant text-body-sm">暂无发送记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent History -->
+    <div class="content-card mt-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">history</span>
+                最近发送记录
+            </h5>
+        </div>
+        <div class="content-card-body p-0">
+            {% if stats.recent_history %}
+            <div class="overflow-x-auto">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>发送时间</th>
+                            <th>触发方式</th>
+                            <th>收件人</th>
+                            <th>状态</th>
+                            <th>内容摘要</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in stats.recent_history %}
+                        <tr>
+                            <td>{{ item.sent_at }}</td>
+                            <td>
+                                {% if item.trigger_mode == 'auto' %}
+                                <span class="badge badge-info">自动</span>
+                                {% else %}
+                                <span class="badge badge-secondary">手动</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.recipient_email }}</td>
+                            <td>
+                                {% if item.status == 'success' %}
+                                <span class="badge badge-success">成功</span>
+                                {% elif item.status == 'failed' %}
+                                <span class="badge badge-error">失败</span>
+                                {% else %}
+                                <span class="badge badge-warning">部分成功</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-on-surface-variant">{{ item.content_summary or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-on-surface-variant">
+                <span class="material-symbols-outlined text-4xl mb-2">inbox</span>
+                <p>暂无发送记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

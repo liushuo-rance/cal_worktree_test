@@ -120,14 +120,9 @@
                 <span>员工管理</span>
             </a>
             <a href="{{ url_for('records.import_records') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('records') and request.endpoint != 'records.search_records' %}active{% endif %}">
+               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('records') %}active{% endif %}">
                 <span class="material-symbols-outlined">upload_file</span>
                 <span>记录导入</span>
-            </a>
-            <a href="{{ url_for('records.search_records') }}"
-               class="sidebar-nav-item {% if request.endpoint == 'records.search_records' %}active{% endif %}">
-                <span class="material-symbols-outlined">search</span>
-                <span>记录查询</span>
             </a>
             <a href="{{ url_for('review.review_queue') }}"
                class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('review') %}active{% endif %}">
@@ -143,6 +138,21 @@
                class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('holidays') %}active{% endif %}">
                 <span class="material-symbols-outlined">calendar_today</span>
                 <span>节假日管理</span>
+            </a>
+            <a href="{{ url_for('notifications.notification_center') }}"
+               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('notifications') %}active{% endif %}">
+                <span class="material-symbols-outlined">notifications</span>
+                <span>通知中心</span>
+            </a>
+            <a href="{{ url_for('assistant.index') }}"
+               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('assistant') %}active{% endif %}">
+                <span class="material-symbols-outlined">smart_toy</span>
+                <span>AI 助手</span>
+            </a>
+            <a href="{{ url_for('settings.settings_index') }}"
+               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('settings') %}active{% endif %}">
+                <span class="material-symbols-outlined">settings</span>
+                <span>系统设置</span>
             </a>
         </nav>
 
@@ -161,35 +171,38 @@
     <main class="main-content" id="main-content">
         <!-- Top App Bar -->
         <header class="top-app-bar">
-            <div class="flex items-center gap-4">
+            <div class="top-app-bar-leading">
                 <!-- Mobile menu button -->
-                <button class="lg:hidden p-2 -ml-2 text-on-surface-variant hover:text-on-surface" onclick="toggleSidebar()">
+                <button type="button" class="top-app-bar-btn lg:hidden" onclick="toggleSidebar()" aria-label="打开菜单">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
 
-                <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <div class="top-app-bar-title-group">
+                    <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <span class="top-app-bar-subtitle">Lex & Ledger</span>
+                </div>
             </div>
 
-            <div class="flex items-center gap-6">
-                <!-- Search -->
-                <div class="search-input-wrapper hidden md:block">
-                    <span class="material-symbols-outlined search-input-icon">search</span>
-                    <input type="text" class="search-input" placeholder="搜索员工、记录...">
-                </div>
+            <div class="top-app-bar-actions">
+                <!-- Search trigger (icon-only, compact) -->
+                <button type="button" class="top-app-bar-btn" aria-label="搜索" title="搜索">
+                    <span class="material-symbols-outlined">search</span>
+                </button>
 
-                <!-- Actions -->
-                <div class="flex items-center gap-2">
-                    <button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">notifications</span>
-                    </button>
-                    <button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined">settings</span>
-                    </button>
-                </div>
+                <!-- Notifications -->
+                <a href="{{ url_for('notifications.notification_center') }}" class="top-app-bar-btn relative" aria-label="通知" title="通知">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="notification-badge" aria-hidden="true"></span>
+                </a>
+
+                <!-- Settings -->
+                <a href="{{ url_for('settings.settings_index') }}" class="top-app-bar-btn" aria-label="设置" title="设置">
+                    <span class="material-symbols-outlined">settings</span>
+                </a>
 
                 <!-- User Avatar -->
-                <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white text-sm font-semibold">
-                    AD
+                <div class="user-avatar" title="管理员">
+                    <span>AD</span>
                 </div>
             </div>
         </header>

@@ -202,24 +202,24 @@ class TestCompleteUserFlow:
         cursor = db_conn.cursor()
         cursor.execute("""
             INSERT INTO comp_off_balances
-            (employee_id, acquired_date, total_hours, total_minutes, used_hours, used_minutes, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, ('EMP001', '2026-01-10', 8, 0, 0, 0, 'active'))
+            (employee_id, acquired_date, total_minutes, remaining_minutes, status)
+            VALUES (?, ?, ?, ?, ?)
+        """, ('EMP001', '2026-01-10', 480, 480, 'active'))
         db_conn.commit()
 
         # 验证调休余额已创建
         cursor.execute(
             """SELECT * FROM comp_off_balances
-               WHERE employee_id = ? AND total_hours = ?""",
-            ('EMP001', 8)
+               WHERE employee_id = ? AND total_minutes = ?""",
+            ('EMP001', 480)
         )
         comp_off = cursor.fetchone()
         assert comp_off is not None
-        assert comp_off['total_hours'] == 8  # 8小时
+        assert comp_off['total_minutes'] == 480  # 8小时 = 480分钟
 
-        # 验证调休余额查询功能（不依赖报表服务，因为schema不匹配）
+        # 验证调休余额查询功能
         cursor.execute(
-            """SELECT SUM(total_hours * 60 + total_minutes) as total_minutes
+            """SELECT SUM(total_minutes) as total_minutes
                FROM comp_off_balances
                WHERE employee_id = ? AND status = 'active'""",
             ('EMP001',)
@@ -245,7 +245,7 @@ class TestCompleteUserFlow:
         report = generate_monthly_report(db_conn, 'EMP001', 2026, 1)
         assert len(report['leave_details']) == 1
         assert report['leave_details'][0]['type'] == 'personal'
-        assert report['summary']['leave_days'] == 0  # 4小时 = 0.5天，取整为0
+        assert report['summary']['leave_days'] == 0.5  # 4小时 = 0.5天，保留小数
 
 
 class TestBatchOperations:
@@ -388,7 +388,7 @@ class TestCLIIntegration:
             db_conn, 'EMP001', date(2026, 1, 5), 3, 30, 'weekday_evening'
         )
 
-        result = export_data(db_conn, 'EMP001', 'json')
+        result = export_data(db_conn, 'overtime', 'EMP001', 'json')
         assert result['success'] is True
         assert result['format'] == 'json'
         assert result['record_count'] == 1

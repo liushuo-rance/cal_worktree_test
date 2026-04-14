@@ -24,7 +24,9 @@ def memory_db():
             employee_id TEXT UNIQUE NOT NULL,
             name TEXT NOT NULL,
             daily_salary REAL DEFAULT 300.0,
-            hourly_salary REAL DEFAULT 37.5
+            hourly_salary REAL DEFAULT 37.5,
+            is_active INTEGER DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE overtime_records (
@@ -36,7 +38,8 @@ def memory_db():
             total_minutes INTEGER NOT NULL,
             overtime_type TEXT NOT NULL,
             description TEXT,
-            source_import_id INTEGER
+            source_import_id INTEGER,
+            employment_status TEXT DEFAULT 'active'
         );
 
         CREATE TABLE leave_records (
@@ -47,6 +50,7 @@ def memory_db():
             duration_minutes INTEGER DEFAULT 0,
             total_minutes INTEGER NOT NULL,
             leave_type TEXT NOT NULL,
+            description TEXT,
             source_import_id INTEGER
         );
 
@@ -58,17 +62,20 @@ def memory_db():
             total_minutes INTEGER NOT NULL,
             remaining_minutes INTEGER NOT NULL,
             expiry_date DATE,
-            status TEXT DEFAULT 'active'
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE import_sessions (
             id INTEGER PRIMARY KEY,
-            employee_id TEXT NOT NULL,
-            import_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            file_name TEXT,
+            file_path TEXT NOT NULL,
+            employee_id TEXT,
+            status TEXT DEFAULT 'pending',
             total_records INTEGER DEFAULT 0,
-            success_records INTEGER DEFAULT 0,
-            failed_records INTEGER DEFAULT 0
+            processed_records INTEGER DEFAULT 0,
+            error_records INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP
         );
 
         INSERT INTO employees (employee_id, name) VALUES
@@ -283,8 +290,8 @@ class TestBatchStorage:
         cursor.execute("SELECT * FROM import_sessions WHERE id = ?", (session_id,))
         row = cursor.fetchone()
         assert row['total_records'] == 1
-        assert row['success_records'] == 1
-        assert row['file_name'] == 'test.md'
+        assert row['processed_records'] == 1
+        assert row['file_path'] == 'test.md'
 
 
 class TestImportSession:
@@ -295,8 +302,8 @@ class TestImportSession:
 
         session_id = create_import_session(
             memory_db,
-            employee_id='EMP001',
-            file_name='overtime_2026_01.md'
+            file_path='overtime_2026_01.md',
+            employee_id='EMP001'
         )
 
         assert session_id is not None
@@ -305,18 +312,18 @@ class TestImportSession:
         cursor.execute("SELECT * FROM import_sessions WHERE id = ?", (session_id,))
         row = cursor.fetchone()
         assert row['employee_id'] == 'EMP001'
-        assert row['file_name'] == 'overtime_2026_01.md'
+        assert row['file_path'] == 'overtime_2026_01.md'
 
     def test_update_import_session_stats(self, memory_db):
         from src.services.storage_service import create_import_session, update_import_session_stats
 
-        session_id = create_import_session(memory_db, 'EMP001', 'test.md')
+        session_id = create_import_session(memory_db, file_path='test.md', employee_id='EMP001')
 
         update_import_session_stats(
             memory_db,
             session_id=session_id,
             total=10,
-            success=8,
+            processed=8,
             failed=2
         )
 
@@ -324,5 +331,41 @@ class TestImportSession:
         cursor.execute("SELECT * FROM import_sessions WHERE id = ?", (session_id,))
         row = cursor.fetchone()
         assert row['total_records'] == 10
-        assert row['success_records'] == 8
-        assert row['failed_records'] == 2
+        assert row['processed_records'] == 8
+        assert row['error_records'] == 2
+
+
+class TestDeleteEmployee:
+    """员工软删除测试"""
+
+    def test_delete_employee_service(self, memory_db):
+        from src.services.storage_service import delete_employee_service, store_overtime_record
+
+        # 先插入一条加班记录
+        store_overtime_record(
+            memory_db,
+            employee_id='EMP001',
+            work_date=date(2026, 1, 15),
+            hours=2,
+            minutes=0,
+            overtime_type='weekday_evening'
+        )
+
+        result = delete_employee_service(memory_db, employee_id='EMP001')
+
+        assert result['success'] is True
+        assert result['employee_id'] == 'EMP001'
+
+        cursor = memory_db.cursor()
+        cursor.execute("SELECT is_active FROM employees WHERE employee_id = ?", ('EMP001',))
+        assert cursor.fetchone()['is_active'] == 0
+
+        cursor.execute("SELECT employment_status FROM overtime_records WHERE employee_id = ?", ('EMP001',))
+        for row in cursor.fetchall():
+            assert row['employment_status'] == 'inactive'
+
+    def test_delete_employee_service_not_found(self, memory_db):
+        from src.services.storage_service import delete_employee_service, StorageError
+
+        with pytest.raises(StorageError):
+            delete_employee_service(memory_db, employee_id='INVALID')

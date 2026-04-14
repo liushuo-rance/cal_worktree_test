@@ -1,99 +1,340 @@
 {% extends "base.html" %}
 
-{% block title %}调休余额 - {{ report.employee_id if report else '加载中' }} - 加班记录管理系统{% endblock %}
+{% block title %}调休余额 - {{ report.employee_name if report else '加载中' }} - 加班记录管理系统{% endblock %}
+{% block page_title %}调休余额报表{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1>调休余额</h1>
-            {% if report %}
-            <p class="text-muted mb-0">
-                员工: <code>{{ report.employee_id }}</code>
-            </p>
-            {% endif %}
-        </div>
-        {% set back_url = request.args.get('next') or url_for('reports.reports_index') %}
-        <a href="{{ back_url }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> 返回报表首页
-        </a>
+<div class="page-container">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-headline-sm font-headline font-bold text-on-surface">调休余额</h1>
+      {% if report %}
+      <p class="text-body-md text-on-surface-variant mt-1">
+        员工: <span class="font-medium text-on-surface">{{ report.employee_name }}</span>
+        <span class="mx-2 text-outline-variant">|</span>
+        <span class="font-mono text-sm">{{ report.employee_id }}</span>
+      </p>
+      {% endif %}
     </div>
-</div>
-
-{% if error %}
-<div class="alert alert-danger">
-    <i class="bi bi-exclamation-circle"></i> {{ error }}
-</div>
-{% endif %}
-
-{% if report %}
-<div class="row g-4 mb-4">
-    <div class="col-md-6">
-        <div class="stat-card">
-            <div class="stat-icon success">
-                <i class="bi bi-piggy-bank"></i>
-            </div>
-            <h3 class="stat-value">{{ "%.1f"|format(report.total_hours) }}</h3>
-            <p class="stat-label">总调休余额(小时)</p>
-        </div>
+    {% set back_url = request.args.get('next') or url_for('reports.reports_index') %}
+    <div class="flex items-center gap-2">
+      {% if report %}
+      <a href="{{ url_for('reports.comp_off_report_export', employee_id=employee_id, format='csv') }}" class="btn btn-outline-secondary btn-sm">导出 CSV</a>
+      <a href="{{ url_for('reports.comp_off_report_export', employee_id=employee_id, format='xlsx') }}" class="btn btn-outline-secondary btn-sm">导出 Excel</a>
+      <a href="{{ url_for('reports.comp_off_report_export', employee_id=employee_id, format='pdf') }}" class="btn btn-outline-secondary btn-sm">导出 PDF</a>
+      {% endif %}
+      <a href="{{ back_url }}" class="btn btn-secondary btn-sm">
+        <span class="material-symbols-outlined text-base">arrow_back</span>
+        返回报表首页
+      </a>
     </div>
-    <div class="col-md-6">
-        <div class="stat-card">
-            <div class="stat-icon warning">
-                <i class="bi bi-hourglass-split"></i>
-            </div>
-            <h3 class="stat-value">{{ "%.1f"|format(report.expiring_soon_hours) }}</h3>
-            <p class="stat-label">{{ report.warning_days }}天内到期(小时)</p>
-        </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error mb-6">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  {% if report %}
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card primary">
+      <div class="stat-card-header">
+        <span class="stat-card-label">累计获得</span>
+        <span class="stat-card-icon material-symbols-outlined">savings</span>
+      </div>
+      <div class="stat-card-value">{{ "%.1f"|format(report.summary.total_acquired_hours) }}</div>
+      <div class="stat-card-footer text-on-surface-variant">小时</div>
     </div>
-</div>
+    <div class="stat-card secondary">
+      <div class="stat-card-header">
+        <span class="stat-card-label">当前可用</span>
+        <span class="stat-card-icon material-symbols-outlined">wallet</span>
+      </div>
+      <div class="stat-card-value">{{ "%.1f"|format(report.summary.total_available_hours) }}</div>
+      <div class="stat-card-footer text-on-surface-variant">小时</div>
+    </div>
+    <div class="stat-card tertiary">
+      <div class="stat-card-header">
+        <span class="stat-card-label">已使用</span>
+        <span class="stat-card-icon material-symbols-outlined">check_circle</span>
+      </div>
+      <div class="stat-card-value">{{ "%.1f"|format(report.summary.total_used_hours) }}</div>
+      <div class="stat-card-footer text-on-surface-variant">小时</div>
+    </div>
+    <div class="stat-card error">
+      <div class="stat-card-header">
+        <span class="stat-card-label">已过期</span>
+        <span class="stat-card-icon material-symbols-outlined">event_busy</span>
+      </div>
+      <div class="stat-card-value {% if report.summary.total_expired_hours > 0 %}error{% endif %}">
+        {{ "%.1f"|format(report.summary.total_expired_hours) }}
+      </div>
+      <div class="stat-card-footer text-on-surface-variant">小时</div>
+    </div>
+  </div>
 
-{% if report.expiring_items %}
-<div class="alert alert-warning mb-4">
-    <i class="bi bi-exclamation-triangle"></i>
-    <strong>到期提醒：</strong>有 {{ report.expiring_items|length }} 条调休余额将在 {{ report.warning_days }} 天内到期，请及时使用。
-</div>
-{% endif %}
-
-<div class="content-card">
+  <!-- Overtime Type Summary (FR-009) -->
+  <div class="content-card mb-6">
     <div class="content-card-header">
-        <h5><i class="bi bi-list"></i> 调休余额明细</h5>
+      <h2 class="content-card-title">加班类型统计</h2>
     </div>
-    <div class="content-card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>获得日期</th>
-                        <th>余额(小时)</th>
-                        <th>到期日期</th>
-                        <th>状态</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in report.balance_items %}
-                    <tr>
-                        <td>{{ item.acquired_date }}</td>
-                        <td>{{ "%.1f"|format(item.hours) }}</td>
-                        <td>{{ item.expiry_date or '-' }}</td>
-                        <td>
-                            <span class="badge bg-{{ 'success' if item.status == 'active' else 'secondary' }}">
-                                {{ item.status }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted py-5">
-                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                            暂无调休余额
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="content-card-body">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex items-center justify-between p-4 bg-info-container rounded-lg">
+          <div>
+            <p class="text-sm text-on-surface-variant">工作日延时</p>
+            <p class="text-2xl font-bold text-on-surface">{{ "%.1f"|format(report.overtime_summary.weekday_hours) }}<span class="text-sm font-normal">h</span></p>
+          </div>
+          <span class="chip chip-info">1.5倍</span>
         </div>
+        <div class="flex items-center justify-between p-4 bg-warning-container rounded-lg">
+          <div>
+            <p class="text-sm text-on-surface-variant">周末加班</p>
+            <p class="text-2xl font-bold text-on-surface">{{ "%.1f"|format(report.overtime_summary.weekend_hours) }}<span class="text-sm font-normal">h</span></p>
+          </div>
+          <span class="chip chip-warning">2倍 / 可调休</span>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-error-container rounded-lg">
+          <div>
+            <p class="text-sm text-on-surface-variant">法定节假日</p>
+            <p class="text-2xl font-bold text-on-surface">{{ "%.1f"|format(report.overtime_summary.holiday_hours) }}<span class="text-sm font-normal">h</span></p>
+          </div>
+          <span class="chip chip-error">3倍</span>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Expiry Warning -->
+  {% if report.expiring_items %}
+  <div class="alert alert-warning mb-6 flex items-center gap-3">
+    <span class="material-symbols-outlined text-xl">notification_important</span>
+    <div>
+      <strong>到期提醒：</strong>有 {{ report.expiring_items|length }} 条调休余额共
+      <strong>{{ "%.1f"|format(report.expiring_soon_hours) }} 小时</strong>
+      将在 {{ report.warning_days }} 天内到期，请及时使用。
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <!-- Left Column (2/3) -->
+    <div class="xl:col-span-2 space-y-6">
+
+      <!-- Balance Distribution -->
+      <div class="content-card">
+        <div class="content-card-header">
+          <h2 class="content-card-title">调休状态分布</h2>
+        </div>
+        <div class="content-card-body">
+          {% set total = report.balance_status.active_hours + report.balance_status.used_hours + report.balance_status.expired_hours %}
+          {% if total > 0 %}
+          <!-- Distribution Bars -->
+          <div class="flex h-4 rounded-full overflow-hidden bg-surface-container mb-4">
+            <div class="bg-secondary" style="width: {{ (report.balance_status.active_hours / total * 100)|round(1) }}%" title="可用 {{ "%.1f"|format(report.balance_status.active_hours) }} 小时"></div>
+            <div class="bg-tertiary-container" style="width: {{ (report.balance_status.used_hours / total * 100)|round(1) }}%" title="已用 {{ "%.1f"|format(report.balance_status.used_hours) }} 小时"></div>
+            <div class="bg-error" style="width: {{ (report.balance_status.expired_hours / total * 100)|round(1) }}%" title="过期 {{ "%.1f"|format(report.balance_status.expired_hours) }} 小时"></div>
+          </div>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-secondary"></span>
+              <span class="text-on-surface-variant">可用</span>
+              <span class="font-semibold text-on-surface">{{ "%.1f"|format(report.balance_status.active_hours) }}h</span>
+              <span class="text-on-surface-variant">({{ (report.balance_status.active_hours / total * 100)|round(1) }}%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-tertiary-container"></span>
+              <span class="text-on-surface-variant">已用</span>
+              <span class="font-semibold text-on-surface">{{ "%.1f"|format(report.balance_status.used_hours) }}h</span>
+              <span class="text-on-surface-variant">({{ (report.balance_status.used_hours / total * 100)|round(1) }}%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-error"></span>
+              <span class="text-on-surface-variant">过期</span>
+              <span class="font-semibold text-on-surface">{{ "%.1f"|format(report.balance_status.expired_hours) }}h</span>
+              <span class="text-on-surface-variant">({{ (report.balance_status.expired_hours / total * 100)|round(1) }}%)</span>
+            </div>
+          </div>
+          {% else %}
+          <div class="empty-state py-8">
+            <span class="material-symbols-outlined empty-state-icon">pie_chart</span>
+            <p class="empty-state-description">暂无调休数据</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Active Balances (FIFO) -->
+      <div class="content-card">
+        <div class="content-card-header">
+          <h2 class="content-card-title">可用余额明细（FIFO）</h2>
+          <span class="chip chip-success">共 {{ report.active_balances|length }} 条</span>
+        </div>
+        <div class="p-0">
+          {% if report.active_balances %}
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>来源加班</th>
+                  <th>获得日期</th>
+                  <th class="numeric">总时长</th>
+                  <th class="numeric">已使用</th>
+                  <th class="numeric">剩余</th>
+                  <th>使用进度</th>
+                  <th>到期日期</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in report.active_balances %}
+                <tr>
+                  <td>
+                    {% if item.source_overtime_date %}
+                    <span class="text-on-surface">{{ item.source_overtime_date }}</span>
+                    {% else %}
+                    <span class="text-on-surface-variant">—</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ item.acquired_date }}</td>
+                  <td class="numeric">{{ "%.1f"|format(item.total_hours) }}h</td>
+                  <td class="numeric text-on-surface-variant">{{ "%.1f"|format(item.used_hours) }}h</td>
+                  <td class="numeric font-semibold">{{ "%.1f"|format(item.remaining_hours) }}h</td>
+                  <td>
+                    <div class="w-24 h-2 bg-surface-container rounded-full overflow-hidden">
+                      <div class="h-full bg-secondary rounded-full" style="width: {{ item.usage_percentage }}%"></div>
+                    </div>
+                    <span class="text-xs text-on-surface-variant">{{ item.usage_percentage }}%</span>
+                  </td>
+                  <td>
+                    {% if item.expiry_date %}
+                    {{ item.expiry_date }}
+                    {% if item.days_to_expiry is not none %}
+                    <span class="text-xs ml-1
+                      {% if item.days_to_expiry <= 7 %}text-error font-medium{% elif item.days_to_expiry <= 30 %}text-amber-600{% else %}text-on-surface-variant{% endif %}">
+                      ({{ item.days_to_expiry }}天)
+                    </span>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-on-surface-variant">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="chip chip-success">有效</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state py-8">
+            <span class="material-symbols-outlined empty-state-icon">inbox</span>
+            <p class="empty-state-description">当前没有可用的调休余额</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Expired Balances -->
+      {% if report.expired_balances %}
+      <div class="content-card border-l-4 border-error">
+        <div class="content-card-header">
+          <h2 class="content-card-title">已过期记录</h2>
+        </div>
+        <div class="p-0">
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>来源加班</th>
+                  <th>获得日期</th>
+                  <th class="numeric">总时长</th>
+                  <th class="numeric">过期时长</th>
+                  <th>到期日期</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in report.expired_balances %}
+                <tr class="opacity-70">
+                  <td>
+                    {% if item.source_overtime_date %}{{ item.source_overtime_date }}{% else %}<span class="text-on-surface-variant">—</span>{% endif %}
+                  </td>
+                  <td>{{ item.acquired_date }}</td>
+                  <td class="numeric">{{ "%.1f"|format(item.total_hours) }}h</td>
+                  <td class="numeric text-error">{{ "%.1f"|format(item.expired_hours) }}h</td>
+                  <td class="text-error">{{ item.expiry_date }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Right Column (1/3) -->
+    <div class="space-y-6">
+
+      <!-- Usage History -->
+      <div class="content-card">
+        <div class="content-card-header">
+          <h2 class="content-card-title">调休使用流水</h2>
+        </div>
+        <div class="content-card-body p-0">
+          {% if report.usage_history %}
+          <div class="divide-y divide-surface-container">
+            {% for item in report.usage_history %}
+            <div class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+              <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-sm text-on-primary-fixed">hourglass_empty</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-start">
+                  <p class="font-medium text-on-surface truncate">{{ item.description }}</p>
+                  <span class="text-sm font-semibold text-on-surface">-{{ "%.1f"|format(item.hours) }}h</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mt-0.5">{{ item.usage_date }}</p>
+                {% if item.balance_acquired_date %}
+                <p class="text-xs text-on-surface-variant mt-1">来源: {{ item.balance_acquired_date }} 余额</p>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state py-8">
+            <span class="material-symbols-outlined empty-state-icon">history</span>
+            <p class="empty-state-description">暂无调休使用记录</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Labor Law Note -->
+      <div class="alert alert-info">
+        <span class="material-symbols-outlined">gavel</span>
+        <div>
+          <p class="font-medium">劳动法合规说明</p>
+          <p class="text-sm mt-1 opacity-90">
+            仅<strong>周末加班</strong>可转为调休时长。工作日延时加班与法定节假日加班必须支付工资，不可调休。
+            调休余额有效期为获得之日起180天，抵扣时遵循<strong>先到期先抵扣（FIFO）</strong>原则。
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

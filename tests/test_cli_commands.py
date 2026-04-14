@@ -7,11 +7,13 @@ CLI命令测试
 4. export命令 - 导出数据
 """
 
-import pytest
-from datetime import date
-import sqlite3
+import csv
 import os
+import pytest
+import sqlite3
 import tempfile
+from datetime import date
+from unittest.mock import patch
 
 
 @pytest.fixture
@@ -26,7 +28,10 @@ def memory_db():
             employee_id TEXT UNIQUE NOT NULL,
             name TEXT NOT NULL,
             daily_salary REAL DEFAULT 300.0,
-            hourly_salary REAL DEFAULT 37.5
+            hourly_salary REAL DEFAULT 37.5,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE overtime_records (
@@ -37,17 +42,24 @@ def memory_db():
             duration_minutes INTEGER NOT NULL DEFAULT 0,
             total_minutes INTEGER NOT NULL,
             overtime_type TEXT NOT NULL,
-            description TEXT
+            description TEXT,
+            raw_text TEXT,
+            source_import_id INTEGER,
+            employment_status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE import_sessions (
-            id INTEGER PRIMARY KEY,
-            employee_id TEXT NOT NULL,
-            import_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            file_name TEXT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_path TEXT NOT NULL,
+            employee_id TEXT,
+            status TEXT DEFAULT 'pending',
             total_records INTEGER DEFAULT 0,
-            success_records INTEGER DEFAULT 0,
-            failed_records INTEGER DEFAULT 0
+            processed_records INTEGER DEFAULT 0,
+            error_records INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP
         );
 
         CREATE TABLE comp_off_balances (
@@ -68,7 +80,26 @@ def memory_db():
             duration_hours INTEGER NOT NULL,
             duration_minutes INTEGER DEFAULT 0,
             total_minutes INTEGER NOT NULL,
-            leave_type TEXT NOT NULL
+            leave_type TEXT NOT NULL,
+            description TEXT,
+            raw_text TEXT,
+            source_import_id INTEGER
+        );
+
+        CREATE TABLE comp_off_usage_records (
+            id INTEGER PRIMARY KEY,
+            employee_id TEXT NOT NULL,
+            balance_id INTEGER,
+            used_minutes INTEGER DEFAULT 0,
+            usage_date DATE NOT NULL,
+            leave_record_id INTEGER,
+            duration_hours INTEGER NOT NULL,
+            duration_minutes INTEGER DEFAULT 0,
+            total_minutes INTEGER NOT NULL,
+            description TEXT,
+            source_import_id INTEGER,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         INSERT INTO employees (employee_id, name) VALUES
@@ -233,13 +264,61 @@ class TestReportCommand:
             generate_report(memory_db, employee_id='EMP001', report_type='invalid')
 
 
+class TestImportExcelCsvCommand:
+    """Excel/CSV导入命令测试"""
+
+    def test_import_csv_success(self, memory_db, tmp_path):
+        from src.cli.commands import import_excel_csv
+
+        csv_path = tmp_path / "records.csv"
+        with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["date", "hours", "type", "description"])
+            writer.writerow(["2025-10-22", "3.5", "overtime", "项目加班"])
+            writer.writerow(["2025-10-23", "8", "leave", "事假"])
+
+        result = import_excel_csv(memory_db, str(csv_path), "EMP001", file_format="csv")
+
+        assert result['success'] is True
+        assert result['record_count'] == 2
+
+    def test_import_csv_dry_run(self, memory_db, tmp_path):
+        from src.cli.commands import import_excel_csv
+
+        csv_path = tmp_path / "records.csv"
+        with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["date", "hours", "type"])
+            writer.writerow(["2025-10-22", "3", "overtime"])
+
+        result = import_excel_csv(memory_db, str(csv_path), "EMP001", dry_run=True)
+
+        assert result['success'] is True
+        assert result['dry_run'] is True
+        assert result['record_count'] == 1
+
+    def test_import_invalid_file(self, memory_db):
+        from src.cli.commands import import_excel_csv, CLIError
+
+        with pytest.raises(CLIError):
+            import_excel_csv(memory_db, "/nonexistent/file.csv", "EMP001")
+
+    def test_import_invalid_format(self, memory_db, tmp_path):
+        from src.cli.commands import import_excel_csv, CLIError
+
+        txt_path = tmp_path / "records.txt"
+        txt_path.write_text("hello")
+
+        with pytest.raises(CLIError):
+            import_excel_csv(memory_db, str(txt_path), "EMP001", file_format="auto")
+
+
 class TestExportCommand:
     """导出命令测试"""
 
-    def test_export_to_json(self, memory_db, tmp_path):
+    def test_export_overtime_to_json(self, memory_db, tmp_path):
         from src.cli.commands import export_data
 
-        # 插入记录
         cursor = memory_db.cursor()
         cursor.execute("""
             INSERT INTO overtime_records
@@ -251,9 +330,85 @@ class TestExportCommand:
         output_path = tmp_path / "export.json"
         result = export_data(
             memory_db,
+            data_type='overtime',
             employee_id='EMP001',
             format='json',
             output_path=str(output_path)
+        )
+
+        assert result['success'] is True
+        assert os.path.exists(output_path)
+
+    def test_export_overtime_to_csv(self, memory_db, tmp_path):
+        from src.cli.commands import export_data
+
+        cursor = memory_db.cursor()
+        cursor.execute("""
+            INSERT INTO overtime_records
+            (employee_id, work_date, duration_hours, duration_minutes, total_minutes, overtime_type)
+            VALUES ('EMP001', '2025-10-22', 3, 30, 210, 'weekday_evening')
+        """)
+        memory_db.commit()
+
+        output_path = tmp_path / "export.csv"
+        result = export_data(
+            memory_db,
+            data_type='overtime',
+            employee_id='EMP001',
+            format='csv',
+            output_path=str(output_path)
+        )
+
+        assert result['success'] is True
+        assert os.path.exists(output_path)
+        assert result['format'] == 'csv'
+
+    def test_export_report_monthly_to_xlsx(self, memory_db, tmp_path):
+        from src.cli.commands import export_data
+
+        cursor = memory_db.cursor()
+        cursor.execute("""
+            INSERT INTO overtime_records
+            (employee_id, work_date, duration_hours, duration_minutes, total_minutes, overtime_type)
+            VALUES ('EMP001', '2025-10-22', 3, 30, 210, 'weekday_evening')
+        """)
+        memory_db.commit()
+
+        output_path = tmp_path / "monthly.xlsx"
+        result = export_data(
+            memory_db,
+            data_type='report_monthly',
+            employee_id='EMP001',
+            format='xlsx',
+            output_path=str(output_path),
+            year=2025,
+            month=10
+        )
+
+        assert result['success'] is True
+        assert os.path.exists(output_path)
+        assert result['format'] == 'xlsx'
+
+    def test_export_report_salary_to_pdf(self, memory_db, tmp_path):
+        from src.cli.commands import export_data
+
+        cursor = memory_db.cursor()
+        cursor.execute("""
+            INSERT INTO overtime_records
+            (employee_id, work_date, duration_hours, duration_minutes, total_minutes, overtime_type)
+            VALUES ('EMP001', '2025-10-22', 3, 30, 210, 'weekday_evening')
+        """)
+        memory_db.commit()
+
+        output_path = tmp_path / "salary.pdf"
+        result = export_data(
+            memory_db,
+            data_type='report_salary',
+            employee_id='EMP001',
+            format='pdf',
+            output_path=str(output_path),
+            year=2025,
+            month=10
         )
 
         assert result['success'] is True
@@ -263,24 +418,13 @@ class TestExportCommand:
         from src.cli.commands import export_data, CLIError
 
         with pytest.raises(CLIError):
-            export_data(memory_db, employee_id='EMP001', format='invalid')
+            export_data(memory_db, data_type='overtime', employee_id='EMP001', format='invalid')
 
-    def test_export_to_csv(self, memory_db):
-        from src.cli.commands import export_data
+    def test_export_report_missing_year_month(self, memory_db):
+        from src.cli.commands import export_data, CLIError
 
-        # 插入记录
-        cursor = memory_db.cursor()
-        cursor.execute("""
-            INSERT INTO overtime_records
-            (employee_id, work_date, duration_hours, duration_minutes, total_minutes, overtime_type)
-            VALUES ('EMP001', '2025-10-22', 3, 30, 210, 'weekday_evening')
-        """)
-        memory_db.commit()
-
-        result = export_data(memory_db, employee_id='EMP001', format='csv')
-
-        assert result['success'] is True
-        assert result['format'] == 'csv'
+        with pytest.raises(CLIError):
+            export_data(memory_db, data_type='report_monthly', employee_id='EMP001', format='csv')
 
 
 class TestCalculateSalaryCommand:
@@ -402,3 +546,77 @@ class TestCompOffCommand:
 
         assert result['success'] is True
         assert result['marked_count'] == 0
+
+
+class TestEmployeeCommand:
+    """员工命令测试"""
+
+    def test_delete_employee(self, memory_db):
+        from src.cli.commands import delete_employee
+
+        cursor = memory_db.cursor()
+        cursor.execute("""
+            INSERT INTO employees (employee_id, name, is_active)
+            VALUES ('EMP003', '李四', 1)
+        """)
+        cursor.execute("""
+            INSERT INTO overtime_records
+            (employee_id, work_date, duration_hours, duration_minutes, total_minutes, overtime_type, employment_status)
+            VALUES ('EMP003', '2025-10-22', 3, 30, 210, 'weekday_evening', 'active')
+        """)
+        memory_db.commit()
+
+        result = delete_employee(memory_db, 'EMP003')
+
+        assert result['success'] is True
+        assert result['employee_id'] == 'EMP003'
+
+        cursor.execute("SELECT is_active FROM employees WHERE employee_id = ?", ('EMP003',))
+        row = cursor.fetchone()
+        assert row['is_active'] == 0
+
+        cursor.execute("SELECT employment_status FROM overtime_records WHERE employee_id = ?", ('EMP003',))
+        row = cursor.fetchone()
+        assert row['employment_status'] == 'inactive'
+
+    def test_delete_nonexistent_employee(self, memory_db):
+        from src.cli.commands import delete_employee, CLIError
+
+        with pytest.raises(CLIError):
+            delete_employee(memory_db, 'NONEXISTENT')
+
+
+class TestNotifyCommand:
+    """通知命令测试"""
+
+    @patch.dict('os.environ', {
+        'SMTP_HOST': 'smtp.example.com',
+        'SMTP_PORT': '587',
+        'SMTP_USER': 'user@example.com',
+        'SMTP_PASSWORD': 'secret',
+        'HR_NOTIFICATION_EMAIL': 'hr@example.com'
+    }, clear=True)
+    def test_notify_comp_off_expiry(self, memory_db):
+        from src.cli.commands import notify_comp_off_expiry
+
+        # 先创建 notification_history 表
+        cursor = memory_db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notification_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                notification_type TEXT NOT NULL,
+                trigger_mode TEXT NOT NULL,
+                recipient_email TEXT NOT NULL,
+                employee_id TEXT,
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status TEXT NOT NULL,
+                error_message TEXT,
+                content_summary TEXT,
+                days_threshold INTEGER
+            )
+        """)
+        memory_db.commit()
+
+        result = notify_comp_off_expiry(memory_db, threshold=30, dry_run=True)
+        assert result['success'] is True
+        assert result['dry_run'] is True

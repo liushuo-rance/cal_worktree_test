@@ -108,3 +108,58 @@ class TestHolidayIntegration:
         """测试节假日列表加载"""
         response = client.get('/holidays/')
         assert response.status_code == 200
+
+
+class TestAssistantIntegration:
+    """测试 AI 助手集成"""
+
+    def test_stream_returns_tool_call_record_event(self, client, monkeypatch):
+        """SSE 流中应包含 tool_call_record 事件"""
+        from services.assistant_service import AssistantService
+
+        def mock_chat_stream(self, messages, db_conn):
+            yield {"type": "status", "status": "thinking", "message": "AI 正在思考..."}
+            yield {"type": "tool_call_record", "api_name": "query_records", "arguments": {"employee_id": "EMP001"}}
+            yield {"type": "status", "status": "calling_api", "api_name": "query_records", "message": "正在调用 query_records..."}
+            yield {"type": "tool_result", "api_name": "query_records", "result": {"success": True, "data": []}}
+            yield {
+                "type": "done",
+                "full_text": "查询完成",
+                "messages": messages + [
+                    {"role": "tool_call", "content": "调用了 query_records", "api_name": "query_records", "arguments": {"employee_id": "EMP001"}},
+                    {"role": "assistant", "content": "查询完成"}
+                ]
+            }
+
+        monkeypatch.setattr(AssistantService, 'chat_stream', mock_chat_stream)
+
+        with client:
+            response = client.post('/assistant/stream', json={"message": "查询 EMP001 的记录"})
+            assert response.status_code == 200
+            assert 'text/event-stream' in response.content_type
+
+            data = response.data.decode('utf-8')
+            assert '"type": "tool_call_record"' in data
+            assert '"api_name": "query_records"' in data
+
+        # 验证 session 已保存
+        with client.session_transaction() as sess:
+            msgs = sess.get('assistant_chat', [])
+            tool_calls = [m for m in msgs if m.get('role') == 'tool_call']
+            assert len(tool_calls) == 1
+            assert tool_calls[0]['api_name'] == 'query_records'
+
+    def test_assistant_page_renders_tool_call_history(self, client):
+        """助手页面应渲染历史对话中的 tool_call 记录"""
+        with client.session_transaction() as sess:
+            sess['assistant_chat'] = [
+                {"role": "user", "content": "查一下记录"},
+                {"role": "tool_call", "content": "调用了 query_records", "api_name": "query_records", "arguments": {"employee_id": "EMP001"}},
+                {"role": "assistant", "content": "找到了 0 条记录"},
+            ]
+
+        response = client.get('/assistant/')
+        assert response.status_code == 200
+        html = response.data.decode('utf-8')
+        assert 'build_circle' in html
+        assert '"employee_id": "EMP001"' in html

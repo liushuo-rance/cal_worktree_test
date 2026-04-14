@@ -58,6 +58,20 @@ def memory_db():
             status TEXT DEFAULT 'active'
         );
 
+        CREATE TABLE comp_off_usage_records (
+            id INTEGER PRIMARY KEY,
+            employee_id TEXT NOT NULL,
+            balance_id INTEGER,
+            used_minutes INTEGER,
+            usage_date DATE,
+            duration_hours INTEGER,
+            duration_minutes INTEGER,
+            total_minutes INTEGER,
+            description TEXT,
+            leave_record_id INTEGER,
+            status TEXT DEFAULT 'approved'
+        );
+
         -- 插入测试员工
         INSERT INTO employees (employee_id, name, hourly_salary) VALUES
             ('EMP001', '张三', 50.0),
@@ -148,21 +162,21 @@ class TestCompOffBalanceReport:
         report = generate_comp_off_report(memory_db, employee_id='EMP001')
 
         assert report['employee_id'] == 'EMP001'
-        assert report['total_hours'] == 30.0  # 15 + 15
-        assert 'balance_items' in report
+        assert report['summary']['total_available_hours'] == 30.0  # 15 + 15
+        assert 'active_balances' in report
 
     def test_comp_off_balance_items(self, memory_db):
         from src.services.report_service import generate_comp_off_report
 
         report = generate_comp_off_report(memory_db, employee_id='EMP001')
 
-        items = report['balance_items']
+        items = report['active_balances']
         assert len(items) == 2
 
         # 检查第一条调休余额
         first = items[0]
         assert first['acquired_date'] == '2025-10-25'
-        assert first['hours'] == 15.0
+        assert first['remaining_hours'] == 15.0
         assert first['expiry_date'] == '2026-04-25'
         assert first['status'] == 'active'
 
