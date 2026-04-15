@@ -109,51 +109,87 @@
         </div>
 
         <nav class="sidebar-nav">
-            <a href="{{ url_for('dashboard.index') }}"
-               class="sidebar-nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span>Dashboard</span>
-            </a>
-            <a href="{{ url_for('employees.list_employees') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('employees') %}active{% endif %}">
-                <span class="material-symbols-outlined">badge</span>
-                <span>员工管理</span>
-            </a>
-            <a href="{{ url_for('records.import_records') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('records') %}active{% endif %}">
-                <span class="material-symbols-outlined">upload_file</span>
-                <span>记录导入</span>
-            </a>
-            <a href="{{ url_for('review.review_queue') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('review') %}active{% endif %}">
-                <span class="material-symbols-outlined">fact_check</span>
-                <span>审批队列</span>
-            </a>
-            <a href="{{ url_for('reports.reports_index') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('reports') %}active{% endif %}">
-                <span class="material-symbols-outlined">description</span>
-                <span>报表查看</span>
-            </a>
-            <a href="{{ url_for('holidays.list_holidays') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('holidays') %}active{% endif %}">
-                <span class="material-symbols-outlined">calendar_today</span>
-                <span>节假日管理</span>
-            </a>
-            <a href="{{ url_for('notifications.inbox') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('notifications') %}active{% endif %}">
-                <span class="material-symbols-outlined">notifications</span>
-                <span>通知中心</span>
-            </a>
-            <a href="{{ url_for('assistant.index') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('assistant') %}active{% endif %}">
-                <span class="material-symbols-outlined">smart_toy</span>
-                <span>AI 助手</span>
-            </a>
-            <a href="{{ url_for('settings.settings_index') }}"
-               class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('settings') %}active{% endif %}">
-                <span class="material-symbols-outlined">settings</span>
-                <span>系统设置</span>
-            </a>
+            {% if session.get('user_id') %}
+                {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('dashboard.index') }}"
+                       class="sidebar-nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('employees.list_employees') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('employees') %}active{% endif %}">
+                        <span class="material-symbols-outlined">badge</span>
+                        <span>员工管理</span>
+                    </a>
+                    <a href="{{ url_for('records.import_records') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('records') %}active{% endif %}">
+                        <span class="material-symbols-outlined">upload_file</span>
+                        <span>记录导入</span>
+                    </a>
+                    <a href="{{ url_for('review.review_queue') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('review') %}active{% endif %}">
+                        <span class="material-symbols-outlined">fact_check</span>
+                        <span>审批队列</span>
+                    </a>
+                    <a href="{{ url_for('reports.reports_index') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('reports') %}active{% endif %}">
+                        <span class="material-symbols-outlined">description</span>
+                        <span>报表查看</span>
+                    </a>
+                    <a href="{{ url_for('holidays.list_holidays') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('holidays') %}active{% endif %}">
+                        <span class="material-symbols-outlined">calendar_today</span>
+                        <span>节假日管理</span>
+                    </a>
+                    <a href="{{ url_for('notifications.inbox') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('notifications') %}active{% endif %}">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span>通知中心</span>
+                    </a>
+                    <a href="{{ url_for('assistant.index') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('assistant') %}active{% endif %}">
+                        <span class="material-symbols-outlined">smart_toy</span>
+                        <span>AI 助手</span>
+                    </a>
+                    <a href="{{ url_for('settings.settings_index') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('settings') %}active{% endif %}">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span>系统设置</span>
+                    </a>
+                {% else %}
+                    {# 普通用户导航 #}
+                    {% set my_employee_id = session.get('employee_id', '') %}
+                    <a href="{{ url_for('employees.employee_detail', id=my_employee_id) }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('employees') %}active{% endif %}">
+                        <span class="material-symbols-outlined">person</span>
+                        <span>我的记录</span>
+                    </a>
+                    <a href="{{ url_for('reports.reports_index') }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint == 'reports.reports_index' %}active{% endif %}">
+                        <span class="material-symbols-outlined">description</span>
+                        <span>我的报表</span>
+                    </a>
+                    {% if my_employee_id %}
+                    <a href="{{ url_for('reports.monthly_report', employee_id=my_employee_id) }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint == 'reports.monthly_report' %}active{% endif %}">
+                        <span class="material-symbols-outlined">event_note</span>
+                        <span>月度报表</span>
+                    </a>
+                    <a href="{{ url_for('reports.comp_off_report', employee_id=my_employee_id) }}"
+                       class="sidebar-nav-item {% if request.endpoint and request.endpoint == 'reports.comp_off_report' %}active{% endif %}">
+                        <span class="material-symbols-outlined">timer</span>
+                        <span>调休余额</span>
+                    </a>
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                {# 未登录状态 #}
+                <a href="{{ url_for('auth.login') }}"
+                   class="sidebar-nav-item {% if request.endpoint and request.endpoint.startswith('auth') %}active{% endif %}">
+                    <span class="material-symbols-outlined">login</span>
+                    <span>登录</span>
+                </a>
+            {% endif %}
         </nav>
 
         <div class="sidebar-footer">
@@ -184,26 +220,41 @@
             </div>
 
             <div class="top-app-bar-actions">
-                <!-- Search trigger (icon-only, compact) -->
-                <a href="{{ url_for('records.search_records') }}?next={{ request.path | urlencode }}" class="top-app-bar-btn" aria-label="搜索" title="搜索">
-                    <span class="material-symbols-outlined">search</span>
-                </a>
+                {% if session.get('user_id') %}
+                    {% if session.get('role') == 'admin' %}
+                        <!-- Search trigger (icon-only, compact) -->
+                        <a href="{{ url_for('records.search_records') }}?next={{ request.path | urlencode }}" class="top-app-bar-btn" aria-label="搜索" title="搜索">
+                            <span class="material-symbols-outlined">search</span>
+                        </a>
 
-                <!-- Notifications -->
-                <a href="{{ url_for('notifications.inbox') }}" class="top-app-bar-btn relative" aria-label="通知" title="通知" id="notification-bell">
-                    <span class="material-symbols-outlined">notifications</span>
-                    <span class="notification-badge hidden" id="notification-badge" aria-hidden="true">0</span>
-                </a>
+                        <!-- Notifications -->
+                        <a href="{{ url_for('notifications.inbox') }}" class="top-app-bar-btn relative" aria-label="通知" title="通知" id="notification-bell">
+                            <span class="material-symbols-outlined">notifications</span>
+                            <span class="notification-badge hidden" id="notification-badge" aria-hidden="true">0</span>
+                        </a>
 
-                <!-- Settings -->
-                <a href="{{ url_for('settings.settings_index') }}" class="top-app-bar-btn" aria-label="设置" title="设置">
-                    <span class="material-symbols-outlined">settings</span>
-                </a>
+                        <!-- Settings -->
+                        <a href="{{ url_for('settings.settings_index') }}" class="top-app-bar-btn" aria-label="设置" title="设置">
+                            <span class="material-symbols-outlined">settings</span>
+                        </a>
+                    {% endif %}
 
-                <!-- User Avatar -->
-                <div class="user-avatar" title="管理员">
-                    <span>AD</span>
-                </div>
+                    <!-- User Avatar -->
+                    <div class="user-avatar" title="{{ session.get('username', '用户') }}">
+                        <span>{{ session.get('username', '用户')[:2] | upper }}</span>
+                    </div>
+
+                    <!-- Logout -->
+                    <form method="post" action="{{ url_for('auth.logout') }}" class="inline-flex">
+                        <button type="submit" class="top-app-bar-btn" aria-label="登出" title="登出">
+                            <span class="material-symbols-outlined">logout</span>
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('auth.login', next=request.path) }}" class="top-app-bar-btn" aria-label="登录" title="登录">
+                        <span class="material-symbols-outlined">login</span>
+                    </a>
+                {% endif %}
             </div>
         </header>
 

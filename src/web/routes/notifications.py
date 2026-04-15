@@ -6,6 +6,7 @@ import sqlite3
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 
 from web.utils import get_db
+from web.decorators import admin_required
 
 import sys
 import os
@@ -19,6 +20,7 @@ bp = Blueprint('notifications', __name__, url_prefix='/notifications')
 
 
 @bp.route('/')
+@admin_required
 def notification_center():
     """通知中心首页"""
     conn = get_db()
@@ -140,6 +142,7 @@ def api_delete(notification_id: int):
 
 
 @bp.route('/send/comp-off-expiry', methods=['POST'])
+@admin_required
 def send_comp_off_expiry():
     """手动发送调休到期提醒"""
     conn = get_db()

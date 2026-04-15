@@ -10,6 +10,7 @@ import os
 from flask import Blueprint, render_template
 
 from web.utils import get_db
+from web.decorators import admin_required
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from services.report_service import generate_overtime_ranking
@@ -20,6 +21,7 @@ bp = Blueprint('dashboard', __name__)
 
 
 @bp.route('/')
+@admin_required
 def index():
     """首页/Dashboard"""
     conn = get_db()

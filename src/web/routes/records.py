@@ -17,6 +17,7 @@ from flask import (
 )
 
 from web.utils import get_db
+from web.decorators import admin_required
 import sys
 import os
 
@@ -434,6 +435,7 @@ def parse_file_content(content: str, session_key: str = None) -> Dict[str, Any]:
 
 
 @bp.route('/import/', methods=['GET', 'POST'])
+@admin_required
 def import_records():
     """导入记录页面 - 第一步：上传和预览"""
     if request.method == 'POST':
@@ -570,6 +572,7 @@ def import_records():
 
 
 @bp.route('/import/stream/')
+@admin_required
 def import_stream():
     """SSE 流式 AI 解析"""
     session_key = request.args.get('key') or session.get('current_parse_key')
@@ -727,6 +730,7 @@ def import_stream():
 
 
 @bp.route('/import/preview/')
+@admin_required
 def import_preview():
     """导入预览页面 - 第二步：查看和确认"""
     preview_data = session.get('import_preview')
@@ -748,6 +752,7 @@ def import_preview():
 
 
 @bp.route('/import/confirm/', methods=['POST'])
+@admin_required
 def import_confirm():
     """确认导入 - 第三步：保存到数据库"""
     preview_data = session.get('import_preview')
@@ -984,6 +989,7 @@ def import_confirm():
 
 
 @bp.route('/import/cancel/')
+@admin_required
 def import_cancel():
     """取消导入"""
     session.pop('import_preview', None)
@@ -994,6 +1000,7 @@ def import_cancel():
 
 
 @bp.route('/import/employee/<employee_id>/', methods=['GET', 'POST'])
+@admin_required
 def import_for_employee(employee_id: str):
     """为指定员工导入记录"""
     conn = get_db()
@@ -1117,6 +1124,7 @@ def import_for_employee(employee_id: str):
 
 
 @bp.route('/search/')
+@admin_required
 def search_records():
     """全局记录查询页面 - 按日期范围和类型搜索跨员工记录"""
     start_date = request.args.get('start_date', '').strip()
@@ -1257,6 +1265,7 @@ def search_records():
 
 
 @bp.route('/sessions/')
+@admin_required
 def import_sessions():
     """导入会话列表页"""
     conn = get_db()
@@ -1276,6 +1285,7 @@ def import_sessions():
 
 
 @bp.route('/sessions/<int:session_id>/delete/', methods=['POST'])
+@admin_required
 def delete_import_session(session_id: int):
     """批量删除某导入会话下的所有记录"""
     conn = get_db()
@@ -1313,6 +1323,7 @@ def delete_import_session(session_id: int):
 
 
 @bp.route('/import/progress/')
+@admin_required
 def import_progress():
     """获取解析进度API"""
     session_key = session.get('current_parse_key')

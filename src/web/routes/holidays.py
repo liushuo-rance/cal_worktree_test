@@ -11,6 +11,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from parsers.holiday_notification_parser import parse_notification
+from web.decorators import admin_required
 
 bp = Blueprint('holidays', __name__, url_prefix='/holidays')
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ def get_db():
 
 
 @bp.route('/')
+@admin_required
 def list_holidays():
     """节假日列表"""
     conn = get_db()
@@ -66,6 +68,7 @@ def list_holidays():
 
 
 @bp.route('/import/', methods=['GET', 'POST'])
+@admin_required
 def import_holidays():
     """导入节假日"""
     if request.method == 'POST':
@@ -162,6 +165,7 @@ def import_holidays():
 
 
 @bp.route('/delete/<date>', methods=['POST'])
+@admin_required
 def delete_holiday(date):
     """删除指定日期的节假日"""
     conn = get_db()
@@ -192,6 +196,7 @@ def delete_holiday(date):
 
 
 @bp.route('/delete-year/<int:year>', methods=['POST'])
+@admin_required
 def delete_year_holidays(year):
     """删除指定年份的所有节假日"""
     conn = get_db()

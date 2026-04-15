@@ -77,6 +77,60 @@
         </div>
     </div>
 
+    <!-- User Account Card -->
+    <div class="content-card mb-8">
+        <div class="content-card-header">
+            <h5 class="content-card-title">
+                <span class="material-symbols-outlined inline-icon">account_circle</span>
+                登录账号
+            </h5>
+        </div>
+        <div class="content-card-body">
+            {% if user_account %}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-body-md">
+                        <span class="text-on-surface-variant">用户名:</span>
+                        <code class="font-mono text-label-md bg-surface-container px-2 py-1 rounded ml-2">{{ user_account.username }}</code>
+                    </p>
+                    <p class="text-body-md mt-2">
+                        <span class="text-on-surface-variant">角色:</span>
+                        <span class="badge badge-outline ml-2">{{ '管理员' if user_account.role == 'admin' else '普通用户' }}</span>
+                    </p>
+                    <p class="text-body-md mt-2">
+                        <span class="text-on-surface-variant">状态:</span>
+                        <span class="badge badge-{{ 'success' if user_account.is_active else 'error' }} ml-2">{{ '启用中' if user_account.is_active else '已禁用' }}</span>
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state py-6">
+                <span class="material-symbols-outlined empty-state-icon">person_add</span>
+                <h3 class="empty-state-title">暂无登录账号</h3>
+                <p class="empty-state-description mb-4">该员工还没有系统登录账号</p>
+                <form method="POST" action="{{ url_for('employees.create_user', employee_id=employee.employee_id) }}" class="max-w-md mx-auto text-left">
+                    <div class="mb-4">
+                        <label class="form-label">用户名</label>
+                        <input type="text" name="username" class="form-input" placeholder="例如: {{ employee.employee_id }}" value="{{ employee.employee_id }}" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">确认密码</label>
+                        <input type="password" name="confirm_password" class="form-input" placeholder="请再次输入密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="material-symbols-outlined">add_circle</span>
+                        创建账号
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Overtime Heatmap -->
     <div class="content-card mb-8">
         <div class="content-card-header">

@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 from flask import Blueprint, request, jsonify
 
 from web.utils import get_db
+from web.decorators import admin_required
 import sys
 import os
 
@@ -72,6 +73,7 @@ def _adapt_records_for_storage(normalized_records: List[Dict[str, Any]], employe
 
 
 @bp.route('/records/import/', methods=['POST'])
+@admin_required
 def api_import_records():
     """
     JSON 批量导入接口

@@ -12,6 +12,7 @@ from urllib.parse import quote
 from flask import Blueprint, render_template, redirect, url_for, request, Response
 
 from web.utils import get_db
+from web.decorators import login_required, admin_required, self_or_admin
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -158,6 +159,7 @@ def _comp_off_report_to_structures(report: dict):
 # ---------------------------------------------------------------------------
 
 @bp.route('/')
+@login_required
 def reports_index():
     """报表首页"""
     conn = get_db()
@@ -176,6 +178,7 @@ def reports_index():
 
 
 @bp.route('/monthly/<employee_id>/')
+@self_or_admin
 def monthly_report_default(employee_id):
     """月度报表 - 默认当前年月"""
     now = datetime.now()
@@ -183,6 +186,7 @@ def monthly_report_default(employee_id):
 
 
 @bp.route('/monthly/<employee_id>/<int:year>/<int:month>/')
+@self_or_admin
 def monthly_report(employee_id, year, month):
     """月度报表"""
     conn = get_db()
@@ -215,6 +219,7 @@ def monthly_report(employee_id, year, month):
 
 
 @bp.route('/comp-off/<employee_id>/')
+@self_or_admin
 def comp_off_report(employee_id):
     """调休余额报表"""
     conn = get_db()
@@ -235,6 +240,7 @@ def comp_off_report(employee_id):
 
 
 @bp.route('/comp-off/<employee_id>/export/')
+@self_or_admin
 def comp_off_report_export(employee_id):
     """调休余额报表导出"""
     fmt = request.args.get('format', 'csv').lower()
@@ -278,6 +284,7 @@ def comp_off_report_export(employee_id):
 
 
 @bp.route('/salary/<employee_id>/<int:year>/<int:month>/')
+@self_or_admin
 def salary_report(employee_id, year, month):
     """工资计算表"""
     conn = get_db()
@@ -300,6 +307,7 @@ def salary_report(employee_id, year, month):
 
 
 @bp.route('/ranking/')
+@admin_required
 def overtime_ranking():
     """员工加班排名"""
     year = request.args.get('year', type=int)
@@ -334,6 +342,7 @@ def overtime_ranking():
 # ---------------------------------------------------------------------------
 
 @bp.route('/monthly/<employee_id>/<int:year>/<int:month>/export/')
+@self_or_admin
 def monthly_report_export(employee_id, year, month):
     """月度报表导出"""
     fmt = request.args.get('format', 'csv').lower()
@@ -380,6 +389,7 @@ def monthly_report_export(employee_id, year, month):
     return "不支持的格式", 400
 
 @bp.route('/salary/<employee_id>/<int:year>/<int:month>/export/')
+@self_or_admin
 def salary_report_export(employee_id, year, month):
     """工资报表导出"""
     fmt = request.args.get('format', 'csv').lower()
