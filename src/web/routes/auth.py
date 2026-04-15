@@ -75,11 +75,13 @@ def login_page():
 
     # 登录后跳转：管理员去首页，普通用户去自己的月度报表页
     next_url = request.form.get('next') or request.args.get('next')
-    if not next_url:
-        if user['role'] == 'admin':
+    employee_id = user['employee_id']
+    if user['role'] == 'admin':
+        if not next_url:
             next_url = url_for('dashboard.index')
-        else:
-            employee_id = user['employee_id']
+    else:
+        # 普通用户：next_url 必须包含自己的 employee_id 才可信，否则去默认页
+        if not next_url or not employee_id or employee_id not in next_url:
             if employee_id:
                 next_url = url_for('reports.monthly_report_default', employee_id=employee_id)
             else:
